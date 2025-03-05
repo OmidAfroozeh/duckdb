@@ -80,6 +80,9 @@ template <>
 hash_t Hash(string_t val) {
 	// If the string is inlined, we can do a branchless hash
 	if (val.IsInlined()) {
+		hugeint_t str_data;
+		memcpy(&str_data, val.GetData(), val.INLINE_LENGTH);
+		return Hash(str_data);
 		// This seed slightly improves bit distribution, taken from here:
 		// https://github.com/martinus/robin-hood-hashing/blob/3.11.5/LICENSE
 		// MIT License Copyright (c) 2018-2021 Martin Ankerl
