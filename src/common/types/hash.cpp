@@ -88,9 +88,9 @@ hash_t Hash(string_t val) {
 	// If the string is inlined, we can do a branchless hash
 	if (val.IsInlined()) {
 //
-//		hugeint_t str_data;
-//		ReverseMemCpy(data_ptr_cast(&str_data), const_data_ptr_cast(val.GetPrefix()), 12);
-//		return Hash(str_data);
+		hugeint_t str_data;
+		ReverseMemCpy(data_ptr_cast(&str_data), const_data_ptr_cast(val.GetPrefix()), 12);
+		return Hash(str_data);
 
 //		hash_t h = 0xe17a1465U ^ (val.GetSize() * 0xc6a4a7935bd1e995U);
 //
