@@ -45,7 +45,7 @@ public:
 	//! Ensure that heap blocks correspond to row blocks
 	static void AlignHeapBlocks(RowDataCollection &dst_block_collection, RowDataCollection &dst_string_heap,
 	                            RowDataCollection &src_block_collection, RowDataCollection &src_string_heap,
-	                            const RowLayout &layout);
+	                            const RowLayout &layout, optional_ptr<ClientContext> context);
 
 	RowDataCollectionScanner(RowDataCollection &rows, RowDataCollection &heap, const RowLayout &layout, bool external,
 	                         bool flush = true);
@@ -82,12 +82,12 @@ public:
 	//! Swizzle the blocks for external scanning
 	//! Swizzling is all or nothing, so if we have scanned previously,
 	//! we need to re-swizzle.
-	void ReSwizzle();
+	void ReSwizzle(optional_ptr<ClientContext> context);
 
-	void SwizzleBlock(idx_t block_idx);
+	void SwizzleBlock(idx_t block_idx, optional_ptr<ClientContext> context);
 
 	//! Scans the next data chunk from the sorted data
-	void Scan(DataChunk &chunk);
+	void Scan(DataChunk &chunk, optional_ptr<ClientContext> context);
 
 	//! Resets to the start and updates the flush flag
 	void Reset(bool flush = true);
@@ -115,7 +115,7 @@ private:
 	const bool unswizzling;
 
 	//! Swizzle a single block
-	void SwizzleBlockInternal(RowDataBlock &data_block, RowDataBlock &heap_block);
+	void SwizzleBlockInternal(RowDataBlock &data_block, RowDataBlock &heap_block, optional_ptr<ClientContext> context);
 	//! Checks that the newest block is valid
 	void ValidateUnscannedBlock() const;
 };

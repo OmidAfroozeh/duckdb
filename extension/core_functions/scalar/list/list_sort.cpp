@@ -73,7 +73,7 @@ ListSortBindData::~ListSortBindData() {
 // create the key_chunk and the payload_chunk and sink them into the local_sort_state
 void SinkDataChunk(Vector *child_vector, SelectionVector &sel, idx_t offset_lists_indices, vector<LogicalType> &types,
                    vector<LogicalType> &payload_types, Vector &payload_vector, LocalSortState &local_sort_state,
-                   bool &data_to_sort, Vector &lists_indices) {
+                   bool &data_to_sort, Vector &lists_indices, optional_ptr<ClientContext> context) {
 
 	// slice the child vector
 	Vector slice(*child_vector, sel, offset_lists_indices);
@@ -96,7 +96,7 @@ void SinkDataChunk(Vector *child_vector, SelectionVector &sel, idx_t offset_list
 
 	// sink
 	key_chunk.Flatten();
-	local_sort_state.SinkChunk(key_chunk, payload_chunk);
+	local_sort_state.SinkChunk(key_chunk, payload_chunk, context);
 	data_to_sort = true;
 }
 
@@ -175,7 +175,7 @@ static void ListSortFunction(DataChunk &args, ExpressionState &state, Vector &re
 			// lists_indices vector is full, sink
 			if (offset_lists_indices == STANDARD_VECTOR_SIZE) {
 				SinkDataChunk(&child_vector, sel, offset_lists_indices, info.types, info.payload_types, payload_vector,
-				              local_sort_state, data_to_sort, lists_indices);
+				              local_sort_state, data_to_sort, lists_indices, global_sort_state.context);
 				offset_lists_indices = 0;
 			}
 
@@ -190,7 +190,7 @@ static void ListSortFunction(DataChunk &args, ExpressionState &state, Vector &re
 
 	if (offset_lists_indices != 0) {
 		SinkDataChunk(&child_vector, sel, offset_lists_indices, info.types, info.payload_types, payload_vector,
-		              local_sort_state, data_to_sort, lists_indices);
+		              local_sort_state, data_to_sort, lists_indices, global_sort_state.context);
 	}
 
 	if (info.is_grade_up) {
