@@ -360,7 +360,10 @@ struct StandardValueCopy : public BaseValueCopy<T> {
 
 struct StringValueCopy : public BaseValueCopy<string_t> {
 	static string_t Operation(ColumnDataMetaData &meta_data, string_t input) {
-		return input.IsInlined() ? input : meta_data.segment.heap->AddBlob(input);
+		return (input.IsInlined() ||
+		        (!input.IsInlined() && (string_t::isInUnifiedStringDictionary(data_ptr_cast(input.GetPointer())))))
+		           ? input
+		           : meta_data.segment.heap->AddBlob(input);
 	}
 };
 
@@ -499,7 +502,8 @@ void ColumnDataCopy<string_t>(ColumnDataMetaData &meta_data, const UnifiedVector
 				continue;
 			}
 			const auto &entry = source_entries[source_idx];
-			if (entry.IsInlined()) {
+			if (entry.IsInlined() ||
+			    (!entry.IsInlined() && (string_t::isInUnifiedStringDictionary(data_ptr_cast(entry.GetPointer()))))) {
 				continue;
 			}
 			if (heap_size + entry.GetSize() > block_size) {
@@ -552,7 +556,9 @@ void ColumnDataCopy<string_t>(ColumnDataMetaData &meta_data, const UnifiedVector
 			}
 			const auto &source_entry = source_entries[source_idx];
 			auto &target_entry = target_entries[target_idx];
-			if (source_entry.IsInlined()) {
+			if (source_entry.IsInlined() ||
+			    (!source_entry.IsInlined() &&
+			     (string_t::isInUnifiedStringDictionary(data_ptr_cast(source_entry.GetPointer()))))) {
 				target_entry = source_entry;
 			} else {
 				D_ASSERT(heap_ptr != nullptr);
@@ -812,7 +818,6 @@ void ColumnDataCollection::Append(ColumnDataAppendState &state, DataChunk &input
 		auto input_types = input.GetTypes();
 		D_ASSERT(types == input_types);
 	}
-
 	auto &segment = *segments.back();
 	for (idx_t vector_idx = 0; vector_idx < types.size(); vector_idx++) {
 		if (IsComplexType(input.data[vector_idx].GetType())) {
