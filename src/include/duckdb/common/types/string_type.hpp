@@ -15,6 +15,8 @@
 #include "duckdb/common/limits.hpp"
 #include "duckdb/common/types/hash.hpp"
 
+#include "duckdb/optimizer/UnifiedStringDictionary.h"
+
 #include <cstring>
 #include <algorithm>
 
@@ -41,6 +43,9 @@ public:
 		value.inlined.length = len;
 	}
 	string_t(const char *data, uint32_t len) {
+		uint64_t d = UnifiedStringsDictionary::USSR_prefix;
+		d +=2;
+		Hash(d);
 		value.inlined.length = len;
 		D_ASSERT(data || GetSize() == 0);
 		if (IsInlined()) {
