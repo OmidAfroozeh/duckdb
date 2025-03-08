@@ -57,5 +57,6 @@ class LogicalTopN;
 class LogicalUnnest;
 class LogicalUpdate;
 class LogicalWindow;
+class LogicalUSSRInsertion;
 
 } // namespace duckdb
