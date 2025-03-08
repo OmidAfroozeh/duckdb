@@ -253,11 +253,11 @@ void RadixHTGlobalSinkState::Destroy() {
 		if (data_collection.Count() == 0) {
 			continue;
 		}
-		TupleDataChunkIterator iterator(data_collection, TupleDataPinProperties::DESTROY_AFTER_DONE, false);
+		TupleDataChunkIterator iterator(data_collection, TupleDataPinProperties::DESTROY_AFTER_DONE, false, context);
 		auto &row_locations = iterator.GetChunkState().row_locations;
 		do {
 			RowOperations::DestroyStates(row_state, layout, row_locations, iterator.GetCurrentChunkCount());
-		} while (iterator.Next());
+		} while (iterator.Next(context));
 		data_collection.Reset();
 	}
 }
@@ -861,7 +861,7 @@ void RadixHTLocalSourceState::Scan(RadixHTGlobalSinkState &sink, RadixHTGlobalSo
 		scan_status = RadixHTScanStatus::IN_PROGRESS;
 	}
 
-	if (!data_collection.Scan(scan_state, scan_chunk)) {
+	if (!data_collection.Scan(scan_state, scan_chunk, gstate.context)) {
 		if (sink.scan_pin_properties == TupleDataPinProperties::DESTROY_AFTER_DONE) {
 			data_collection.Reset();
 		}

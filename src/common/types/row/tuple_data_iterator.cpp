@@ -2,15 +2,17 @@
 
 #include "duckdb/common/types/row/tuple_data_allocator.hpp"
 
+#include "duckdb/common/stacktrace.hpp"
 namespace duckdb {
 
 TupleDataChunkIterator::TupleDataChunkIterator(TupleDataCollection &collection_p, TupleDataPinProperties properties_p,
-                                               bool init_heap)
-    : TupleDataChunkIterator(collection_p, properties_p, 0, collection_p.ChunkCount(), init_heap) {
+                                               bool init_heap, optional_ptr<ClientContext> context)
+    : TupleDataChunkIterator(collection_p, properties_p, 0, collection_p.ChunkCount(), init_heap, context) {
 }
 
 TupleDataChunkIterator::TupleDataChunkIterator(TupleDataCollection &collection_p, TupleDataPinProperties properties,
-                                               idx_t chunk_idx_from, idx_t chunk_idx_to, bool init_heap_p)
+                                               idx_t chunk_idx_from, idx_t chunk_idx_to, bool init_heap_p,
+                                               optional_ptr<ClientContext> context)
     : collection(collection_p), init_heap(init_heap_p) {
 	state.pin_state.properties = properties;
 	D_ASSERT(chunk_idx_from < chunk_idx_to);
@@ -31,19 +33,20 @@ TupleDataChunkIterator::TupleDataChunkIterator(TupleDataCollection &collection_p
 		overall_chunk_index += segment.ChunkCount();
 	}
 
-	Reset();
+	Reset(context);
 }
 
-void TupleDataChunkIterator::InitializeCurrentChunk() {
+void TupleDataChunkIterator::InitializeCurrentChunk(optional_ptr<ClientContext> context) {
 	auto &segment = collection.segments[current_segment_idx];
-	segment.allocator->InitializeChunkState(segment, state.pin_state, state.chunk_state, current_chunk_idx, init_heap);
+	segment.allocator->InitializeChunkState(segment, state.pin_state, state.chunk_state, current_chunk_idx, init_heap,
+	                                        context);
 }
 
 bool TupleDataChunkIterator::Done() const {
 	return current_segment_idx == end_segment_idx && current_chunk_idx == end_chunk_idx;
 }
 
-bool TupleDataChunkIterator::Next() {
+bool TupleDataChunkIterator::Next(optional_ptr<ClientContext> context) {
 	D_ASSERT(!Done()); // Check if called after already done
 
 	// Set the next indices and checks if we're at the end of the collection
@@ -62,15 +65,15 @@ bool TupleDataChunkIterator::Next() {
 		collection.FinalizePinState(state.pin_state, collection.segments[segment_idx_before]);
 	}
 
-	InitializeCurrentChunk();
+	InitializeCurrentChunk(context);
 	return true;
 }
 
-void TupleDataChunkIterator::Reset() {
+void TupleDataChunkIterator::Reset(optional_ptr<ClientContext> context) {
 	state.segment_index = start_segment_idx;
 	state.chunk_index = start_chunk_idx;
 	collection.NextScanIndex(state, current_segment_idx, current_chunk_idx);
-	InitializeCurrentChunk();
+	InitializeCurrentChunk(context);
 }
 
 idx_t TupleDataChunkIterator::GetCurrentChunkCount() const {

@@ -90,16 +90,17 @@ public:
 	void InitializeAppendState(PartitionedTupleDataAppendState &state,
 	                           TupleDataPinProperties properties = TupleDataPinProperties::UNPIN_AFTER_DONE) const;
 	//! Appends a DataChunk to this PartitionedTupleData
-	void Append(PartitionedTupleDataAppendState &state, DataChunk &input,
+	void Append(PartitionedTupleDataAppendState &state, DataChunk &input, optional_ptr<ClientContext> context,
 	            const SelectionVector &append_sel = *FlatVector::IncrementalSelectionVector(),
 	            const idx_t append_count = DConstants::INVALID_INDEX);
 	//! Appends a DataChunk to this PartitionedTupleData
 	//! - ToUnifiedFormat has already been called
-	void AppendUnified(PartitionedTupleDataAppendState &state, DataChunk &input,
+	void AppendUnified(PartitionedTupleDataAppendState &state, DataChunk &input, optional_ptr<ClientContext> context,
 	                   const SelectionVector &append_sel = *FlatVector::IncrementalSelectionVector(),
 	                   const idx_t append_count = DConstants::INVALID_INDEX);
 	//! Appends rows to this PartitionedTupleData
-	void Append(PartitionedTupleDataAppendState &state, TupleDataChunkState &input, const idx_t count);
+	void Append(PartitionedTupleDataAppendState &state, TupleDataChunkState &input, const idx_t count,
+	            optional_ptr<ClientContext> context = nullptr);
 	//! Flushes any remaining data in the append state into this PartitionedTupleData
 	void FlushAppendState(PartitionedTupleDataAppendState &state);
 	//! Combine another PartitionedTupleData into this PartitionedTupleData
@@ -174,9 +175,9 @@ protected:
 	static void BuildPartitionSel(PartitionedTupleDataAppendState &state, const SelectionVector &append_sel,
 	                              const idx_t append_count, const idx_t max_partition_idx);
 	//! Builds out the buffer space in the partitions
-	void BuildBufferSpace(PartitionedTupleDataAppendState &state);
+	void BuildBufferSpace(PartitionedTupleDataAppendState &state, optional_ptr<ClientContext> context);
 	template <bool fixed>
-	void BuildBufferSpace(PartitionedTupleDataAppendState &state);
+	void BuildBufferSpace(PartitionedTupleDataAppendState &state, optional_ptr<ClientContext> context);
 	//! Create a collection for a specific a partition
 	unique_ptr<TupleDataCollection> CreatePartitionCollection(idx_t partition_index) {
 		return make_uniq<TupleDataCollection>(buffer_manager, layout_ptr);

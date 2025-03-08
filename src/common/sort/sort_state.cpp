@@ -185,7 +185,7 @@ void LocalSortState::Initialize(GlobalSortState &global_sort_state, BufferManage
 	initialized = true;
 }
 
-void LocalSortState::SinkChunk(DataChunk &sort, DataChunk &payload) {
+void LocalSortState::SinkChunk(DataChunk &sort, DataChunk &payload, optional_ptr<ClientContext> context) {
 	D_ASSERT(sort.size() == payload.size());
 	// Build and serialize sorting data to radix sortable rows
 	auto data_pointers = FlatVector::GetData<data_ptr_t>(addresses);
@@ -211,7 +211,7 @@ void LocalSortState::SinkChunk(DataChunk &sort, DataChunk &payload) {
 		handles = blob_sorting_data->Build(blob_chunk.size(), data_pointers, nullptr);
 		auto blob_data = blob_chunk.ToUnifiedFormat();
 		RowOperations::Scatter(blob_chunk, blob_data.get(), sort_layout->blob_layout, addresses, *blob_sorting_heap,
-		                       sel_ptr, blob_chunk.size());
+		                       sel_ptr, blob_chunk.size(), context);
 		D_ASSERT(blob_sorting_heap->keep_pinned);
 	}
 
@@ -219,7 +219,7 @@ void LocalSortState::SinkChunk(DataChunk &sort, DataChunk &payload) {
 	handles = payload_data->Build(payload.size(), data_pointers, nullptr);
 	auto input_data = payload.ToUnifiedFormat();
 	RowOperations::Scatter(payload, input_data.get(), *payload_layout, addresses, *payload_heap, sel_ptr,
-	                       payload.size());
+	                       payload.size(), context);
 	D_ASSERT(payload_heap->keep_pinned);
 }
 
@@ -319,7 +319,7 @@ void LocalSortState::ReOrder(SortedData &sd, data_ptr_t sorting_ptr, RowDataColl
 	// Deal with the heap (if necessary)
 	if (!sd.layout.AllConstant() && reorder_heap) {
 		// Swizzle the column pointers to offsets
-		RowOperations::SwizzleColumns(sd.layout, ordered_data_handle.Ptr(), count);
+		RowOperations::SwizzleColumns(sd.layout, ordered_data_handle.Ptr(), count, gstate.context);
 		sd.data_blocks.back()->block->SetSwizzling(nullptr);
 		// Create a single heap block to store the ordered heap
 		idx_t total_byte_offset =

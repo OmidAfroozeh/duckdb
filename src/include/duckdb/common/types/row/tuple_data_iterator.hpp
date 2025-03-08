@@ -15,18 +15,19 @@ namespace duckdb {
 class TupleDataChunkIterator {
 public:
 	//! Creates a TupleDataChunkIterator that iterates over all DataChunks in the TupleDataCollection
-	TupleDataChunkIterator(TupleDataCollection &collection, TupleDataPinProperties properties, bool init_heap);
+	TupleDataChunkIterator(TupleDataCollection &collection, TupleDataPinProperties properties, bool init_heap,
+	                       optional_ptr<ClientContext> context = nullptr);
 	//! Creates a TupleDataChunkIterator that iterates over the specified DataChunk range in the TupleDataCollection
 	TupleDataChunkIterator(TupleDataCollection &collection, TupleDataPinProperties properties, idx_t chunk_idx_from,
-	                       idx_t chunk_idx_to, bool init_heap);
+	                       idx_t chunk_idx_to, bool init_heap, optional_ptr<ClientContext> context = nullptr);
 
 public:
 	//! Whether the iterator is done
 	bool Done() const;
 	//! Fetches the next STANDARD_VECTOR_SIZE row locations (and heap locations/sizes if init_heap is true)
-	bool Next();
+	bool Next(optional_ptr<ClientContext> context = nullptr);
 	//! Resets the scan indices to the start
-	void Reset();
+	void Reset(optional_ptr<ClientContext> context);
 	//! Get the count of the current "DataChunk"
 	idx_t GetCurrentChunkCount() const;
 	//! Get the Chunk state of the scan state of this iterator
@@ -40,7 +41,7 @@ public:
 
 private:
 	//! Initializes the row locations (and heap locations/sizes if init_heap is true) at the current scan indices
-	void InitializeCurrentChunk();
+	void InitializeCurrentChunk(optional_ptr<ClientContext> context = nullptr);
 
 private:
 	//! The collection being iterated over
