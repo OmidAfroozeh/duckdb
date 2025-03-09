@@ -1,6 +1,7 @@
 #pragma once
 
 #include "duckdb/storage/compression/dictionary/common.hpp"
+#include "duckdb/optimizer/UnifiedStringDictionary.h"
 
 namespace duckdb {
 
@@ -45,6 +46,10 @@ public:
 	idx_t dictionary_size;
 	StringDictionaryContainer dict;
 	idx_t block_size;
+
+
+	UnifiedStringsDictionary* USSR;
+
 };
 
 } // namespace duckdb
