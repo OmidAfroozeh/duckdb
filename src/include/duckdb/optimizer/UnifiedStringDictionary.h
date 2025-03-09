@@ -1,25 +1,40 @@
 #pragma once
 
+#include <cstddef>
+
 #include "duckdb/common/typedefs.hpp"
+#include "duckdb/common/atomic.hpp"
+#include "duckdb/common/mutex.hpp"
+
 
 namespace duckdb {
 
+static constexpr uint64_t BUFFER_SIZE = static_cast<const uint64_t>(1024 * 1024);
+
 static constexpr uint64_t USSR_MASK = 0xFFFFFFFFFFF80000;
-static constexpr uint16_t USSR_SIZE = 0xFFFF;
+static constexpr uint64_t USSR_SLOT_SIZE = 8;
+
+static constexpr uint64_t USSR_SIZE = 0xFFFF;
+static constexpr uint64_t HT_SIZE = 0xFFFF;
+static constexpr uint64_t HT_BUCKET_SIZE = 4;
+
 static constexpr idx_t PROBING_LIMIT = 3;
 
 
 struct LinearProbingHashTable{
 private:
 	uint16_t currentEmptySlot;
-	unique_array<uint32_t> LinearProbingHT;
+
+	atomic<uint32_t> *HT_atomic;
+	uint32_t * HT;
 
 public:
-	LinearProbingHashTable();
+	explicit LinearProbingHashTable(data_ptr_t bufferHT);
 	optional_idx insert(uint32_t hashPrefix);
 
 
 
+	std::mutex t;
 
 
 
@@ -28,14 +43,25 @@ public:
 class UnifiedStringsDictionary{
 private:
 
-	unique_array<uint64_t> DataRegion;
+	static UnifiedStringsDictionary* ussr_instance;
 
 
-public:
+	unsafe_unique_array<data_t> buffer;
+	uint64_t *DictionarySlot;
+
+	unique_ptr<LinearProbingHashTable> LinearProbingHT;
 
 	UnifiedStringsDictionary();
 
+	std::mutex singletonLock;
+
+public:
+
+
+	static UnifiedStringsDictionary* getInstance();
 	static uint64_t USSR_prefix;
+
+	string_t insert(const char * str, uint32_t len);
 };
 
 
