@@ -16,6 +16,7 @@ static constexpr uint64_t USSR_SLOT_SIZE = 8;
 
 static constexpr uint64_t USSR_SIZE = 0xFFFF;
 static constexpr uint64_t HT_SIZE = 0xFFFF;
+// first two bytes are the slot number and the second two bytes are the hash extract
 static constexpr uint64_t HT_BUCKET_SIZE = 4;
 
 static constexpr idx_t PROBING_LIMIT = 3;
@@ -23,14 +24,14 @@ static constexpr idx_t PROBING_LIMIT = 3;
 
 struct LinearProbingHashTable{
 private:
-	uint16_t currentEmptySlot;
+	uint64_t currentEmptySlot;
 
 	atomic<uint32_t> *HT_atomic;
 	uint32_t * HT;
 
 public:
 	explicit LinearProbingHashTable(data_ptr_t bufferHT);
-	optional_idx insert(uint32_t hashPrefix);
+	optional_idx insert(uint32_t hashPrefix, uint32_t len);
 
 
 
@@ -53,7 +54,7 @@ private:
 
 	UnifiedStringsDictionary();
 
-	std::mutex singletonLock;
+	static std::mutex singletonLock;
 
 public:
 
