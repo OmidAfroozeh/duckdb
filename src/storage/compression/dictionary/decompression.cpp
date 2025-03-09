@@ -61,8 +61,12 @@ void CompressedStringScanState::Initialize(ColumnSegment &segment, bool initiali
 		// NOTE: the passing of dict_child_vector, will not be used, its for big strings
 		uint16_t str_len = GetStringLength(i);
 		auto str = FetchStringFromDict(UnsafeNumericCast<int32_t>(index_buffer_ptr[i]), str_len);
-		USSR->insert(str.GetData(), UnsafeNumericCast<uint32_t >(str.GetSize()));
-		dict_child_data[i] = str;
+		auto str_ = (!str.IsInlined())?USSR->insert(str.GetData(), UnsafeNumericCast<uint32_t >(str.GetSize())): string_t((uint32_t)0);
+		if(str_.GetSize() > 0 ){
+			dict_child_data[i] = str_;
+		}else{
+			dict_child_data[i] = str;
+		}
 	}
 }
 
