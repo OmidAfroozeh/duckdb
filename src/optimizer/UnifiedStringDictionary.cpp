@@ -6,7 +6,8 @@
 namespace duckdb{
 
 uint64_t UnifiedStringsDictionary::USSR_prefix = 3;
-UnifiedStringsDictionary* UnifiedStringsDictionary::ussr_instance = nullptr;
+UnifiedStringsDictionary* UnifiedStringsDictionary::ussr_instance{nullptr};
+std::mutex UnifiedStringsDictionary::singletonLock;
 
 
 void * round_up(void * ptr, size_t alignment) {
@@ -33,23 +34,32 @@ UnifiedStringsDictionary::UnifiedStringsDictionary() {
 }
 
 UnifiedStringsDictionary *UnifiedStringsDictionary::getInstance() {
-	if(ussr_instance)
-	static UnifiedStringsDictionary USSR;
-	return &USSR;
+	if(ussr_instance == nullptr){
+		lock_guard<std::mutex> guard(singletonLock);
+		if(ussr_instance == nullptr){
+			ussr_instance = new UnifiedStringsDictionary();
+			return ussr_instance;
+		} else{
+			return ussr_instance;
+		}
+	} else{
+		return ussr_instance;
+	}
 }
 
 string_t UnifiedStringsDictionary::insert(const char * str, uint32_t len) {
 	hash_t h = Hash(str);
 	uint32_t hashPrefix = Load<uint32_t>(const_data_ptr_cast(&h));
-	auto res = LinearProbingHT.get()->insert(hashPrefix);
+	auto res = LinearProbingHT.get()->insert(hashPrefix, len);
 	if (res.IsValid()){
 		auto slot = res.GetIndex();
-		auto slot_ptr = DictionarySlot + slot * 8;
+		auto slot_ptr = DictionarySlot + slot;
 		memcpy(slot_ptr, str, len);
-		memcpy(reinterpret_cast<void *>(slot_ptr[-1]), &h, 8);
-		return string_t(const_char_ptr_cast(slot_ptr), len);
+		memcpy(slot_ptr - 1, &h, 8);
+		return string_t(const_char_ptr_cast<uint64_t>(slot_ptr), len);
+//		return nullptr;
 	}
-	return nullptr;
+	return string_t((uint32_t) 0);
 }
 
 
@@ -57,34 +67,44 @@ string_t UnifiedStringsDictionary::insert(const char * str, uint32_t len) {
 LinearProbingHashTable::LinearProbingHashTable(data_ptr_t bufferHT){
 	HT_atomic = reinterpret_cast<atomic<uint32_t>*>(bufferHT);
 	HT = reinterpret_cast<uint32_t *>(bufferHT);
-	currentEmptySlot = 0;
+	currentEmptySlot = 1;
 }
 
-optional_idx LinearProbingHashTable::insert(uint32_t hashPrefix) {
+
+
+optional_idx LinearProbingHashTable::insert(uint32_t hashPrefix, uint32_t len) {
 	uint16_t slot;
 	memcpy(&slot, &hashPrefix, 1U);
 
-	uint16_t hashExtract;
-	memcpy(&hashExtract, &hashPrefix + 1, 1U);
+	uint16_t hashExtract = hashPrefix >> 16;
+//	memcpy(&hashExtract, &(hashPrefix >> 16), 1U);
 
 
 	for (idx_t i = 0; i < PROBING_LIMIT; ++i) {
-		uint32_t bucket = Load<uint32_t>(const_data_ptr_cast(HT + (4 * slot)+i));
-		uint16_t bucket_hashExtract = UnsafeNumericCast<uint16_t >(bucket & 0xFFFF0000);
+		// loop around
+		uint32_t bucket = Load<uint32_t>(const_data_ptr_cast(HT + (slot + i % USSR_SIZE)));
+		uint16_t bucket_hashExtract = bucket >> 16;
 
 		if(bucket_hashExtract == hashExtract){
 			return bucket & 0x0000FFFF;
 		}
 
 		if(bucket == 0){
+			if(currentEmptySlot > USSR_SIZE){
+				return optional_idx();
+			}
 			uint32_t expected = 0;
 			uint32_t desired = UnsafeNumericCast<uint32_t >(hashExtract);
 			desired = desired << 16;
-			desired &= UnsafeNumericCast<uint32_t>(currentEmptySlot);
+			desired |= UnsafeNumericCast<uint32_t>(currentEmptySlot);
 
 			if((HT_atomic + i)->compare_exchange_strong(expected, desired)){
+
+				auto ret = currentEmptySlot;
+				// 1 slot for the pre-computed hash,
+				currentEmptySlot += (len % 8 == 0) ? 1 + len / 8 : 2 + len / 8;
 				// if exchanged, return slot number
-				return currentEmptySlot;
+				return ret;
 			}
 		}
 	}
