@@ -5,7 +5,7 @@
 #include "duckdb/common/typedefs.hpp"
 #include "duckdb/common/atomic.hpp"
 #include "duckdb/common/mutex.hpp"
-
+#include "duckdb/common/printer.hpp"
 
 namespace duckdb {
 
@@ -29,9 +29,23 @@ private:
 	atomic<uint32_t> *HT_atomic;
 	uint32_t * HT;
 
+	// number of filled buckets in HT
+	uint64_t nFullBuckets;
+
+//	// every attempt on inserting a string
+//	uint64_t candidates;
+//	// accepted strings into the USSR
+//	uint64_t accepted;
+//
+//	uint64_t nRejections_SizeFull;
+//	uint64_t nRejection_LongChain;
 public:
 	explicit LinearProbingHashTable(data_ptr_t bufferHT);
 	optional_idx insert(uint32_t hashPrefix, uint32_t len);
+
+	optional_idx lookup(uint32_t hashPrefix);
+
+	void getStatistics();
 
 
 
