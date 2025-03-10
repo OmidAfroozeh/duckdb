@@ -120,6 +120,7 @@ hash_t HashBytes(const_data_ptr_t ptr, const idx_t len) noexcept {
 
 template <>
 hash_t Hash(string_t val) {
+	auto res = (USSR_MASK & cast_pointer_to_uint64(val.GetPointer())) == UnifiedStringsDictionary::USSR_prefix;
 	// If the string is inlined, we can do a branchless hash
 	if (val.IsInlined()) {
 		// This seed slightly improves bit distribution, taken from here:
@@ -150,8 +151,10 @@ hash_t Hash(string_t val) {
 		D_ASSERT(h == Hash(val.GetData(), val.GetSize()));
 
 		return h;
-	} else if((USSR_MASK & cast_pointer_to_uint64(val.GetPointer())) == UnifiedStringsDictionary::USSR_prefix){
-		return *(reinterpret_cast<uint64_t *>(val.GetPointer()) -1);
+	}
+	else if(res){
+		D_ASSERT(*(reinterpret_cast<uint64_t *>(val.GetPointer()) -1) == Hash(val.GetData(), val.GetSize()));
+		return reinterpret_cast<hash_t>(*(reinterpret_cast<uint64_t *>(val.GetPointer()) -1));
 	}
 	// Required for DUCKDB_DEBUG_NO_INLINE
 	return HashBytes<string_t::INLINE_LENGTH >= sizeof(hash_t)>(const_data_ptr_cast(val.GetData()), val.GetSize());
