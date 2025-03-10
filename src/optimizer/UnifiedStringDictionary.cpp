@@ -17,7 +17,7 @@ void * round_up(void * ptr, size_t alignment) {
 
 UnifiedStringsDictionary::UnifiedStringsDictionary() {
 	buffer = make_unsafe_uniq_array_uninitialized<data_t>(BUFFER_SIZE);
-	memset(buffer.get(), '\0', BUFFER_SIZE);
+//	memset(buffer.get(), '\0', BUFFER_SIZE);
 	USSR_prefix = cast_pointer_to_uint64( buffer.get() + USSR_SIZE * USSR_SLOT_SIZE) & USSR_MASK;
 
 	DictionarySlot = reinterpret_cast<uint64_t *>(USSR_prefix);
@@ -29,7 +29,7 @@ UnifiedStringsDictionary::UnifiedStringsDictionary() {
 		HT_address = cast_uint64_to_pointer(USSR_prefix) + USSR_SIZE * USSR_SLOT_SIZE;
 	}
 
-//	memset(HT_address, '\0', HT_SIZE * HT_BUCKET_SIZE);
+	memset(HT_address, '\0', HT_SIZE * HT_BUCKET_SIZE);
 	LinearProbingHT = make_uniq<LinearProbingHashTable>(HT_address);
 
 }
