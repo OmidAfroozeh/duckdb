@@ -84,7 +84,6 @@ hash_t Hash(const char *str) {
 
 template <>
 hash_t Hash(string_t val) {
-	auto res = (USSR_MASK & cast_pointer_to_uint64(val.GetPointer())) == UnifiedStringsDictionary::USSR_prefix;
 	// If the string is inlined, we can do a branchless hash
 	if (val.IsInlined()) {
 		// This seed slightly improves bit distribution, taken from here:
@@ -117,9 +116,8 @@ hash_t Hash(string_t val) {
 
 		return h;
 	}
-	else if(res){
-		D_ASSERT(*(reinterpret_cast<uint64_t *>(val.GetPointer()) -1) == Hash(val.GetData(), val.GetSize()));
-		return reinterpret_cast<hash_t>(*(reinterpret_cast<uint64_t *>(val.GetPointer()) -1));
+	else if((USSR_MASK & cast_pointer_to_uint64(val.GetPointer())) == UnifiedStringsDictionary::USSR_prefix){
+		return *(reinterpret_cast<uint64_t *>(val.GetPointer()) -1);
 	}
 	return Hash(val.GetData(), val.GetSize());
 }
