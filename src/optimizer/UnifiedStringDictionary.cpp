@@ -41,7 +41,7 @@ UnifiedStringsDictionary *UnifiedStringsDictionary::getInstance() {
 	if(ussr_instance == nullptr){
 		lock_guard<std::mutex> guard(singletonLock);
 		if(ussr_instance == nullptr){
-			Printer::Print("USSR CREATED");
+//			Printer::Print("USSR CREATED");
 			ussr_instance = new UnifiedStringsDictionary();
 			return ussr_instance;
 		} else{
@@ -58,12 +58,12 @@ string_t UnifiedStringsDictionary::insert(const char * str, uint32_t len) {
 	hash_t h = Hash(string_t(str, len));
 	uint32_t hashPrefix = Load<uint32_t>(const_data_ptr_cast(&h));
 
-//	auto lookup_res = LinearProbingHT.get()->lookup(hashPrefix);
-//	if(lookup_res.IsValid()){
-//		auto slot = lookup_res.GetIndex();
-//		auto slot_ptr = DataRegion + slot;
-//		return string_t(const_char_ptr_cast(slot_ptr), len);
-//	}
+	auto lookup_res = LinearProbingHT.get()->lookup(hashPrefix);
+	if(lookup_res.IsValid()){
+		auto slot = lookup_res.GetIndex();
+		auto slot_ptr = DataRegion + slot;
+		return string_t(const_char_ptr_cast(slot_ptr), len);
+	}
 
 	auto res = LinearProbingHT.get()->insert(hashPrefix, len);
 	if (res.IsValid()){
