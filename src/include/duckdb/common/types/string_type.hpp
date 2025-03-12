@@ -15,7 +15,6 @@
 #include "duckdb/common/limits.hpp"
 #include "duckdb/common/types/hash.hpp"
 
-
 #include <cstring>
 #include <algorithm>
 

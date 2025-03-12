@@ -1,7 +1,5 @@
 #include "duckdb/storage/compression/dictionary/decompression.hpp"
 
-
-
 namespace duckdb {
 
 uint16_t CompressedStringScanState::GetStringLength(sel_t index) {
@@ -60,12 +58,14 @@ void CompressedStringScanState::Initialize(ColumnSegment &segment, bool initiali
 	for (uint32_t i = 1; i < index_buffer_count; i++) {
 		// NOTE: the passing of dict_child_vector, will not be used, its for big strings
 		uint16_t str_len = GetStringLength(i);
-//		dict_child_data[i] = FetchStringFromDict(UnsafeNumericCast<int32_t>(index_buffer_ptr[i]), str_len);
+		//		dict_child_data[i] = FetchStringFromDict(UnsafeNumericCast<int32_t>(index_buffer_ptr[i]), str_len);
 		auto str = FetchStringFromDict(UnsafeNumericCast<int32_t>(index_buffer_ptr[i]), str_len);
-		auto str_ = (!str.IsInlined())?USSR->insert(str.GetData(), UnsafeNumericCast<uint32_t >(str.GetSize())): string_t((uint32_t)0);
-		if(str_.GetSize() > 0 ){
-			dict_child_data[i] = str_;
-		}else{
+		// remove branch FIXME
+		auto USSR_str = (!str.IsInlined()) ? USSR->insert(str.GetData(), UnsafeNumericCast<uint32_t>(str.GetSize()))
+		                                   : string_t((uint32_t)0);
+		if (USSR_str.GetSize() > 0) {
+			dict_child_data[i] = USSR_str;
+		} else {
 			dict_child_data[i] = str;
 		}
 	}
