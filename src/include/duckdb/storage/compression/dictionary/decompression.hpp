@@ -47,9 +47,7 @@ public:
 	StringDictionaryContainer dict;
 	idx_t block_size;
 
-
-	UnifiedStringsDictionary* USSR;
-
+	UnifiedStringsDictionary *USSR;
 };
 
 } // namespace duckdb
