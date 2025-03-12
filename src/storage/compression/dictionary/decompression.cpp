@@ -60,14 +60,7 @@ void CompressedStringScanState::Initialize(ColumnSegment &segment, bool initiali
 		uint16_t str_len = GetStringLength(i);
 		//		dict_child_data[i] = FetchStringFromDict(UnsafeNumericCast<int32_t>(index_buffer_ptr[i]), str_len);
 		auto str = FetchStringFromDict(UnsafeNumericCast<int32_t>(index_buffer_ptr[i]), str_len);
-		// remove branch FIXME
-		auto USSR_str = (!str.IsInlined()) ? USSR->insert(str.GetData(), UnsafeNumericCast<uint32_t>(str.GetSize()))
-		                                   : string_t((uint32_t)0);
-		if (USSR_str.GetSize() > 0) {
-			dict_child_data[i] = USSR_str;
-		} else {
-			dict_child_data[i] = str;
-		}
+		dict_child_data[i] = USSR->insert(str);
 	}
 }
 
