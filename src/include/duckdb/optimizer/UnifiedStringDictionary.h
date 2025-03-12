@@ -76,7 +76,7 @@ public:
 	static UnifiedStringsDictionary *getInstance();
 	static uint64_t USSR_prefix;
 
-	string_t insert(const char *str, uint32_t len);
+	string_t insert(string_t str);
 };
 
 } // namespace duckdb
