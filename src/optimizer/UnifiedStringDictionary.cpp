@@ -52,20 +52,25 @@ UnifiedStringsDictionary *UnifiedStringsDictionary::getInstance() {
 	}
 }
 
-string_t UnifiedStringsDictionary::insert(const char *str, uint32_t len) {
+string_t UnifiedStringsDictionary::insert(string_t str) {
+	// no support for short strings now
+	if(str.IsInlined()){
+		return str;
+	}
+
 	lock_guard<std::mutex> guard(insertLock);
 
-	hash_t h = Hash(string_t(str, len));
+	hash_t h = Hash(str);
 	uint32_t hashPrefix = Load<uint32_t>(const_data_ptr_cast(&h));
 
 	auto lookup_res = LinearProbingHT.get()->lookup(hashPrefix);
 	if (lookup_res.IsValid()) {
 		auto slot = lookup_res.GetIndex();
 		auto slot_ptr = DataRegion + slot;
-		return string_t(const_char_ptr_cast(slot_ptr), len);
+		return string_t(const_char_ptr_cast(slot_ptr), str.GetSize());
 	}
 
-	auto res = LinearProbingHT.get()->insert(hashPrefix, len);
+	auto res = LinearProbingHT.get()->insert(hashPrefix, str.GetSize());
 	if (res.IsValid()) {
 		auto slot = res.GetIndex();
 		auto slot_ptr = DataRegion + slot;
@@ -73,14 +78,12 @@ string_t UnifiedStringsDictionary::insert(const char *str, uint32_t len) {
 		D_ASSERT(cast_pointer_to_uint64(slot_ptr) > cast_pointer_to_uint64(DataRegion));
 		D_ASSERT(cast_pointer_to_uint64(slot_ptr) < cast_pointer_to_uint64(DataRegion) + USSR_SIZE * USSR_SLOT_SIZE);
 
-		memcpy(slot_ptr, str, len);
+		memcpy(slot_ptr, str.GetData(),  str.GetSize());
 		memcpy(slot_ptr - 1, &h, 8);
-		auto ret = string_t(const_char_ptr_cast(slot_ptr), len);
-
-		return ret;
+		return string_t(const_char_ptr_cast(slot_ptr), str.GetSize());
 	}
 
-	return string_t((uint32_t)0);
+	return str;
 }
 
 LinearProbingHashTable::LinearProbingHashTable(data_ptr_t bufferHT) {
