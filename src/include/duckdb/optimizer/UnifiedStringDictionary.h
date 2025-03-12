@@ -18,31 +18,31 @@ static constexpr uint64_t USSR_MASK = 0xFFFFFFFFFFF80000;
 static constexpr uint64_t USSR_SLOT_SIZE = 8;
 static constexpr uint64_t USSR_SIZE = 0xFFFF;
 
-// first two bytes are the slot number and the second two bytes are the hash extract
+// first two bytes are the slot number into the data region
+// and the second two bytes are the hash extract (a part of the original string's hash)
 static constexpr uint64_t HT_BUCKET_SIZE = 4;
 static constexpr uint64_t HT_SIZE = 0xFFFF;
 
 static constexpr idx_t PROBING_LIMIT = 3;
 
-
-struct LinearProbingHashTable{
+struct LinearProbingHashTable {
 private:
 	uint64_t currentEmptySlot;
 
-//	atomic<uint32_t> *HT_atomic;
+	//	atomic<uint32_t> *HT_atomic;
 
-	uint32_t * HT;
+	uint32_t *HT;
 
 	// number of filled buckets in HT
-//	uint64_t nFullBuckets;
+	//	uint64_t nFullBuckets;
 
-//	// every attempt on inserting a string
-//	uint64_t candidates;
-//	// accepted strings into the USSR
-//	uint64_t accepted;
-//
-//	uint64_t nRejections_SizeFull;
-//	uint64_t nRejection_LongChain;
+	//	// every attempt on inserting a string
+	//	uint64_t candidates;
+	//	// accepted strings into the USSR
+	//	uint64_t accepted;
+	//
+	//	uint64_t nRejections_SizeFull;
+	//	uint64_t nRejection_LongChain;
 public:
 	explicit LinearProbingHashTable(data_ptr_t bufferHT);
 	optional_idx insert(uint32_t hashPrefix, uint32_t len);
@@ -50,14 +50,12 @@ public:
 	optional_idx lookup(uint32_t hashPrefix);
 
 	void getStatistics();
-
 };
 
-class UnifiedStringsDictionary{
+// Singleton
+class UnifiedStringsDictionary {
 private:
-
-	static UnifiedStringsDictionary* ussr_instance;
-
+	static UnifiedStringsDictionary *ussr_instance;
 
 	// Overarching USSR buffer, contains DataRegion + HT + extra, 1MB size
 	unsafe_unique_array<data_t> buffer;
@@ -66,21 +64,19 @@ private:
 
 	unique_ptr<LinearProbingHashTable> LinearProbingHT;
 
+	// private constructor
 	UnifiedStringsDictionary();
 
+	// for thread-safe creation of Singleton
 	static std::mutex singletonLock;
+	// temporary solution for concurrency
 	std::mutex insertLock;
 
-
 public:
-
-
-	static UnifiedStringsDictionary* getInstance();
+	static UnifiedStringsDictionary *getInstance();
 	static uint64_t USSR_prefix;
 
-	string_t insert(const char * str, uint32_t len);
+	string_t insert(const char *str, uint32_t len);
 };
-
-
 
 } // namespace duckdb
