@@ -7,14 +7,10 @@
 
 #include "duckdb/optimizer/UnifiedStringDictionary.h"
 
-
 #include <functional>
 #include <cmath>
 
 namespace duckdb {
-
-
-
 
 template <>
 hash_t Hash(uint64_t val) {
@@ -150,9 +146,8 @@ hash_t Hash(string_t val) {
 		D_ASSERT(h == Hash(val.GetData(), val.GetSize()));
 
 		return h;
-	}
-	else if((USSR_MASK & cast_pointer_to_uint64(val.GetPointer())) == UnifiedStringsDictionary::USSR_prefix){
-		return *(reinterpret_cast<uint64_t *>(val.GetPointer()) -1);
+	} else if ((USSR_MASK & cast_pointer_to_uint64(val.GetPointer())) == UnifiedStringsDictionary::USSR_prefix) {
+		return *(reinterpret_cast<uint64_t *>(val.GetPointer()) - 1);
 	}
 	// Required for DUCKDB_DEBUG_NO_INLINE
 	return HashBytes<string_t::INLINE_LENGTH >= sizeof(hash_t)>(const_data_ptr_cast(val.GetData()), val.GetSize());
