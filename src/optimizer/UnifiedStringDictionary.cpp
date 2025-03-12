@@ -8,7 +8,7 @@ namespace duckdb {
 
 uint64_t UnifiedStringsDictionary::USSR_prefix = 0;
 UnifiedStringsDictionary *UnifiedStringsDictionary::ussr_instance {nullptr};
-std::mutex UnifiedStringsDictionary::singletonLock;
+//std::mutex UnifiedStringsDictionary::singletonLock;
 
 UnifiedStringsDictionary::UnifiedStringsDictionary() {
 
@@ -38,18 +38,11 @@ UnifiedStringsDictionary::UnifiedStringsDictionary() {
 }
 
 UnifiedStringsDictionary *UnifiedStringsDictionary::getInstance() {
-	if (ussr_instance == nullptr) {
-		lock_guard<std::mutex> guard(singletonLock);
-		if (ussr_instance == nullptr) {
-			//			Printer::Print("USSR CREATED");
-			ussr_instance = new UnifiedStringsDictionary();
-			return ussr_instance;
-		} else {
-			return ussr_instance;
-		}
-	} else {
-		return ussr_instance;
-	}
+	static std::once_flag onceFlag;
+	std::call_once(onceFlag, [] {
+		ussr_instance = new UnifiedStringsDictionary();
+	});
+	return ussr_instance;
 }
 
 string_t UnifiedStringsDictionary::insert(string_t str) {
