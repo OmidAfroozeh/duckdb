@@ -27,22 +27,23 @@ static constexpr idx_t PROBING_LIMIT = 3;
 
 struct LinearProbingHashTable {
 private:
-	uint64_t currentEmptySlot;
+	atomic<uint64_t> currentEmptySlot;
 
 	//	atomic<uint32_t> *HT_atomic;
 
 	uint32_t *HT;
 
-	// number of filled buckets in HT
-	//	uint64_t nFullBuckets;
+//	 number of filled buckets in HT
+	uint64_t nFullBuckets;
 
-	//	// every attempt on inserting a string
-	//	uint64_t candidates;
-	//	// accepted strings into the USSR
-	//	uint64_t accepted;
-	//
-	//	uint64_t nRejections_SizeFull;
-	//	uint64_t nRejection_LongChain;
+	// every attempt on inserting a string
+	uint64_t candidates;
+	// accepted strings into the USSR
+	uint64_t accepted;
+
+	uint64_t nRejections_SizeFull;
+	uint64_t nRejections_Probing;
+
 public:
 	explicit LinearProbingHashTable(data_ptr_t bufferHT);
 	optional_idx insert(uint32_t hashPrefix, uint32_t len);
@@ -62,13 +63,14 @@ private:
 	// Start of the DataRegion
 	uint64_t *DataRegion;
 
-	unique_ptr<LinearProbingHashTable> LinearProbingHT;
-
+//	static unique_ptr<LinearProbingHashTable> LinearProbingHT;
+	LinearProbingHashTable* LinearProbingHT;
 	// private constructor
 	UnifiedStringsDictionary();
 
 	// for thread-safe creation of Singleton
 	static std::mutex singletonLock;
+	static std::mutex destroyLock;
 	// temporary solution for concurrency
 	std::mutex insertLock;
 
@@ -77,6 +79,8 @@ public:
 	static uint64_t USSR_prefix;
 
 	string_t insert(string_t str);
+
+	static void destroy_UnifiedStrings();
 };
 
 } // namespace duckdb
