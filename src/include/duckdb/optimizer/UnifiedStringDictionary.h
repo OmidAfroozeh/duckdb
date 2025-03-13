@@ -27,13 +27,13 @@ static constexpr idx_t PROBING_LIMIT = 3;
 
 struct LinearProbingHashTable {
 private:
-	atomic<uint64_t> currentEmptySlot;
+	uint64_t currentEmptySlot;
 
 	//	atomic<uint32_t> *HT_atomic;
 
 	uint32_t *HT;
 
-//	 number of filled buckets in HT
+	//	 number of filled buckets in HT
 	uint64_t nFullBuckets;
 
 	// every attempt on inserting a string
@@ -63,8 +63,8 @@ private:
 	// Start of the DataRegion
 	uint64_t *DataRegion;
 
-//	static unique_ptr<LinearProbingHashTable> LinearProbingHT;
-	LinearProbingHashTable* LinearProbingHT;
+	//	static unique_ptr<LinearProbingHashTable> LinearProbingHT;
+	LinearProbingHashTable *LinearProbingHT;
 	// private constructor
 	UnifiedStringsDictionary();
 
