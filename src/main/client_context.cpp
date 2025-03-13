@@ -46,7 +46,6 @@
 
 #include "duckdb/optimizer/UnifiedStringDictionary.h"
 
-
 namespace duckdb {
 
 struct ActiveQueryContext {
@@ -274,7 +273,6 @@ ErrorData ClientContext::EndQueryInternal(ClientContextLock &lock, bool success,
 			s->QueryEnd(*this, previous_error);
 		}
 	}
-
 
 	return error;
 }

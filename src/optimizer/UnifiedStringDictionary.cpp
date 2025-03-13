@@ -8,23 +8,20 @@ namespace duckdb {
 
 uint64_t UnifiedStringsDictionary::USSR_prefix = 0;
 UnifiedStringsDictionary *UnifiedStringsDictionary::ussr_instance {nullptr};
-//std::mutex UnifiedStringsDictionary::singletonLock;
-//std::mutex UnifiedStringsDictionary::destroyLock;
-
+// std::mutex UnifiedStringsDictionary::singletonLock;
+// std::mutex UnifiedStringsDictionary::destroyLock;
 
 void UnifiedStringsDictionary::destroy_UnifiedStrings() {
 	// error prone, don't know how to fix
 	// for now only used for getting statistics, singleton causes memory leak!!!
-	if(ussr_instance){
+	if (ussr_instance) {
 //		ussr_instance->buffer.reset();
 #ifdef DEBUG
 		ussr_instance->LinearProbingHT->getStatistics();
 #endif
-//		ussr_instance = nullptr;
+		//		ussr_instance = nullptr;
 	}
 }
-
-
 
 UnifiedStringsDictionary::UnifiedStringsDictionary() {
 
@@ -51,24 +48,21 @@ UnifiedStringsDictionary::UnifiedStringsDictionary() {
 	// We zero the hashtable, since we need an indicator if a bucket as been filled or not
 	memset(HT_address, '\0', HT_SIZE * HT_BUCKET_SIZE);
 	LinearProbingHT = new LinearProbingHashTable(HT_address);
-
 }
 
 UnifiedStringsDictionary *UnifiedStringsDictionary::getInstance() {
 	static std::once_flag onceFlag;
-	std::call_once(onceFlag, [] {
-		ussr_instance = new UnifiedStringsDictionary();
-	});
+	std::call_once(onceFlag, [] { ussr_instance = new UnifiedStringsDictionary(); });
 	return ussr_instance;
 }
 
 string_t UnifiedStringsDictionary::insert(string_t str) {
 	// no support for short strings now
-	if(str.IsInlined()){
+	if (str.IsInlined()) {
 		return str;
 	}
 
-//	lock_guard<std::mutex> guard(insertLock);
+	lock_guard<std::mutex> guard(insertLock);
 
 	hash_t h = Hash(str);
 	uint32_t hashPrefix = Load<uint32_t>(const_data_ptr_cast(&h));
@@ -78,11 +72,11 @@ string_t UnifiedStringsDictionary::insert(string_t str) {
 		auto slot = lookup_res.GetIndex();
 		auto slot_ptr = DataRegion + slot;
 		// double checking that the string found is equal to the original string
-		auto res_str = string_t(const_char_ptr_cast(slot_ptr), UnsafeNumericCast<uint32_t >(str.GetSize()));
+		auto res_str = string_t(const_char_ptr_cast(slot_ptr), UnsafeNumericCast<uint32_t>(str.GetSize()));
 		return (res_str == str) ? res_str : str;
 	}
 
-	auto res = LinearProbingHT->insert(hashPrefix, UnsafeNumericCast<uint32_t >(str.GetSize()));
+	auto res = LinearProbingHT->insert(hashPrefix, UnsafeNumericCast<uint32_t>(str.GetSize()));
 	if (res.IsValid()) {
 		auto slot = res.GetIndex();
 		auto slot_ptr = DataRegion + slot;
@@ -90,9 +84,9 @@ string_t UnifiedStringsDictionary::insert(string_t str) {
 		D_ASSERT(cast_pointer_to_uint64(slot_ptr) > cast_pointer_to_uint64(DataRegion));
 		D_ASSERT(cast_pointer_to_uint64(slot_ptr) < cast_pointer_to_uint64(DataRegion) + USSR_SIZE * USSR_SLOT_SIZE);
 
-		memcpy(slot_ptr, str.GetData(),  str.GetSize());
+		memcpy(slot_ptr, str.GetData(), str.GetSize());
 		memcpy(slot_ptr - 1, &h, 8);
-		return string_t(const_char_ptr_cast(slot_ptr), UnsafeNumericCast<uint32_t >(str.GetSize()));
+		return string_t(const_char_ptr_cast(slot_ptr), UnsafeNumericCast<uint32_t>(str.GetSize()));
 	}
 
 	return str;
@@ -109,8 +103,6 @@ LinearProbingHashTable::LinearProbingHashTable(data_ptr_t bufferHT) {
 	nRejections_Probing = 0;
 	nRejections_SizeFull = 0;
 #endif
-
-
 }
 
 optional_idx LinearProbingHashTable::insert(uint32_t hashPrefix, uint32_t len) {
@@ -120,9 +112,9 @@ optional_idx LinearProbingHashTable::insert(uint32_t hashPrefix, uint32_t len) {
 	// reject if not enough space left
 	auto remaining = (USSR_SIZE - 1 - currentEmptySlot) * 8;
 	if (len > remaining) {
-	#ifdef DEBUG
+#ifdef DEBUG
 		nRejections_SizeFull++;
-	#endif
+#endif
 		return optional_idx();
 	}
 
@@ -156,25 +148,17 @@ optional_idx LinearProbingHashTable::insert(uint32_t hashPrefix, uint32_t len) {
 			uint32_t expected = 0;
 			uint32_t desired = UnsafeNumericCast<uint32_t>(hashExtract);
 			desired = desired << 16;
-			desired |= UnsafeNumericCast<uint32_t>(currentEmptySlot.load());
-			D_ASSERT((desired & 0x0000FFFF) == currentEmptySlot.load());
-
-			if(reinterpret_cast<atomic<uint32_t>*>(HT + ((slot + i)))->compare_exchange_strong(expected, desired)){
-				#ifdef DEBUG
-				accepted++;
-				#endif
-//			HT[slot + i] = desired;
-				auto ret = currentEmptySlot.fetch_add(increasedSlot);
-//				auto ret = currentEmptySlot.load();
-//				// 1 slot for the pre-computed hash,
-//				currentEmptySlot += increasedSlot;
-				D_ASSERT(ret < currentEmptySlot);
-				//			    Printer::Print(std::to_string(ret));
-				// if exchanged, return slot number
-				return optional_idx(ret);
-			} else{
-				i--;
-			}
+			desired |= UnsafeNumericCast<uint32_t>(currentEmptySlot);
+			D_ASSERT((desired & 0x0000FFFF) == currentEmptySlot);
+#ifdef DEBUG
+			accepted++;
+#endif
+			HT[slot + i] = desired;
+			auto ret = currentEmptySlot;
+			// 1 slot for the pre-computed hash,
+			currentEmptySlot += increasedSlot;
+			D_ASSERT(ret < currentEmptySlot);
+			return optional_idx(ret);
 		}
 	}
 #ifdef DEBUG
@@ -206,9 +190,9 @@ optional_idx LinearProbingHashTable::lookup(uint32_t hashPrefix) {
 
 void LinearProbingHashTable::getStatistics() {
 	// A small helper to pad strings on the right
-	auto padRight = [](const std::string& text, std::size_t width) {
+	auto padRight = [](const std::string &text, std::size_t width) {
 		if (text.size() >= width) {
-			return text;  // If it already exceeds or matches the width, just return it
+			return text; // If it already exceeds or matches the width, just return it
 		}
 		return text + std::string(width - text.size(), ' ');
 	};
@@ -237,6 +221,5 @@ void LinearProbingHashTable::getStatistics() {
 
 	Printer::Print(statsStr);
 }
-
 
 } // namespace duckdb
