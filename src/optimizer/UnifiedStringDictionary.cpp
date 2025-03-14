@@ -145,7 +145,6 @@ optional_idx LinearProbingHashTable::insert(uint32_t hashPrefix, uint32_t len) {
 		if (bucket == 0) {
 			auto increasedSlot = (len % 8 == 0) ? 1 + (len / 8) : 2 + (len / 8);
 
-			uint32_t expected = 0;
 			uint32_t desired = UnsafeNumericCast<uint32_t>(hashExtract);
 			desired = desired << 16;
 			desired |= UnsafeNumericCast<uint32_t>(currentEmptySlot);
