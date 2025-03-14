@@ -11,17 +11,17 @@ UnifiedStringsDictionary *UnifiedStringsDictionary::ussr_instance {nullptr};
 // std::mutex UnifiedStringsDictionary::singletonLock;
 // std::mutex UnifiedStringsDictionary::destroyLock;
 
-void UnifiedStringsDictionary::destroy_UnifiedStrings() {
-	// error prone, don't know how to fix
-	// for now only used for getting statistics, singleton causes memory leak!!!
-	if (ussr_instance) {
-//		ussr_instance->buffer.reset();
-#ifdef DEBUG
-		ussr_instance->LinearProbingHT->getStatistics();
-#endif
-		//		ussr_instance = nullptr;
-	}
-}
+//void UnifiedStringsDictionary::destroy_UnifiedStrings() {
+//	// error prone, don't know how to fix
+//	// for now only used for getting statistics, singleton causes memory leak!!!
+//	if (ussr_instance) {
+////		ussr_instance->buffer.reset();
+//#ifdef DEBUG
+//		ussr_instance->LinearProbingHT->getStatistics();
+//#endif
+//		//		ussr_instance = nullptr;
+//	}
+//}
 
 UnifiedStringsDictionary::UnifiedStringsDictionary() {
 
@@ -47,7 +47,7 @@ UnifiedStringsDictionary::UnifiedStringsDictionary() {
 
 	// We zero the hashtable, since we need an indicator if a bucket as been filled or not
 	memset(HT_address, '\0', HT_SIZE * HT_BUCKET_SIZE);
-	LinearProbingHT = new LinearProbingHashTable(HT_address);
+	LinearProbingHT = make_uniq<LinearProbingHashTable>(HT_address);
 }
 
 UnifiedStringsDictionary *UnifiedStringsDictionary::getInstance() {
@@ -67,7 +67,7 @@ string_t UnifiedStringsDictionary::insert(string_t str) {
 	hash_t h = Hash(str);
 	uint32_t hashPrefix = Load<uint32_t>(const_data_ptr_cast(&h));
 
-	auto lookup_res = LinearProbingHT->lookup(hashPrefix);
+	auto lookup_res = LinearProbingHT.get()->lookup(hashPrefix);
 	if (lookup_res.IsValid()) {
 		auto slot = lookup_res.GetIndex();
 		auto slot_ptr = DataRegion + slot;
@@ -76,7 +76,7 @@ string_t UnifiedStringsDictionary::insert(string_t str) {
 		return (res_str == str) ? res_str : str;
 	}
 
-	auto res = LinearProbingHT->insert(hashPrefix, UnsafeNumericCast<uint32_t>(str.GetSize()));
+	auto res = LinearProbingHT.get()->insert(hashPrefix, UnsafeNumericCast<uint32_t>(str.GetSize()));
 	if (res.IsValid()) {
 		auto slot = res.GetIndex();
 		auto slot_ptr = DataRegion + slot;
