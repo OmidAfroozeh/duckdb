@@ -5,6 +5,8 @@
 #include "duckdb/planner/filter/constant_filter.hpp"
 #include "duckdb/planner/filter/struct_filter.hpp"
 
+#include "duckdb/optimizer/UnifiedStringDictionary.h"
+
 namespace duckdb {
 
 DictionaryDecoder::DictionaryDecoder(ColumnReader &reader)
@@ -34,6 +36,15 @@ void DictionaryDecoder::InitializeDictionary(idx_t new_dictionary_size, optional
 		dict_validity.SetInvalid(dictionary_size);
 	}
 	reader.Plain(reader.block, nullptr, dictionary_size, 0, *dictionary);
+
+	// Adding the initialized dictionary to USSR if the logical type is VARCHAR
+	if(dictionary.get()->GetType() == LogicalType::VARCHAR){
+		auto USSR = UnifiedStringsDictionary::getInstance();
+		for (idx_t i = 0; i < dictionary_size; i++) {
+			auto str = reinterpret_cast<string_t *>(dictionary->GetData())[i];
+			reinterpret_cast<string_t *>(dictionary->GetData())[i] = USSR->insert(str);
+		}
+	}
 
 	if (filter && CanFilter(*filter)) {
 		// no filter result yet - apply filter to the dictionary
