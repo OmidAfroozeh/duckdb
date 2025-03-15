@@ -11,17 +11,17 @@ UnifiedStringsDictionary *UnifiedStringsDictionary::ussr_instance {nullptr};
 // std::mutex UnifiedStringsDictionary::singletonLock;
 // std::mutex UnifiedStringsDictionary::destroyLock;
 
-//void UnifiedStringsDictionary::destroy_UnifiedStrings() {
-//	// error prone, don't know how to fix
-//	// for now only used for getting statistics, singleton causes memory leak!!!
-//	if (ussr_instance) {
-////		ussr_instance->buffer.reset();
-//#ifdef DEBUG
-//		ussr_instance->LinearProbingHT->getStatistics();
-//#endif
-//		//		ussr_instance = nullptr;
-//	}
-//}
+void UnifiedStringsDictionary::destroy_UnifiedStrings() {
+	// error prone, don't know how to fix
+	// for now only used for getting statistics, singleton causes memory leak!!!
+	if (ussr_instance) {
+		ussr_instance->buffer.reset();
+#ifdef DEBUG
+		ussr_instance->LinearProbingHT->getStatistics();
+#endif
+		ussr_instance = nullptr;
+	}
+}
 
 UnifiedStringsDictionary::UnifiedStringsDictionary() {
 
@@ -51,8 +51,11 @@ UnifiedStringsDictionary::UnifiedStringsDictionary() {
 }
 
 UnifiedStringsDictionary *UnifiedStringsDictionary::getInstance() {
-	static std::once_flag onceFlag;
-	std::call_once(onceFlag, [] { ussr_instance = new UnifiedStringsDictionary(); });
+	static std::mutex singletonLock;
+	lock_guard<std::mutex> guard(singletonLock);
+	if (!ussr_instance) {
+		ussr_instance = new UnifiedStringsDictionary();
+	}
 	return ussr_instance;
 }
 
@@ -61,7 +64,6 @@ string_t UnifiedStringsDictionary::insert(string_t str) {
 	if (str.IsInlined()) {
 		return str;
 	}
-
 	lock_guard<std::mutex> guard(insertLock);
 
 	hash_t h = Hash(str);
