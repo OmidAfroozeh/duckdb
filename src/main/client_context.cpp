@@ -44,6 +44,8 @@
 #include "duckdb/transaction/transaction_context.hpp"
 #include "duckdb/transaction/transaction_manager.hpp"
 
+#include "duckdb/optimizer/UnifiedStringDictionary.h"
+
 namespace duckdb {
 
 struct ActiveQueryContext {
@@ -224,7 +226,7 @@ void ClientContext::BeginQueryInternal(ClientContextLock &lock, const string &qu
 ErrorData ClientContext::EndQueryInternal(ClientContextLock &lock, bool success, bool invalidate_transaction,
                                           optional_ptr<ErrorData> previous_error) {
 	client_data->profiler->EndQuery();
-//		UnifiedStringsDictionary::destroy_UnifiedStrings();
+	//		UnifiedStringsDictionary::destroy_UnifiedStrings();
 	if (active_query->executor) {
 		active_query->executor->CancelTasks();
 	}
@@ -271,6 +273,8 @@ ErrorData ClientContext::EndQueryInternal(ClientContextLock &lock, bool success,
 			s->QueryEnd(*this, previous_error);
 		}
 	}
+
+	//	UnifiedStringsDictionary::destroy_UnifiedStrings();
 
 	return error;
 }
