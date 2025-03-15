@@ -40,8 +40,12 @@ void DictionaryDecoder::InitializeDictionary(idx_t new_dictionary_size, optional
 	// Adding the initialized dictionary to USSR if the logical type is VARCHAR
 	if (dictionary.get()->GetType() == LogicalType::VARCHAR) {
 		auto USSR = UnifiedStringsDictionary::getInstance();
+		if (!USSR) {
+			Printer::Print("FUCK FUCK FUCK");
+		}
 		for (idx_t i = 0; i < dictionary_size; i++) {
 			auto str = reinterpret_cast<string_t *>(dictionary->GetData())[i];
+			//			auto s = USSR->insert(str);
 			reinterpret_cast<string_t *>(dictionary->GetData())[i] = USSR->insert(str);
 		}
 	}
