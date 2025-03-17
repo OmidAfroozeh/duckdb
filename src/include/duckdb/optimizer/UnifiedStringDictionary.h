@@ -69,7 +69,7 @@ private:
 	UnifiedStringsDictionary();
 
 	// for thread-safe creation of Singleton
-//		static std::mutex singletonLock;
+	//		static std::mutex singletonLock;
 	//	static std::mutex destroyLock;
 	// temporary solution for concurrency
 	std::mutex insertLock;
