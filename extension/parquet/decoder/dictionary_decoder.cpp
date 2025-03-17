@@ -41,8 +41,9 @@ void DictionaryDecoder::InitializeDictionary(idx_t new_dictionary_size, optional
 	if (dictionary.get()->GetType() == LogicalType::VARCHAR) {
 		auto USSR = UnifiedStringsDictionary::getInstance();
 		for (idx_t i = 0; i < dictionary_size; i++) {
-			auto str = FlatVector::GetData<string_t>(*dictionary);
-			*str = USSR->insert(*str);
+			auto str = reinterpret_cast<string_t *>(dictionary->GetData())[i];
+			//			auto s = USSR->insert(str);
+			reinterpret_cast<string_t *>(dictionary->GetData())[i] = USSR->insert(str);
 		}
 	}
 
