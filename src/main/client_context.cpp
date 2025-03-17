@@ -274,7 +274,7 @@ ErrorData ClientContext::EndQueryInternal(ClientContextLock &lock, bool success,
 		}
 	}
 
-	//	UnifiedStringsDictionary::destroy_UnifiedStrings();
+		UnifiedStringsDictionary::destroy_UnifiedStrings();
 
 	return error;
 }

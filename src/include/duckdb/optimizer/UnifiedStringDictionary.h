@@ -44,6 +44,11 @@ private:
 	uint64_t nRejections_SizeFull;
 	uint64_t nRejections_Probing;
 
+	// statistics about strings
+	float avg_len;
+	uint64_t min_len;
+	uint64_t max_len;
+
 public:
 	explicit LinearProbingHashTable(data_ptr_t bufferHT);
 	optional_idx insert(uint32_t hashPrefix, uint32_t len);
@@ -51,6 +56,7 @@ public:
 	optional_idx lookup(uint32_t hashPrefix);
 
 	void getStatistics();
+	void updateStringStats(uint32_t len);
 };
 
 // Singleton
@@ -69,7 +75,7 @@ private:
 	UnifiedStringsDictionary();
 
 	// for thread-safe creation of Singleton
-//		static std::mutex singletonLock;
+	//		static std::mutex singletonLock;
 	//	static std::mutex destroyLock;
 	// temporary solution for concurrency
 	std::mutex insertLock;
