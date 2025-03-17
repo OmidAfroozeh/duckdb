@@ -129,6 +129,7 @@ optional_idx LinearProbingHashTable::insert(uint32_t hashPrefix, uint32_t len) {
 	for (idx_t i = 0; i < PROBING_LIMIT; i++) {
 		// currently no looping around
 		if (slot + i > USSR_SIZE) {
+			nRejections_Probing++;
 			return optional_idx();
 		}
 
@@ -141,6 +142,7 @@ optional_idx LinearProbingHashTable::insert(uint32_t hashPrefix, uint32_t len) {
 			// the hashExtract could be zero,
 			// we also need to check that the slot is also zero to 100% be sure that this is not filled
 			if (res != 0) {
+				accepted++;
 				optional_idx(bucket & 0x0000FFFF);
 			}
 		}
