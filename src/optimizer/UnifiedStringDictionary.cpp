@@ -51,8 +51,8 @@ UnifiedStringsDictionary::UnifiedStringsDictionary() {
 }
 
 UnifiedStringsDictionary *UnifiedStringsDictionary::getInstance() {
-//	static std::mutex* singletonLock = new std::mutex();
-	static std::mutex singletonLock;
+	//	static std::mutex* singletonLock = new std::mutex();
+	static std::mutex &singletonLock = *new std::mutex();
 	lock_guard<std::mutex> guard(singletonLock);
 	if (!ussr_instance) {
 		ussr_instance = new UnifiedStringsDictionary();
