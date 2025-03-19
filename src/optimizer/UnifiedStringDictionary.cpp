@@ -8,8 +8,6 @@ namespace duckdb {
 
 uint64_t UnifiedStringsDictionary::USSR_prefix = 0;
 UnifiedStringsDictionary *UnifiedStringsDictionary::ussr_instance {nullptr};
-// std::mutex UnifiedStringsDictionary::singletonLock;
-// std::mutex UnifiedStringsDictionary::destroyLock;
 
 void UnifiedStringsDictionary::destroy_UnifiedStrings() {
 	// error prone, don't know how to fix
@@ -26,13 +24,12 @@ void UnifiedStringsDictionary::destroy_UnifiedStrings() {
 UnifiedStringsDictionary::UnifiedStringsDictionary() {
 
 	buffer = make_unsafe_uniq_array_uninitialized<data_t>(BUFFER_SIZE);
-	//	memset(buffer.get(), '\0', BUFFER_SIZE);
-	USSR_prefix = cast_pointer_to_uint64(buffer.get() + USSR_SIZE * USSR_SLOT_SIZE) & USSR_MASK;
 
+	USSR_prefix = cast_pointer_to_uint64(buffer.get() + USSR_SIZE * USSR_SLOT_SIZE) & USSR_MASK;
 	DataRegion = reinterpret_cast<uint64_t *>(USSR_prefix);
 
 	// Double check that the DataRegion is contained within the buffer
-	D_ASSERT(cast_pointer_to_uint64(buffer.get()) < cast_pointer_to_uint64(DataRegion));
+	D_ASSERT(cast_pointer_to_uint64(buffer.get()) <= cast_pointer_to_uint64(DataRegion));
 	D_ASSERT(cast_pointer_to_uint64(DataRegion) < cast_pointer_to_uint64(buffer.get()) + BUFFER_SIZE);
 	D_ASSERT(cast_pointer_to_uint64(DataRegion) + USSR_SIZE * USSR_SLOT_SIZE <=
 	         cast_pointer_to_uint64(buffer.get()) + BUFFER_SIZE);
@@ -47,11 +44,20 @@ UnifiedStringsDictionary::UnifiedStringsDictionary() {
 
 	// We zero the hashtable, since we need an indicator if a bucket as been filled or not
 	memset(HT_address, '\0', HT_SIZE * HT_BUCKET_SIZE);
-	LinearProbingHT = make_uniq<LinearProbingHashTable>(HT_address);
+	HT = reinterpret_cast<uint32_t *>(HT_address);
+
+	currentEmptySlot = 1;
+
+#ifdef DEBUG
+	candidates = 0;
+	accepted = 0;
+	nRejections_Probing = 0;
+	nRejections_SizeFull = 0;
+#endif
 }
 
 UnifiedStringsDictionary *UnifiedStringsDictionary::getInstance() {
-	//	static std::mutex* singletonLock = new std::mutex();
+	// memory leak, to suppress compiler warning
 	static std::mutex &singletonLock = *new std::mutex();
 	lock_guard<std::mutex> guard(singletonLock);
 	if (!ussr_instance) {
@@ -65,13 +71,13 @@ string_t UnifiedStringsDictionary::insertInternal(string_t str) {
 	candidates++;
 #endif
 
-
 	hash_t h = Hash(str);
-	uint64_t hashPrefix = h & 0x00000000FFFFFFFF;
+	uint64_t hash_prefix = h & 0x00000000FFFFFFFF;
 
-	uint64_t slot = hashPrefix & 0x000000000000FFFF;
+	uint16_t slot;
+	memcpy(&slot, &hash_prefix, 2U);
 
-	uint64_t hashExtract = hashPrefix >> 16;
+	uint16_t hashExtract = UnsafeNumericCast<uint16_t>(hash_prefix >> 16);
 
 	for (idx_t i = 0; i < PROBING_LIMIT; i++) {
 		// currently no looping around
@@ -83,49 +89,54 @@ string_t UnifiedStringsDictionary::insertInternal(string_t str) {
 		}
 
 		uint64_t bucket = Load<uint32_t>(const_data_ptr_cast(HT + ((slot + i))));
-
 		uint64_t bucket_hashExtract = bucket >> 16;
 
 		if (bucket_hashExtract == hashExtract) {
-			auto data_region_slot = bucket & 0x0000FFFF;
-			// the hashExtract could be zero,
+			auto data_region_slot = bucket & 0x000000000000FFFF;
+			// the string_hash_extract could be zero,
 			// we also need to check that the slot is also zero to 100% be sure that this is not filled
 			if (data_region_slot != 0) {
 #ifdef DEBUG
 				accepted++;
 #endif
-
-				auto result_str = string_t(const_char_ptr_cast(DataRegion + data_region_slot), UnsafeNumericCast<uint32_t>(str.GetSize()));
-				return (result_str == str) ? result_str : str;
+				auto len = strlen(const_char_ptr_cast(DataRegion + data_region_slot));
+				if(len != str.GetSize()){
+					return str;
+				}
+				auto res_str = string_t(const_char_ptr_cast(DataRegion + data_region_slot), UnsafeNumericCast<uint32_t>(str.GetSize()));
+				return (res_str == str) ? res_str : str;
 			}
 		}
 
 		if (bucket == 0) {
 			// reject if not enough space left
-			auto remaining = (USSR_SIZE - 1 - currentEmptySlot) * 8;
-			if (str.GetSize() > remaining) {
+			auto remaining = (USSR_SIZE - currentEmptySlot) * 8;
+			if (str.GetSize() + 1 > remaining) {
 #ifdef DEBUG
 				nRejections_SizeFull++;
 #endif
 				return str;
 			}
-			auto increasedSlot = (str.GetSize() % 8 == 0) ? 1 + (str.GetSize() / 8) : 2 + (str.GetSize() / 8);
+			auto increasedSlot = (str.GetSize() + 1 % 8 == 0) ? 1 + (str.GetSize() / 8) : 2 + (str.GetSize() / 8);
 
-			uint32_t desired = UnsafeNumericCast<uint32_t>(hashExtract);
-			desired = desired << 16;
-			desired |= UnsafeNumericCast<uint32_t>(currentEmptySlot);
-			D_ASSERT((desired & 0x0000FFFF) == currentEmptySlot);
+			uint32_t new_bucket = UnsafeNumericCast<uint32_t>(hashExtract);
+			new_bucket = new_bucket << 16;
+			new_bucket |= UnsafeNumericCast<uint32_t>(currentEmptySlot);
+//			Printer::PrintF("currentEmptySlot = %d | stored = %d", currentEmptySlot, new_bucket & 0x0000FFFF);
+			D_ASSERT((new_bucket & 0x0000FFFF) == currentEmptySlot);
 #ifdef DEBUG
 			accepted++;
 #endif
-			HT[slot + i] = desired;
-			auto ret = currentEmptySlot;
+			HT[slot + i] = new_bucket;
 			// 1 slot for the pre-computed hash,
+//			D_ASSERT(ret < currentEmptySlot);
+			memcpy(DataRegion + currentEmptySlot, str.GetData(), str.GetSize());
+			memcpy((DataRegion + currentEmptySlot) - 1, &h, 8);
+			memset(DataRegion + currentEmptySlot + str.GetSize(), '\0', 1);
+			auto result_string = string_t(const_char_ptr_cast(DataRegion + currentEmptySlot), UnsafeNumericCast<uint32_t>(str.GetSize()));
 			currentEmptySlot += increasedSlot;
-			D_ASSERT(ret < currentEmptySlot);
-			memcpy(DataRegion + ret, str.GetData(), str.GetSize());
-			memcpy((DataRegion + ret) - 1, &h, 8U);
-			return string_t(const_char_ptr_cast(DataRegion + ret), UnsafeNumericCast<uint32_t>(str.GetSize()));
+
+			return result_string;
 		}
 	}
 #ifdef DEBUG
@@ -133,81 +144,6 @@ string_t UnifiedStringsDictionary::insertInternal(string_t str) {
 #endif
 	return str;
 }
-
-//LinearProbingHashTable::LinearProbingHashTable(data_ptr_t bufferHT) {
-//	HT = reinterpret_cast<uint32_t *>(bufferHT);
-//	currentEmptySlot = 1;
-//
-//#ifdef DEBUG
-//	candidates = 0;
-//	accepted = 0;
-//	nRejections_Probing = 0;
-//	nRejections_SizeFull = 0;
-//#endif
-//}
-
-//optional_idx LinearProbingHashTable::insert(uint32_t hashPrefix, uint32_t len) {
-//#ifdef DEBUG
-//	candidates++;
-//#endif
-//	// reject if not enough space left
-//	auto remaining = (USSR_SIZE - 1 - currentEmptySlot) * 8;
-//	if (len > remaining) {
-//#ifdef DEBUG
-//		nRejections_SizeFull++;
-//#endif
-//		return optional_idx();
-//	}
-//
-//	uint16_t slot;
-//	memcpy(&slot, &hashPrefix, 2U);
-//
-//	uint16_t hashExtract = hashPrefix >> 16;
-//
-//	for (idx_t i = 0; i < PROBING_LIMIT; i++) {
-//		// currently no looping around
-//		if (slot + i > USSR_SIZE) {
-//			nRejections_Probing++;
-//			return optional_idx();
-//		}
-//
-//		uint32_t bucket = Load<uint32_t>(const_data_ptr_cast(HT + ((slot + i))));
-//
-//		uint16_t bucket_hashExtract = bucket >> 16;
-//
-//		if (bucket_hashExtract == hashExtract) {
-//			auto res = bucket & 0x0000FFFF;
-//			// the hashExtract could be zero,
-//			// we also need to check that the slot is also zero to 100% be sure that this is not filled
-//			if (res != 0) {
-//				accepted++;
-//				optional_idx(bucket & 0x0000FFFF);
-//			}
-//		}
-//
-//		if (bucket == 0) {
-//			auto increasedSlot = (len % 8 == 0) ? 1 + (len / 8) : 2 + (len / 8);
-//
-//			uint32_t desired = UnsafeNumericCast<uint32_t>(hashExtract);
-//			desired = desired << 16;
-//			desired |= UnsafeNumericCast<uint32_t>(currentEmptySlot);
-//			D_ASSERT((desired & 0x0000FFFF) == currentEmptySlot);
-//#ifdef DEBUG
-//			accepted++;
-//#endif
-//			HT[slot + i] = desired;
-//			auto ret = currentEmptySlot;
-//			// 1 slot for the pre-computed hash,
-//			currentEmptySlot += increasedSlot;
-//			D_ASSERT(ret < currentEmptySlot);
-//			return optional_idx(ret);
-//		}
-//	}
-//#ifdef DEBUG
-//	nRejections_Probing++;
-//#endif
-//	return optional_idx();
-//}
 
 void UnifiedStringsDictionary::getStatistics() {
 	// A small helper to pad strings on the right
@@ -243,6 +179,12 @@ void UnifiedStringsDictionary::getStatistics() {
 	Printer::Print(statsStr);
 }
 string_t UnifiedStringsDictionary::insert(string_t str) {
+	if(str.IsInlined()){
+		return str;
+	}
+	// grab the lock
+	lock_guard<std::mutex> guard(insertLock);
+
 	return insertInternal(str);
 }
 

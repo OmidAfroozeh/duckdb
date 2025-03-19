@@ -61,7 +61,7 @@ private:
 
 	uint64_t currentEmptySlot;
 
-
+#ifdef DEBUG
 	// every attempt on inserting a string
 	uint64_t candidates;
 	// accepted strings into the USSR
@@ -69,13 +69,10 @@ private:
 
 	uint64_t nRejections_SizeFull;
 	uint64_t nRejections_Probing;
-
+#endif
 	// private constructor
 	UnifiedStringsDictionary();
 
-	// for thread-safe creation of Singleton
-	//		static std::mutex singletonLock;
-	//	static std::mutex destroyLock;
 	// temporary solution for concurrency
 	std::mutex insertLock;
 
