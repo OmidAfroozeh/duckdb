@@ -118,7 +118,7 @@ optional_idx LinearProbingHashTable::insert(uint32_t hashPrefix, uint32_t len) {
 	candidates++;
 #endif
 	// reject if not enough space left
-	auto remaining = (USSR_SIZE - 1 - currentEmptySlot) * 8;
+	auto remaining = (USSR_SIZE - currentEmptySlot) * 8;
 	if (len > remaining) {
 #ifdef DEBUG
 		nRejections_SizeFull++;
