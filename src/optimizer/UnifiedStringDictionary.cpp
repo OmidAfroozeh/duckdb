@@ -100,10 +100,11 @@ string_t UnifiedStringsDictionary::insertInternal(string_t str) {
 				accepted++;
 #endif
 				auto len = strlen(const_char_ptr_cast(DataRegion + data_region_slot));
-				if(len != str.GetSize()){
+				if (len != str.GetSize()) {
 					return str;
 				}
-				auto res_str = string_t(const_char_ptr_cast(DataRegion + data_region_slot), UnsafeNumericCast<uint32_t>(str.GetSize()));
+				auto res_str = string_t(const_char_ptr_cast(DataRegion + data_region_slot),
+				                        UnsafeNumericCast<uint32_t>(str.GetSize()));
 				return (res_str == str) ? res_str : str;
 			}
 		}
@@ -122,18 +123,20 @@ string_t UnifiedStringsDictionary::insertInternal(string_t str) {
 			uint32_t new_bucket = UnsafeNumericCast<uint32_t>(hashExtract);
 			new_bucket = new_bucket << 16;
 			new_bucket |= UnsafeNumericCast<uint32_t>(currentEmptySlot);
-//			Printer::PrintF("currentEmptySlot = %d | stored = %d", currentEmptySlot, new_bucket & 0x0000FFFF);
+			//			Printer::PrintF("currentEmptySlot = %d | stored = %d", currentEmptySlot, new_bucket &
+			//0x0000FFFF);
 			D_ASSERT((new_bucket & 0x0000FFFF) == currentEmptySlot);
 #ifdef DEBUG
 			accepted++;
 #endif
 			HT[slot + i] = new_bucket;
 			// 1 slot for the pre-computed hash,
-//			D_ASSERT(ret < currentEmptySlot);
+			//			D_ASSERT(ret < currentEmptySlot);
 			memcpy(DataRegion + currentEmptySlot, str.GetData(), str.GetSize());
 			memcpy((DataRegion + currentEmptySlot) - 1, &h, 8);
 			memset(DataRegion + currentEmptySlot + str.GetSize(), '\0', 1);
-			auto result_string = string_t(const_char_ptr_cast(DataRegion + currentEmptySlot), UnsafeNumericCast<uint32_t>(str.GetSize()));
+			auto result_string = string_t(const_char_ptr_cast(DataRegion + currentEmptySlot),
+			                              UnsafeNumericCast<uint32_t>(str.GetSize()));
 			currentEmptySlot += increasedSlot;
 
 			return result_string;
@@ -179,7 +182,7 @@ void UnifiedStringsDictionary::getStatistics() {
 	Printer::Print(statsStr);
 }
 string_t UnifiedStringsDictionary::insert(string_t str) {
-	if(str.IsInlined()){
+	if (str.IsInlined()) {
 		return str;
 	}
 	// grab the lock

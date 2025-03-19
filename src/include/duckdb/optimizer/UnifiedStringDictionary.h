@@ -25,8 +25,8 @@ static constexpr uint64_t HT_SIZE = 0xFFFF;
 
 static constexpr idx_t PROBING_LIMIT = 3;
 
-//struct LinearProbingHashTable {
-//private:
+// struct LinearProbingHashTable {
+// private:
 //	uint64_t currentEmptySlot;
 //
 //	uint32_t *HT;
@@ -39,7 +39,7 @@ static constexpr idx_t PROBING_LIMIT = 3;
 //	uint64_t nRejections_SizeFull;
 //	uint64_t nRejections_Probing;
 //
-//public:
+// public:
 //	explicit LinearProbingHashTable(data_ptr_t bufferHT);
 //	optional_idx insert(uint32_t hashPrefix, uint32_t len);
 //
@@ -76,9 +76,7 @@ private:
 	// temporary solution for concurrency
 	std::mutex insertLock;
 
-
 	string_t insertInternal(string_t str);
-
 
 public:
 	static UnifiedStringsDictionary *getInstance();
@@ -88,7 +86,6 @@ public:
 
 	static void destroy_UnifiedStrings();
 	void getStatistics();
-
 };
 
 } // namespace duckdb
