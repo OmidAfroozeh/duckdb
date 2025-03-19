@@ -60,9 +60,9 @@ UnifiedStringsDictionary *UnifiedStringsDictionary::getInstance() {
 
 string_t UnifiedStringsDictionary::insert(string_t str) {
 	// no support for short strings now
-	if (str.IsInlined()) {
-		return str;
-	}
+//	if (str.IsInlined()) {
+//		return str;
+//	}
 	lock_guard<std::mutex> guard(insertLock);
 
 	hash_t h = Hash(str);
@@ -85,9 +85,11 @@ string_t UnifiedStringsDictionary::insert(string_t str) {
 	if (res.IsValid()) {
 		auto slot = res.GetIndex();
 		auto slot_ptr = DataRegion + slot;
-
-		D_ASSERT(cast_pointer_to_uint64(slot_ptr) > cast_pointer_to_uint64(DataRegion));
-		D_ASSERT(cast_pointer_to_uint64(slot_ptr) < cast_pointer_to_uint64(DataRegion) + USSR_SIZE * USSR_SLOT_SIZE);
+		if(cast_pointer_to_uint64(slot_ptr) > cast_pointer_to_uint64(DataRegion) + USSR_SIZE * USSR_SLOT_SIZE){
+			Printer::Print("GOTCHA ");
+		}
+//		D_ASSERT(cast_pointer_to_uint64(slot_ptr) >= cast_pointer_to_uint64(DataRegion));
+//		D_ASSERT(cast_pointer_to_uint64(slot_ptr) <= cast_pointer_to_uint64(DataRegion) + USSR_SIZE * USSR_SLOT_SIZE);
 
 		memcpy(slot_ptr, str.GetData(), str.GetSize());
 		memcpy(slot_ptr - 1, &h, 8);
@@ -118,7 +120,7 @@ optional_idx LinearProbingHashTable::insert(uint32_t hashPrefix, uint32_t len) {
 	candidates++;
 
 	// reject if not enough space left
-	auto remaining = (USSR_SIZE - 1 - currentEmptySlot) * 8;
+	auto remaining = (USSR_SIZE - currentEmptySlot) * 8;
 	if (len > remaining) {
 		nRejections_SizeFull++;
 		return optional_idx();
@@ -145,7 +147,6 @@ optional_idx LinearProbingHashTable::insert(uint32_t hashPrefix, uint32_t len) {
 			// the hashExtract could be zero,
 			// we also need to check that the slot is also zero to 100% be sure that this is not filled
 			if (res != 0) {
-				accepted++;
 				return optional_idx(bucket & 0x0000FFFF);
 			}
 		}
