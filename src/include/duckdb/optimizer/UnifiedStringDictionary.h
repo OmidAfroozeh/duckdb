@@ -25,33 +25,28 @@ static constexpr uint64_t HT_SIZE = 0xFFFF;
 
 static constexpr idx_t PROBING_LIMIT = 3;
 
-struct LinearProbingHashTable {
-private:
-	uint64_t currentEmptySlot;
-
-	//	atomic<uint32_t> *HT_atomic;
-
-	uint32_t *HT;
-
-	//	 number of filled buckets in HT
-	uint64_t nFullBuckets;
-
-	// every attempt on inserting a string
-	uint64_t candidates;
-	// accepted strings into the USSR
-	uint64_t accepted;
-
-	uint64_t nRejections_SizeFull;
-	uint64_t nRejections_Probing;
-
-public:
-	explicit LinearProbingHashTable(data_ptr_t bufferHT);
-	optional_idx insert(uint32_t hashPrefix, uint32_t len);
-
-	optional_idx lookup(uint32_t hashPrefix);
-
-	void getStatistics();
-};
+//struct LinearProbingHashTable {
+//private:
+//	uint64_t currentEmptySlot;
+//
+//	uint32_t *HT;
+//
+//	// every attempt on inserting a string
+//	uint64_t candidates;
+//	// accepted strings into the USSR
+//	uint64_t accepted;
+//
+//	uint64_t nRejections_SizeFull;
+//	uint64_t nRejections_Probing;
+//
+//public:
+//	explicit LinearProbingHashTable(data_ptr_t bufferHT);
+//	optional_idx insert(uint32_t hashPrefix, uint32_t len);
+//
+//	optional_idx lookup(uint32_t hashPrefix);
+//
+//	void getStatistics();
+//};
 
 // Singleton
 class UnifiedStringsDictionary {
@@ -62,9 +57,19 @@ private:
 	unsafe_unique_array<data_t> buffer;
 	// Start of the DataRegion
 	uint64_t *DataRegion;
+	uint32_t *HT;
 
-	unique_ptr<LinearProbingHashTable> LinearProbingHT;
-	//	LinearProbingHashTable *LinearProbingHT;
+	uint64_t currentEmptySlot;
+
+
+	// every attempt on inserting a string
+	uint64_t candidates;
+	// accepted strings into the USSR
+	uint64_t accepted;
+
+	uint64_t nRejections_SizeFull;
+	uint64_t nRejections_Probing;
+
 	// private constructor
 	UnifiedStringsDictionary();
 
@@ -74,6 +79,10 @@ private:
 	// temporary solution for concurrency
 	std::mutex insertLock;
 
+
+	string_t insertInternal(string_t str);
+
+
 public:
 	static UnifiedStringsDictionary *getInstance();
 	static uint64_t USSR_prefix;
@@ -81,6 +90,8 @@ public:
 	string_t insert(string_t str);
 
 	static void destroy_UnifiedStrings();
+	void getStatistics();
+
 };
 
 } // namespace duckdb

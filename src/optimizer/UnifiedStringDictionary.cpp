@@ -17,7 +17,7 @@ void UnifiedStringsDictionary::destroy_UnifiedStrings() {
 	if (ussr_instance) {
 		ussr_instance->buffer.reset();
 #ifdef DEBUG
-		ussr_instance->LinearProbingHT->getStatistics();
+		ussr_instance->getStatistics();
 #endif
 		ussr_instance = nullptr;
 	}
@@ -60,142 +60,156 @@ UnifiedStringsDictionary *UnifiedStringsDictionary::getInstance() {
 	return ussr_instance;
 }
 
-string_t UnifiedStringsDictionary::insert(string_t str) {
-	// no support for short strings now
-//	if (str.IsInlined()) {
-//		return str;
-//	}
-	lock_guard<std::mutex> guard(insertLock);
+string_t UnifiedStringsDictionary::insertInternal(string_t str) {
+#ifdef DEBUG
+	candidates++;
+#endif
+
 
 	hash_t h = Hash(str);
-	uint32_t hashPrefix = Load<uint32_t>(const_data_ptr_cast(&h));
+	uint64_t hashPrefix = h & 0x00000000FFFFFFFF;
 
-	auto lookup_res = LinearProbingHT.get()->lookup(hashPrefix);
-	if (lookup_res.IsValid()) {
-		auto slot = lookup_res.GetIndex();
-		auto slot_ptr = DataRegion + slot;
-		// double checking that the string found is equal to the original string
-		auto len = strlen(const_char_ptr_cast(slot_ptr));
-		if(len != str.GetSize()){
-			return str;
-		}
-		auto res_str = string_t(const_char_ptr_cast(slot_ptr), UnsafeNumericCast<uint32_t>(str.GetSize()));
-		return (res_str == str) ? res_str : str;
-	}
+	uint64_t slot = hashPrefix & 0x000000000000FFFF;
 
-	auto res = LinearProbingHT.get()->insert(hashPrefix, UnsafeNumericCast<uint32_t>(str.GetSize()) + 1);
-	if (res.IsValid()) {
-		auto slot = res.GetIndex();
-		auto slot_ptr = DataRegion + slot;
-		if(cast_pointer_to_uint64(slot_ptr) > cast_pointer_to_uint64(DataRegion) + USSR_SIZE * USSR_SLOT_SIZE){
-			Printer::Print("GOTCHA ");
-		}
-//		D_ASSERT(cast_pointer_to_uint64(slot_ptr) >= cast_pointer_to_uint64(DataRegion));
-//		D_ASSERT(cast_pointer_to_uint64(slot_ptr) <= cast_pointer_to_uint64(DataRegion) + USSR_SIZE * USSR_SLOT_SIZE);
-
-		memcpy(slot_ptr, str.GetData(), str.GetSize());
-		memcpy(slot_ptr - 1, &h, 8);
-		memset(slot_ptr + str.GetSize(), '\0', 1);
-		return string_t(const_char_ptr_cast(slot_ptr), UnsafeNumericCast<uint32_t>(str.GetSize()));
-	}
-
-	return str;
-}
-
-LinearProbingHashTable::LinearProbingHashTable(data_ptr_t bufferHT) {
-	HT = reinterpret_cast<uint32_t *>(bufferHT);
-	currentEmptySlot = 1;
-
-	nFullBuckets = 0;
-	candidates = 0;
-	accepted = 0;
-	nRejections_Probing = 0;
-	nRejections_SizeFull = 0;
-
-	avg_len = 0;
-	min_len = 0;
-	max_len = 0;
-}
-
-optional_idx LinearProbingHashTable::insert(uint32_t hashPrefix, uint32_t len) {
-
-	candidates++;
-
-	// reject if not enough space left
-	auto remaining = (USSR_SIZE - currentEmptySlot) * 8;
-	if (len > remaining) {
-		nRejections_SizeFull++;
-		return optional_idx();
-	}
-
-	uint16_t slot;
-	memcpy(&slot, &hashPrefix, 2U);
-
-	uint16_t hashExtract = hashPrefix >> 16;
+	uint64_t hashExtract = hashPrefix >> 16;
 
 	for (idx_t i = 0; i < PROBING_LIMIT; i++) {
 		// currently no looping around
 		if (slot + i > USSR_SIZE) {
+#ifdef DEBUG
 			nRejections_Probing++;
-			return optional_idx();
+#endif
+			return str;
 		}
 
-		uint32_t bucket = Load<uint32_t>(const_data_ptr_cast(HT + ((slot + i))));
+		uint64_t bucket = Load<uint32_t>(const_data_ptr_cast(HT + ((slot + i))));
 
-		uint16_t bucket_hashExtract = bucket >> 16;
+		uint64_t bucket_hashExtract = bucket >> 16;
 
 		if (bucket_hashExtract == hashExtract) {
-			auto res = bucket & 0x0000FFFF;
+			auto data_region_slot = bucket & 0x0000FFFF;
 			// the hashExtract could be zero,
 			// we also need to check that the slot is also zero to 100% be sure that this is not filled
-			if (res != 0) {
-				return optional_idx(bucket & 0x0000FFFF);
+			if (data_region_slot != 0) {
+#ifdef DEBUG
+				accepted++;
+#endif
+
+				auto result_str = string_t(const_char_ptr_cast(DataRegion + data_region_slot), UnsafeNumericCast<uint32_t>(str.GetSize()));
+				return (result_str == str) ? result_str : str;
 			}
 		}
 
 		if (bucket == 0) {
-			auto increasedSlot = (len % 8 == 0) ? 1 + (len / 8) : 2 + (len / 8);
+			// reject if not enough space left
+			auto remaining = (USSR_SIZE - 1 - currentEmptySlot) * 8;
+			if (str.GetSize() > remaining) {
+#ifdef DEBUG
+				nRejections_SizeFull++;
+#endif
+				return str;
+			}
+			auto increasedSlot = (str.GetSize() % 8 == 0) ? 1 + (str.GetSize() / 8) : 2 + (str.GetSize() / 8);
 
 			uint32_t desired = UnsafeNumericCast<uint32_t>(hashExtract);
 			desired = desired << 16;
 			desired |= UnsafeNumericCast<uint32_t>(currentEmptySlot);
 			D_ASSERT((desired & 0x0000FFFF) == currentEmptySlot);
+#ifdef DEBUG
 			accepted++;
+#endif
 			HT[slot + i] = desired;
 			auto ret = currentEmptySlot;
 			// 1 slot for the pre-computed hash,
 			currentEmptySlot += increasedSlot;
 			D_ASSERT(ret < currentEmptySlot);
-			updateStringStats(len);
-			return optional_idx(ret);
+			memcpy(DataRegion + ret, str.GetData(), str.GetSize());
+			memcpy((DataRegion + ret) - 1, &h, 8U);
+			return string_t(const_char_ptr_cast(DataRegion + ret), UnsafeNumericCast<uint32_t>(str.GetSize()));
 		}
 	}
+#ifdef DEBUG
 	nRejections_Probing++;
-	return optional_idx();
+#endif
+	return str;
 }
 
-optional_idx LinearProbingHashTable::lookup(uint32_t hashPrefix) {
-	uint16_t slot;
-	memcpy(&slot, &hashPrefix, 2U);
+//LinearProbingHashTable::LinearProbingHashTable(data_ptr_t bufferHT) {
+//	HT = reinterpret_cast<uint32_t *>(bufferHT);
+//	currentEmptySlot = 1;
+//
+//#ifdef DEBUG
+//	candidates = 0;
+//	accepted = 0;
+//	nRejections_Probing = 0;
+//	nRejections_SizeFull = 0;
+//#endif
+//}
 
-	uint16_t hashExtract = hashPrefix >> 16;
+//optional_idx LinearProbingHashTable::insert(uint32_t hashPrefix, uint32_t len) {
+//#ifdef DEBUG
+//	candidates++;
+//#endif
+//	// reject if not enough space left
+//	auto remaining = (USSR_SIZE - 1 - currentEmptySlot) * 8;
+//	if (len > remaining) {
+//#ifdef DEBUG
+//		nRejections_SizeFull++;
+//#endif
+//		return optional_idx();
+//	}
+//
+//	uint16_t slot;
+//	memcpy(&slot, &hashPrefix, 2U);
+//
+//	uint16_t hashExtract = hashPrefix >> 16;
+//
+//	for (idx_t i = 0; i < PROBING_LIMIT; i++) {
+//		// currently no looping around
+//		if (slot + i > USSR_SIZE) {
+//			nRejections_Probing++;
+//			return optional_idx();
+//		}
+//
+//		uint32_t bucket = Load<uint32_t>(const_data_ptr_cast(HT + ((slot + i))));
+//
+//		uint16_t bucket_hashExtract = bucket >> 16;
+//
+//		if (bucket_hashExtract == hashExtract) {
+//			auto res = bucket & 0x0000FFFF;
+//			// the hashExtract could be zero,
+//			// we also need to check that the slot is also zero to 100% be sure that this is not filled
+//			if (res != 0) {
+//				accepted++;
+//				optional_idx(bucket & 0x0000FFFF);
+//			}
+//		}
+//
+//		if (bucket == 0) {
+//			auto increasedSlot = (len % 8 == 0) ? 1 + (len / 8) : 2 + (len / 8);
+//
+//			uint32_t desired = UnsafeNumericCast<uint32_t>(hashExtract);
+//			desired = desired << 16;
+//			desired |= UnsafeNumericCast<uint32_t>(currentEmptySlot);
+//			D_ASSERT((desired & 0x0000FFFF) == currentEmptySlot);
+//#ifdef DEBUG
+//			accepted++;
+//#endif
+//			HT[slot + i] = desired;
+//			auto ret = currentEmptySlot;
+//			// 1 slot for the pre-computed hash,
+//			currentEmptySlot += increasedSlot;
+//			D_ASSERT(ret < currentEmptySlot);
+//			return optional_idx(ret);
+//		}
+//	}
+//#ifdef DEBUG
+//	nRejections_Probing++;
+//#endif
+//	return optional_idx();
+//}
 
-	for (idx_t i = 0; i < PROBING_LIMIT; i++) {
-
-		uint32_t bucket = Load<uint32_t>(const_data_ptr_cast(HT + ((slot + i))));
-		uint16_t bucket_hashExtract = bucket >> 16;
-
-		if (bucket == 0) {
-			return optional_idx();
-		}
-		if (bucket_hashExtract == hashExtract) {
-			return optional_idx(bucket & 0x0000FFFF);
-		}
-	}
-	return optional_idx();
-}
-
-void LinearProbingHashTable::getStatistics() {
+void UnifiedStringsDictionary::getStatistics() {
 	// A small helper to pad strings on the right
 	auto padRight = [](const std::string &text, std::size_t width) {
 		if (text.size() >= width) {
@@ -204,46 +218,32 @@ void LinearProbingHashTable::getStatistics() {
 		return text + std::string(width - text.size(), ' ');
 	};
 
+	// Specify column widths as needed
 	const std::size_t w1 = 15;
 	const std::size_t w2 = 15;
 	const std::size_t w3 = 20;
 	const std::size_t w4 = 25;
-	const std::size_t w5 = 15;
-	const std::size_t w6 = 15;
-	const std::size_t w7 = 15;
 
+	// Build header row
 	std::string header;
 	header += padRight("candidates", w1);
 	header += padRight("accepted", w2);
 	header += padRight("Rejected(full USSR)", w3);
 	header += padRight("Rejected(failed probing)", w4);
-	header += padRight("Avg Length", w5);
-	header += padRight("Min Length", w6);
-	header += padRight("Max Length", w7);
 
 	Printer::Print(header);
 
+	// Build stats row
 	std::string statsStr;
 	statsStr += padRight(std::to_string(candidates), w1);
 	statsStr += padRight(std::to_string(accepted), w2);
 	statsStr += padRight(std::to_string(nRejections_SizeFull), w3);
 	statsStr += padRight(std::to_string(nRejections_Probing), w4);
-	statsStr += padRight(std::to_string(avg_len), w5);
-	statsStr += padRight(std::to_string(min_len), w6);
-	statsStr += padRight(std::to_string(max_len), w7);
 
 	Printer::Print(statsStr);
 }
-
-void LinearProbingHashTable::updateStringStats(uint32_t len) {
-	if (accepted > 1) { // Ensure no division by zero on first entry
-		avg_len = ((avg_len * (accepted - 1)) + LossyNumericCast<float_t>(len)) / accepted;
-	} else {
-		avg_len = LossyNumericCast<float_t>(len);
-	}
-	min_len = (min_len == 0 || len < min_len) ? len : min_len;
-	max_len = (len > max_len) ? len : max_len;
+string_t UnifiedStringsDictionary::insert(string_t str) {
+	return insertInternal(str);
 }
-
 
 } // namespace duckdb
