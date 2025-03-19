@@ -50,7 +50,7 @@ UnifiedStringsDictionary::UnifiedStringsDictionary() {
 
 UnifiedStringsDictionary *UnifiedStringsDictionary::getInstance() {
 	//	static std::mutex* singletonLock = new std::mutex();
-	static std::mutex singletonLock;
+	static std::mutex &singletonLock = *new std::mutex();
 	lock_guard<std::mutex> guard(singletonLock);
 	if (!ussr_instance) {
 		ussr_instance = new UnifiedStringsDictionary();
@@ -73,11 +73,15 @@ string_t UnifiedStringsDictionary::insert(string_t str) {
 		auto slot = lookup_res.GetIndex();
 		auto slot_ptr = DataRegion + slot;
 		// double checking that the string found is equal to the original string
+		auto len = strlen(const_char_ptr_cast(slot_ptr));
+		if(len != str.GetSize()){
+			return str;
+		}
 		auto res_str = string_t(const_char_ptr_cast(slot_ptr), UnsafeNumericCast<uint32_t>(str.GetSize()));
 		return (res_str == str) ? res_str : str;
 	}
 
-	auto res = LinearProbingHT.get()->insert(hashPrefix, UnsafeNumericCast<uint32_t>(str.GetSize()));
+	auto res = LinearProbingHT.get()->insert(hashPrefix, UnsafeNumericCast<uint32_t>(str.GetSize()) + 1);
 	if (res.IsValid()) {
 		auto slot = res.GetIndex();
 		auto slot_ptr = DataRegion + slot;
@@ -87,6 +91,7 @@ string_t UnifiedStringsDictionary::insert(string_t str) {
 
 		memcpy(slot_ptr, str.GetData(), str.GetSize());
 		memcpy(slot_ptr - 1, &h, 8);
+		memset(slot_ptr + str.GetSize(), '\0', 1);
 		return string_t(const_char_ptr_cast(slot_ptr), UnsafeNumericCast<uint32_t>(str.GetSize()));
 	}
 
@@ -188,9 +193,10 @@ optional_idx LinearProbingHashTable::lookup(uint32_t hashPrefix) {
 }
 
 void LinearProbingHashTable::getStatistics() {
+	// A small helper to pad strings on the right
 	auto padRight = [](const std::string &text, std::size_t width) {
 		if (text.size() >= width) {
-			return text;
+			return text; // If it already exceeds or matches the width, just return it
 		}
 		return text + std::string(width - text.size(), ' ');
 	};
