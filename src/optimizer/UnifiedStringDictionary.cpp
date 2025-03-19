@@ -91,10 +91,10 @@ string_t UnifiedStringsDictionary::insert(string_t str) {
 		D_ASSERT(cast_pointer_to_uint64(slot_ptr) > cast_pointer_to_uint64(DataRegion));
 		D_ASSERT(cast_pointer_to_uint64(slot_ptr) < cast_pointer_to_uint64(DataRegion + USSR_SIZE * USSR_SLOT_SIZE));
 
-		if(cast_pointer_to_uint64(slot_ptr) >= cast_pointer_to_uint64(DataRegion + USSR_SIZE * USSR_SLOT_SIZE)){
-			Printer::Print("NOOOOOOOOOOOO");
-			return str;
-		}
+//		if(cast_pointer_to_uint64(slot_ptr) >= cast_pointer_to_uint64(DataRegion + USSR_SIZE * USSR_SLOT_SIZE)){
+//			Printer::Print("NOOOOOOOOOOOO");
+//			return str;
+//		}
 
 		memcpy(slot_ptr, str.GetData(), str.GetSize());
 		memcpy(slot_ptr - 1, &h, 8);
