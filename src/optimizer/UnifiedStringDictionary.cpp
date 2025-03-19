@@ -149,6 +149,7 @@ string_t UnifiedStringsDictionary::insertInternal(string_t str) {
 }
 
 void UnifiedStringsDictionary::getStatistics() {
+#ifdef DEBUG
 	// A small helper to pad strings on the right
 	auto padRight = [](const std::string &text, std::size_t width) {
 		if (text.size() >= width) {
@@ -180,6 +181,7 @@ void UnifiedStringsDictionary::getStatistics() {
 	statsStr += padRight(std::to_string(nRejections_Probing), w4);
 
 	Printer::Print(statsStr);
+#endif
 }
 string_t UnifiedStringsDictionary::insert(string_t str) {
 	if (str.IsInlined()) {
