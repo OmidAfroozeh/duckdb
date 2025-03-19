@@ -119,6 +119,10 @@ LinearProbingHashTable::LinearProbingHashTable(data_ptr_t bufferHT) {
 }
 
 optional_idx LinearProbingHashTable::insert(uint32_t hashPrefix, uint32_t len) {
+	if(currentEmptySlot > 65535){
+		currentEmptySlot = 1;
+	}
+
 #ifdef DEBUG
 	candidates++;
 #endif
