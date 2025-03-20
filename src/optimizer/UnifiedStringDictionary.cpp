@@ -119,16 +119,12 @@ LinearProbingHashTable::LinearProbingHashTable(data_ptr_t bufferHT) {
 }
 
 optional_idx LinearProbingHashTable::insert(uint32_t hashPrefix, uint32_t len) {
-	if(currentEmptySlot > 65535){
-		currentEmptySlot = 1;
-	}
-
 #ifdef DEBUG
 	candidates++;
 #endif
 	// reject if not enough space left
 	auto remaining = (USSR_SIZE - currentEmptySlot) * 8;
-	if (len > remaining) {
+	if (len > remaining || currentEmptySlot > USSR_SIZE) {
 #ifdef DEBUG
 		nRejections_SizeFull++;
 #endif
