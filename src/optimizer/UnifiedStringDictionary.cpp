@@ -8,8 +8,6 @@ namespace duckdb {
 
 uint64_t UnifiedStringsDictionary::USSR_prefix = 0;
 UnifiedStringsDictionary *UnifiedStringsDictionary::ussr_instance {nullptr};
-// std::mutex UnifiedStringsDictionary::singletonLock;
-// std::mutex UnifiedStringsDictionary::destroyLock;
 
 void UnifiedStringsDictionary::destroy_UnifiedStrings() {
 	// error prone, don't know how to fix
@@ -27,7 +25,6 @@ void UnifiedStringsDictionary::destroy_UnifiedStrings() {
 UnifiedStringsDictionary::UnifiedStringsDictionary() {
 
 	buffer = make_unsafe_uniq_array_uninitialized<data_t>(BUFFER_SIZE);
-	//	memset(buffer.get(), '\0', BUFFER_SIZE);
 	USSR_prefix = cast_pointer_to_uint64(buffer.get() + USSR_SIZE * USSR_SLOT_SIZE) & USSR_MASK;
 
 	DataRegion = reinterpret_cast<uint64_t *>(USSR_prefix);
@@ -77,7 +74,7 @@ string_t UnifiedStringsDictionary::insert(string_t str) {
 		auto slot_ptr = DataRegion + slot;
 		// double checking that the string found is equal to the original string
 		auto len = strlen(const_char_ptr_cast(slot_ptr));
-		if(len != str.GetSize()){
+		if (len != str.GetSize()) {
 			return str;
 		}
 		auto res_str = string_t(const_char_ptr_cast(slot_ptr), UnsafeNumericCast<uint32_t>(str.GetSize()));
@@ -91,11 +88,6 @@ string_t UnifiedStringsDictionary::insert(string_t str) {
 
 		D_ASSERT(cast_pointer_to_uint64(slot_ptr) > cast_pointer_to_uint64(DataRegion));
 		D_ASSERT(cast_pointer_to_uint64(slot_ptr) < cast_pointer_to_uint64(DataRegion + USSR_SIZE * USSR_SLOT_SIZE));
-
-//		if(cast_pointer_to_uint64(slot_ptr) >= cast_pointer_to_uint64(DataRegion + USSR_SIZE * USSR_SLOT_SIZE)){
-//			Printer::Print("NOOOOOOOOOOOO");
-//			return str;
-//		}
 
 		memcpy(slot_ptr, str.GetData(), str.GetSize());
 		memcpy(slot_ptr - 1, &h, 8);
