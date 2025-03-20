@@ -19,6 +19,7 @@ void UnifiedStringsDictionary::destroy_UnifiedStrings() {
 #ifdef DEBUG
 		ussr_instance->LinearProbingHT->getStatistics();
 #endif
+		delete ussr_instance;
 		ussr_instance = nullptr;
 	}
 }
