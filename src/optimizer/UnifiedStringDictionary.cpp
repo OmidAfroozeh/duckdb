@@ -112,7 +112,7 @@ string_t UnifiedStringsDictionary::insertInternal(string_t str) {
 		if (bucket == 0) {
 			// reject if not enough space left
 			auto remaining = (USSR_SIZE - currentEmptySlot) * 8;
-			if (str.GetSize() + 1 > remaining) {
+			if (str.GetSize() + 1 > remaining || currentEmptySlot > USSR_SIZE) {
 #ifdef DEBUG
 				nRejections_SizeFull++;
 #endif
@@ -123,8 +123,8 @@ string_t UnifiedStringsDictionary::insertInternal(string_t str) {
 			uint32_t new_bucket = UnsafeNumericCast<uint32_t>(hashExtract);
 			new_bucket = new_bucket << 16;
 			new_bucket |= UnsafeNumericCast<uint32_t>(currentEmptySlot);
-			//			Printer::PrintF("currentEmptySlot = %d | stored = %d", currentEmptySlot, new_bucket &
-			//0x0000FFFF);
+			//						Printer::PrintF("currentEmptySlot = %d | stored = %d", currentEmptySlot, new_bucket
+			//& 			0x0000FFFF);
 			D_ASSERT((new_bucket & 0x0000FFFF) == currentEmptySlot);
 #ifdef DEBUG
 			accepted++;
