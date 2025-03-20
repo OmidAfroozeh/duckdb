@@ -103,7 +103,6 @@ LinearProbingHashTable::LinearProbingHashTable(data_ptr_t bufferHT) {
 	currentEmptySlot = 1;
 
 #ifdef DEBUG
-	nFullBuckets = 0;
 	candidates = 0;
 	accepted = 0;
 	nRejections_Probing = 0;
@@ -146,21 +145,21 @@ optional_idx LinearProbingHashTable::insert(uint32_t hashPrefix, uint32_t len) {
 			// we also need to check that the slot is also zero to 100% be sure that this is not filled
 			if (res != 0) {
 				accepted++;
-				optional_idx(bucket & 0x0000FFFF);
+				return optional_idx(bucket & 0x0000FFFF);
 			}
 		}
 
 		if (bucket == 0) {
 			auto increasedSlot = (len % 8 == 0) ? 1 + (len / 8) : 2 + (len / 8);
 
-			uint32_t desired = UnsafeNumericCast<uint32_t>(hashExtract);
-			desired = desired << 16;
-			desired |= UnsafeNumericCast<uint32_t>(currentEmptySlot);
-			D_ASSERT((desired & 0x0000FFFF) == currentEmptySlot);
+			uint32_t newBucket = UnsafeNumericCast<uint32_t>(hashExtract);
+			newBucket = newBucket << 16;
+			newBucket |= UnsafeNumericCast<uint32_t>(currentEmptySlot);
+			D_ASSERT((newBucket & 0x0000FFFF) == currentEmptySlot);
 #ifdef DEBUG
 			accepted++;
 #endif
-			HT[slot + i] = desired;
+			HT[slot + i] = newBucket;
 			auto ret = currentEmptySlot;
 			// 1 slot for the pre-computed hash,
 			currentEmptySlot += increasedSlot;
