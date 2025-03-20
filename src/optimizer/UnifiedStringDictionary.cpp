@@ -10,7 +10,7 @@ uint64_t UnifiedStringsDictionary::USSR_prefix = 0;
 UnifiedStringsDictionary *UnifiedStringsDictionary::ussr_instance {nullptr};
 
 void UnifiedStringsDictionary::destroy_UnifiedStrings() {
-	// error prone, don't know how to fix
+	// error prone, don't know how to fix it
 	// for now only used for getting statistics, singleton causes memory leak!!!
 	if (ussr_instance) {
 		ussr_instance->buffer.reset();
