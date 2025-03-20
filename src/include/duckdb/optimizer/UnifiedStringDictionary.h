@@ -29,12 +29,7 @@ struct LinearProbingHashTable {
 private:
 	uint64_t currentEmptySlot;
 
-	//	atomic<uint32_t> *HT_atomic;
-
 	uint32_t *HT;
-
-	//	 number of filled buckets in HT
-	uint64_t nFullBuckets;
 
 	// every attempt on inserting a string
 	uint64_t candidates;
@@ -46,8 +41,8 @@ private:
 
 public:
 	explicit LinearProbingHashTable(data_ptr_t bufferHT);
-	optional_idx insert(uint32_t hashPrefix, uint32_t len);
 
+	optional_idx insert(uint32_t hashPrefix, uint32_t len);
 	optional_idx lookup(uint32_t hashPrefix);
 
 	void getStatistics();
@@ -64,13 +59,10 @@ private:
 	uint64_t *DataRegion;
 
 	unique_ptr<LinearProbingHashTable> LinearProbingHT;
-	//	LinearProbingHashTable *LinearProbingHT;
+
 	// private constructor
 	UnifiedStringsDictionary();
 
-	// for thread-safe creation of Singleton
-	//		static std::mutex singletonLock;
-	//	static std::mutex destroyLock;
 	// temporary solution for concurrency
 	std::mutex insertLock;
 
