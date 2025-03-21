@@ -100,10 +100,10 @@ string_t UnifiedStringsDictionary::insertInternal(string_t str) {
 #ifdef DEBUG
 				accepted++;
 #endif
-//				auto len = strlen(const_char_ptr_cast(DataRegion + data_region_slot));
-//				if (len != str.GetSize()) {
-//					return str;
-//				}
+				auto len = strlen(const_char_ptr_cast(DataRegion + data_region_slot));
+				if (len != str.GetSize()) {
+					return str;
+				}
 				auto res_str = string_t(const_char_ptr_cast(DataRegion + data_region_slot),
 				                        UnsafeNumericCast<uint32_t>(str.GetSize()));
 				return (res_str == str) ? res_str : str;
