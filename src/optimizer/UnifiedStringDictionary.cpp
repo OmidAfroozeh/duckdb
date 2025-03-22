@@ -63,7 +63,6 @@ string_t UnifiedStringsDictionary::insert(string_t str) {
 	if (str.IsInlined()) {
 		return str;
 	}
-	lock_guard<std::mutex> guard(insertLock);
 
 	hash_t h = Hash(str);
 	uint32_t hashPrefix = Load<uint32_t>(const_data_ptr_cast(&h));
@@ -80,8 +79,8 @@ string_t UnifiedStringsDictionary::insert(string_t str) {
 		auto res_str = string_t(const_char_ptr_cast(slot_ptr), UnsafeNumericCast<uint32_t>(str.GetSize()));
 		return (res_str == str) ? res_str : str;
 	}
-
 	auto res = LinearProbingHT.get()->insert(hashPrefix, UnsafeNumericCast<uint32_t>(str.GetSize()) + 1);
+
 	if (res.IsValid()) {
 		auto slot = res.GetIndex();
 		auto slot_ptr = DataRegion + slot;
@@ -111,6 +110,7 @@ LinearProbingHashTable::LinearProbingHashTable(data_ptr_t bufferHT) {
 }
 
 optional_idx LinearProbingHashTable::insert(uint32_t hashPrefix, uint32_t len) {
+	lock_guard<std::mutex> guard(insertLock);
 #ifdef DEBUG
 	candidates++;
 #endif

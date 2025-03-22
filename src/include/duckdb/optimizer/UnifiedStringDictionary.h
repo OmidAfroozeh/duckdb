@@ -39,6 +39,8 @@ private:
 	uint64_t nRejections_SizeFull;
 	uint64_t nRejections_Probing;
 
+	std::mutex insertLock;
+
 public:
 	explicit LinearProbingHashTable(data_ptr_t bufferHT);
 
