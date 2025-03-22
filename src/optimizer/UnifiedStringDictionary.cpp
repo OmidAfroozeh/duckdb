@@ -75,31 +75,30 @@ string_t UnifiedStringsDictionary::insertInternal(string_t str) {
 	hash_t h = Hash(str);
 	uint64_t hash_prefix = h & 0x00000000FFFFFFFF;
 
-	uint16_t slot;
-	memcpy(&slot, &hash_prefix, 2U);
+	uint64_t HT_slot = h & 0x000000000000FFFF;
 
-	uint16_t hashExtract = UnsafeNumericCast<uint16_t>(hash_prefix >> 16);
+	uint64_t hashExtract = hash_prefix >> 16;
+
+	optional_idx insert_into;
 
 	for (idx_t i = 0; i < PROBING_LIMIT; i++) {
 		// currently no looping around
-		if (slot + i > USSR_SIZE) {
+		if (HT_slot + i > USSR_SIZE) {
 #ifdef DEBUG
 			nRejections_Probing++;
 #endif
 			return str;
 		}
 
-		uint64_t bucket = Load<uint32_t>(const_data_ptr_cast(HT + ((slot + i))));
+		uint64_t bucket = Load<uint32_t>(const_data_ptr_cast(HT + ((HT_slot + i))));
 		uint64_t bucket_hashExtract = bucket >> 16;
 
+		auto data_region_slot = bucket & 0x000000000000FFFF;
+
 		if (bucket_hashExtract == hashExtract) {
-			auto data_region_slot = bucket & 0x000000000000FFFF;
 			// the string_hash_extract could be zero,
-			// we also need to check that the slot is also zero to 100% be sure that this is not filled
+			// we also need to check that the HT_slot is also zero to 100% be sure that this is not filled
 			if (data_region_slot != 0) {
-#ifdef DEBUG
-				accepted++;
-#endif
 				auto len = strlen(const_char_ptr_cast(DataRegion + data_region_slot));
 				if (len != str.GetSize()) {
 					return str;
@@ -109,44 +108,53 @@ string_t UnifiedStringsDictionary::insertInternal(string_t str) {
 				return (res_str == str) ? res_str : str;
 			}
 		}
-
-		if (bucket == 0) {
-			// reject if not enough space left
-			auto remaining = (USSR_SIZE - currentEmptySlot) * 8;
-			if (str.GetSize() + 1 > remaining || currentEmptySlot > USSR_SIZE) {
-#ifdef DEBUG
-				nRejections_SizeFull++;
-#endif
-				return str;
-			}
-			auto increasedSlot = (str.GetSize() + 1 % 8 == 0) ? 1 + (str.GetSize() / 8) : 2 + (str.GetSize() / 8);
-
-			uint32_t new_bucket = UnsafeNumericCast<uint32_t>(hashExtract);
-			new_bucket = new_bucket << 16;
-			new_bucket |= UnsafeNumericCast<uint32_t>(currentEmptySlot);
-			//						Printer::PrintF("currentEmptySlot = %d | stored = %d", currentEmptySlot, new_bucket
-			//& 			0x0000FFFF);
-			D_ASSERT((new_bucket & 0x0000FFFF) == currentEmptySlot);
-#ifdef DEBUG
-			accepted++;
-#endif
-			HT[slot + i] = new_bucket;
-			// 1 slot for the pre-computed hash,
-			//			D_ASSERT(ret < currentEmptySlot);
-			memcpy(DataRegion + currentEmptySlot, str.GetData(), str.GetSize());
-			memcpy((DataRegion + currentEmptySlot) - 1, &h, 8);
-			memset(DataRegion + currentEmptySlot + str.GetSize(), '\0', 1);
-			auto result_string = string_t(const_char_ptr_cast(DataRegion + currentEmptySlot),
-			                              UnsafeNumericCast<uint32_t>(str.GetSize()));
-			currentEmptySlot += increasedSlot;
-
-			return result_string;
+		if (data_region_slot == 0) {
+			insert_into = HT_slot + i;
+			break;
 		}
 	}
+	if (!insert_into.IsValid()) {
+		return str;
+	}
+
+	// grab the lock
+	lock_guard<std::mutex> guard(insertLock);
+
+	// reject if not enough space left
+	auto remaining = (USSR_SIZE - currentEmptySlot) * 8;
+	if (str.GetSize() + 1 > remaining || currentEmptySlot > USSR_SIZE) {
 #ifdef DEBUG
-	nRejections_Probing++;
+		nRejections_SizeFull++;
 #endif
-	return str;
+		return str;
+	}
+	auto increasedSlot = (str.GetSize() + 1 % 8 == 0) ? 1 + (str.GetSize() / 8) : 2 + (str.GetSize() / 8);
+
+	uint32_t new_bucket = UnsafeNumericCast<uint32_t>(hashExtract);
+	new_bucket = new_bucket << 16;
+	new_bucket |= UnsafeNumericCast<uint32_t>(currentEmptySlot);
+	//						Printer::PrintF("currentEmptySlot = %d | stored = %d", currentEmptySlot, new_bucket
+	//& 			0x0000FFFF);
+	D_ASSERT((new_bucket & 0x0000FFFF) == currentEmptySlot);
+#ifdef DEBUG
+	accepted++;
+#endif
+	HT[insert_into.GetIndex()] = new_bucket;
+	// 1 HT_slot for the pre-computed hash,
+	//			D_ASSERT(ret < currentEmptySlot);
+	memcpy(DataRegion + currentEmptySlot, str.GetData(), str.GetSize());
+	memcpy((DataRegion + currentEmptySlot) - 1, &h, 8);
+	memset(DataRegion + currentEmptySlot + str.GetSize(), '\0', 1);
+	auto result_string =
+	    string_t(const_char_ptr_cast(DataRegion + currentEmptySlot), UnsafeNumericCast<uint32_t>(str.GetSize()));
+	currentEmptySlot += increasedSlot;
+
+	return result_string;
+
+#ifdef DEBUG
+nRejections_Probing++;
+#endif
+return str;
 }
 
 void UnifiedStringsDictionary::getStatistics() {
@@ -188,8 +196,7 @@ string_t UnifiedStringsDictionary::insert(string_t str) {
 	if (str.IsInlined()) {
 		return str;
 	}
-	// grab the lock
-	lock_guard<std::mutex> guard(insertLock);
+
 
 	return insertInternal(str);
 }
