@@ -1,5 +1,5 @@
 #include "duckdb/optimizer/UnifiedStringDictionary.h"
-
+#include "duckdb/common/fast_mem.hpp"
 #include <cstring>
 #include <algorithm>
 #include <iostream>
@@ -88,8 +88,9 @@ string_t UnifiedStringsDictionary::insert(string_t str) {
 
 		D_ASSERT(cast_pointer_to_uint64(slot_ptr) > cast_pointer_to_uint64(DataRegion));
 		D_ASSERT(cast_pointer_to_uint64(slot_ptr) < cast_pointer_to_uint64(DataRegion + USSR_SIZE * USSR_SLOT_SIZE));
-
-		memcpy(slot_ptr, str.GetData(), str.GetSize());
+//		Printer::PrintF("orig: %d, new: %d", str.GetSize(), AlignValue(str.GetSize()));
+		memcpy(slot_ptr, str.GetData(),AlignValue(str.GetSize()));
+//		memcpy(slot_ptr, str.GetData(),str.GetSize());
 		memcpy(slot_ptr - 1, &h, 8);
 		memset(slot_ptr + str.GetSize(), '\0', 1);
 		return string_t(const_char_ptr_cast(slot_ptr), UnsafeNumericCast<uint32_t>(str.GetSize()));
