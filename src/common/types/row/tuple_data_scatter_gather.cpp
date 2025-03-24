@@ -5,6 +5,8 @@
 #include "duckdb/common/types/row/tuple_data_collection.hpp"
 #include "duckdb/common/uhugeint.hpp"
 
+#include "duckdb/optimizer/UnifiedStringDictionary.h"
+
 namespace duckdb {
 
 using ValidityBytes = TupleDataLayout::ValidityBytes;
@@ -34,9 +36,15 @@ inline void TupleDataValueStore(const string_t &source, const data_ptr_t &row_lo
 	if (source.IsInlined()) {
 		Store<string_t>(source, row_location + offset_in_row);
 	} else {
-		FastMemcpy(heap_location, source.GetData(), source.GetSize());
-		Store<string_t>(string_t(const_char_ptr_cast(heap_location), UnsafeNumericCast<uint32_t>(source.GetSize())),
-		                row_location + offset_in_row);
+		if((USSR_MASK & cast_pointer_to_uint64(source.GetPointer())) == UnifiedStringsDictionary::USSR_prefix){
+			Store<string_t>(source,row_location + offset_in_row);
+//			Printer::PrintF("Random");
+		} else{
+			FastMemcpy(heap_location, source.GetData(), source.GetSize());
+			Store<string_t>(string_t(const_char_ptr_cast(heap_location), UnsafeNumericCast<uint32_t>(source.GetSize())),
+			                row_location + offset_in_row);
+		}
+
 		heap_location += source.GetSize();
 	}
 }
