@@ -15,6 +15,8 @@
 #include "duckdb/storage/table/update_segment.hpp"
 #include "duckdb/planner/table_filter_state.hpp"
 
+#include "duckdb/optimizer/UnifiedStringDictionary.h"
+
 #include <cstring>
 
 namespace duckdb {
@@ -530,6 +532,8 @@ idx_t ColumnSegment::FilterSelection(SelectionVector &sel, Vector &vector, Unifi
 		}
 		case PhysicalType::VARCHAR: {
 			auto predicate = string_t(StringValue::Get(constant_filter.constant));
+			auto USSR = UnifiedStringsDictionary::getInstance();
+			predicate = USSR->insert(predicate);
 			FilterSelectionSwitch<string_t>(vdata, predicate, sel, approved_tuple_count,
 			                                constant_filter.comparison_type);
 			break;
