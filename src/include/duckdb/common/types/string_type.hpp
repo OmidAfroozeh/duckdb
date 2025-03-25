@@ -15,6 +15,9 @@
 #include "duckdb/common/limits.hpp"
 #include "duckdb/common/types/hash.hpp"
 
+
+#include "duckdb/optimizer/UnifiedStringDictionary.h"
+
 #include <cstring>
 #include <algorithm>
 
@@ -168,6 +171,12 @@ public:
 				return true;
 			}
 			if (!a.IsInlined()) {
+//				auto fa1 = (USSR_MASK & cast_pointer_to_uint64(a.GetPointer())) == UnifiedStringsDictionary::USSR_prefix;
+//				auto fa2 = (USSR_MASK & cast_pointer_to_uint64(b.GetPointer())) == UnifiedStringsDictionary::USSR_prefix;
+//
+//				if(fa1 && fa2){
+//					return false;
+//				}
 				// 'long' strings of the same length -> compare pointed value
 				if (memcmp(a.value.pointer.ptr, b.value.pointer.ptr, a.GetSize()) == 0) {
 					return true;

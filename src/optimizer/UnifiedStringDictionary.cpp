@@ -13,12 +13,12 @@ void UnifiedStringsDictionary::destroy_UnifiedStrings() {
 	// error prone, don't know how to fix
 	// for now only used for getting statistics, singleton causes memory leak!!!
 	if (ussr_instance) {
-		ussr_instance->LinearProbingHT.get()->reset();
-//		ussr_instance->buffer.reset();
-//#ifdef DEBUG
-//		ussr_instance->LinearProbingHT->getStatistics();
-//#endif
-//		delete ussr_instance;
+//		ussr_instance->LinearProbingHT.get()->reset();
+		ussr_instance->buffer.reset();
+#ifdef DEBUG
+		ussr_instance->LinearProbingHT->getStatistics();
+#endif
+		delete ussr_instance;
 		ussr_instance = nullptr;
 	}
 }

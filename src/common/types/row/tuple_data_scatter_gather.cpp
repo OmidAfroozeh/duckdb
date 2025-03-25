@@ -38,7 +38,6 @@ inline void TupleDataValueStore(const string_t &source, const data_ptr_t &row_lo
 	} else {
 		if((USSR_MASK & cast_pointer_to_uint64(source.GetPointer())) == UnifiedStringsDictionary::USSR_prefix){
 			Store<string_t>(source,row_location + offset_in_row);
-//			Printer::PrintF("Random");
 		} else{
 			FastMemcpy(heap_location, source.GetData(), source.GetSize());
 			Store<string_t>(string_t(const_char_ptr_cast(heap_location), UnsafeNumericCast<uint32_t>(source.GetSize())),
