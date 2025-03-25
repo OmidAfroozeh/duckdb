@@ -19,7 +19,7 @@ void UnifiedStringsDictionary::destroy_UnifiedStrings() {
 //		ussr_instance->LinearProbingHT->getStatistics();
 //#endif
 //		delete ussr_instance;
-//		ussr_instance = nullptr;
+		ussr_instance = nullptr;
 	}
 }
 
@@ -230,6 +230,7 @@ void LinearProbingHashTable::getStatistics() {
 }
 
 void LinearProbingHashTable::reset(){
+	memset(HT, '\0', HT_SIZE * HT_BUCKET_SIZE);
 	currentEmptySlot = 1;
 }
 
