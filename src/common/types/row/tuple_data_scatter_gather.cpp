@@ -43,9 +43,9 @@ inline void TupleDataValueStore(const string_t &source, const data_ptr_t &row_lo
 			FastMemcpy(heap_location, source.GetData(), source.GetSize());
 			Store<string_t>(string_t(const_char_ptr_cast(heap_location), UnsafeNumericCast<uint32_t>(source.GetSize())),
 			                row_location + offset_in_row);
+			heap_location += source.GetSize();
 		}
 
-		heap_location += source.GetSize();
 	}
 }
 
@@ -118,6 +118,9 @@ void TupleDataCollection::ComputeHeapSizes(TupleDataChunkState &chunk_state, con
 }
 
 static idx_t StringHeapSize(const string_t &val) {
+	if ((USSR_MASK & cast_pointer_to_uint64(val.GetPointer())) == UnifiedStringsDictionary::USSR_prefix) {
+		return 0;
+	}
 	return val.IsInlined() ? 0 : val.GetSize();
 }
 

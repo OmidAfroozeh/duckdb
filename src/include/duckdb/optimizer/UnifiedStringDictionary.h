@@ -46,6 +46,9 @@ public:
 	optional_idx lookup(uint32_t hashPrefix);
 
 	void getStatistics();
+
+	void reset();
+
 };
 
 // Singleton
@@ -73,6 +76,7 @@ public:
 	string_t insert(string_t str);
 
 	static void destroy_UnifiedStrings();
+
 };
 
 } // namespace duckdb
