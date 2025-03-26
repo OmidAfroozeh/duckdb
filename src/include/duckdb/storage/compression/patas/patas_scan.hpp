@@ -199,7 +199,7 @@ public:
 };
 
 template <class T>
-unique_ptr<SegmentScanState> PatasInitScan(ColumnSegment &segment) {
+unique_ptr<SegmentScanState> PatasInitScan(ColumnSegment &segment, optional_ptr<ClientContext> context = nullptr) {
 	auto result = make_uniq_base<SegmentScanState, PatasScanState<T>>(segment);
 	return result;
 }

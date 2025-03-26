@@ -137,7 +137,7 @@ struct FixedSizeScanState : public SegmentScanState {
 	BufferHandle handle;
 };
 
-unique_ptr<SegmentScanState> FixedSizeInitScan(ColumnSegment &segment) {
+unique_ptr<SegmentScanState> FixedSizeInitScan(ColumnSegment &segment, optional_ptr<ClientContext> context = nullptr) {
 	auto result = make_uniq<FixedSizeScanState>();
 	auto &buffer_manager = BufferManager::GetBufferManager(segment.db);
 	result->handle = buffer_manager.Pin(segment.block);

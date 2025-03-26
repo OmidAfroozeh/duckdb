@@ -76,7 +76,7 @@ void ArrayColumnData::InitializeScanWithOffset(ColumnScanState &state, idx_t row
 }
 
 idx_t ArrayColumnData::Scan(TransactionData transaction, idx_t vector_index, ColumnScanState &state, Vector &result,
-                            idx_t scan_count) {
+                            idx_t scan_count, optional_ptr<ClientContext> context) {
 	return ScanCount(state, result, scan_count);
 }
 

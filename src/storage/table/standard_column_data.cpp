@@ -56,7 +56,7 @@ void StandardColumnData::InitializeScanWithOffset(ColumnScanState &state, idx_t 
 }
 
 idx_t StandardColumnData::Scan(TransactionData transaction, idx_t vector_index, ColumnScanState &state, Vector &result,
-                               idx_t target_count) {
+                               idx_t target_count, optional_ptr<ClientContext> context) {
 	D_ASSERT(state.row_index == state.child_states[0].row_index);
 	auto scan_type = GetVectorScanType(state, target_count, result);
 	auto mode = ScanVectorMode::REGULAR_SCAN;

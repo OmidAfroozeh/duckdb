@@ -48,7 +48,7 @@ class DataTable {
 public:
 	//! Constructs a new data table from an (optional) set of persistent segments
 	DataTable(AttachedDatabase &db, shared_ptr<TableIOManager> table_io_manager, const string &schema,
-	          const string &table, vector<ColumnDefinition> column_definitions_p,
+	          const string &table, vector<ColumnDefinition> column_definitions_p, optional_ptr<ClientContext> context,
 	          unique_ptr<PersistentTableData> data = nullptr);
 	//! Constructs a DataTable as a delta on an existing data table with a newly added column
 	DataTable(ClientContext &context, DataTable &parent, ColumnDefinition &new_column, Expression &default_value);
@@ -85,7 +85,7 @@ public:
 	//! from offset and store them in result. Offset is incremented with how many
 	//! elements were returned.
 	//! Returns true if all pushed down filters were executed during data fetching
-	void Scan(DuckTransaction &transaction, DataChunk &result, TableScanState &state);
+	void Scan(DuckTransaction &transaction, DataChunk &result, TableScanState &state, optional_ptr<ClientContext> client_context);
 
 	//! Fetch data from the specific row identifiers from the base table
 	void Fetch(DuckTransaction &transaction, DataChunk &result, const vector<StorageIndex> &column_ids,
@@ -293,5 +293,8 @@ private:
 	//! Whether or not the data table is the root DataTable for this table; the root DataTable is the newest version
 	//! that can be appended to
 	atomic<bool> is_root;
+
+	optional_ptr<ClientContext> clientContext;
+
 };
 } // namespace duckdb

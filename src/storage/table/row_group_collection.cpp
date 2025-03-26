@@ -257,7 +257,7 @@ bool RowGroupCollection::Scan(DuckTransaction &transaction, const vector<Storage
 
 	while (true) {
 		chunk.Reset();
-		state.local_state.Scan(transaction, chunk);
+		state.local_state.Scan(transaction, chunk, transaction.context.lock());
 		if (chunk.size() == 0) {
 			return true;
 		}
