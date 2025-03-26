@@ -39,5 +39,6 @@ void string_t::VerifyCharacters() const {
 		D_ASSERT(GetData()[i] == '\0');
 	}
 }
+uint64_t duckdb::string_t::StringComparisonOperators::eq_check_counter = 0;
 
 } // namespace duckdb

@@ -187,44 +187,47 @@ void TupleDataCollection::InitializeChunkState(TupleDataChunkState &chunk_state,
 	chunk_state.column_ids = std::move(column_ids);
 }
 
-void TupleDataCollection::Append(DataChunk &new_chunk, const SelectionVector &append_sel, idx_t append_count) {
+void TupleDataCollection::Append(DataChunk &new_chunk, optional_ptr<ClientContext> context,
+                                 const SelectionVector &append_sel, idx_t append_count) {
 	TupleDataAppendState append_state;
 	InitializeAppend(append_state);
-	Append(append_state, new_chunk, append_sel, append_count);
+	Append(append_state, new_chunk, context, append_sel, append_count);
 }
 
-void TupleDataCollection::Append(DataChunk &new_chunk, vector<column_t> column_ids, const SelectionVector &append_sel,
-                                 const idx_t append_count) {
+void TupleDataCollection::Append(DataChunk &new_chunk, vector<column_t> column_ids, optional_ptr<ClientContext> context,
+                                 const SelectionVector &append_sel, const idx_t append_count) {
 	TupleDataAppendState append_state;
 	InitializeAppend(append_state, std::move(column_ids));
-	Append(append_state, new_chunk, append_sel, append_count);
+	Append(append_state, new_chunk, context, append_sel, append_count);
 }
 
 void TupleDataCollection::Append(TupleDataAppendState &append_state, DataChunk &new_chunk,
-                                 const SelectionVector &append_sel, const idx_t append_count) {
-	Append(append_state.pin_state, append_state.chunk_state, new_chunk, append_sel, append_count);
+                                 optional_ptr<ClientContext> context, const SelectionVector &append_sel,
+                                 const idx_t append_count) {
+	Append(append_state.pin_state, append_state.chunk_state, new_chunk, context, append_sel, append_count);
 }
 
 void TupleDataCollection::Append(TupleDataPinState &pin_state, TupleDataChunkState &chunk_state, DataChunk &new_chunk,
-                                 const SelectionVector &append_sel, const idx_t append_count) {
+                                 optional_ptr<ClientContext> context, const SelectionVector &append_sel,
+                                 const idx_t append_count) {
 	TupleDataCollection::ToUnifiedFormat(chunk_state, new_chunk);
-	AppendUnified(pin_state, chunk_state, new_chunk, append_sel, append_count);
+	AppendUnified(pin_state, chunk_state, new_chunk, context, append_sel, append_count);
 }
 
 void TupleDataCollection::AppendUnified(TupleDataPinState &pin_state, TupleDataChunkState &chunk_state,
-                                        DataChunk &new_chunk, const SelectionVector &append_sel,
-                                        const idx_t append_count) {
+                                        DataChunk &new_chunk, optional_ptr<ClientContext> context,
+                                        const SelectionVector &append_sel, const idx_t append_count) {
 	const idx_t actual_append_count = append_count == DConstants::INVALID_INDEX ? new_chunk.size() : append_count;
 	if (actual_append_count == 0) {
 		return;
 	}
 
 	if (!layout.AllConstant()) {
-		TupleDataCollection::ComputeHeapSizes(chunk_state, new_chunk, append_sel, actual_append_count);
+		TupleDataCollection::ComputeHeapSizes(chunk_state, new_chunk, append_sel, actual_append_count, context);
 	}
 
-	Build(pin_state, chunk_state, 0, actual_append_count);
-	Scatter(chunk_state, new_chunk, append_sel, actual_append_count);
+	Build(pin_state, chunk_state, 0, actual_append_count, context);
+	Scatter(chunk_state, new_chunk, append_sel, actual_append_count, context);
 }
 
 static inline void ToUnifiedFormatInternal(TupleDataVectorFormat &format, Vector &vector, const idx_t count) {
@@ -292,10 +295,11 @@ void TupleDataCollection::GetVectorData(const TupleDataChunkState &chunk_state, 
 }
 
 void TupleDataCollection::Build(TupleDataPinState &pin_state, TupleDataChunkState &chunk_state,
-                                const idx_t append_offset, const idx_t append_count) {
+                                const idx_t append_offset, const idx_t append_count,
+                                optional_ptr<ClientContext> context) {
 	auto &segment = segments.back();
 	const auto size_before = segment.SizeInBytes();
-	segment.allocator->Build(segment, pin_state, chunk_state, append_offset, append_count);
+	segment.allocator->Build(segment, pin_state, chunk_state, append_offset, append_count, context);
 	data_size += segment.SizeInBytes() - size_before;
 	count += append_count;
 	Verify();
@@ -315,7 +319,8 @@ void VerifyHeapSizes(const data_ptr_t source_locations[], const idx_t heap_sizes
 // LCOV_EXCL_STOP
 
 void TupleDataCollection::CopyRows(TupleDataChunkState &chunk_state, TupleDataChunkState &input,
-                                   const SelectionVector &append_sel, const idx_t append_count) const {
+                                   const SelectionVector &append_sel, const idx_t append_count,
+                                   optional_ptr<ClientContext> context) const {
 	const auto source_locations = FlatVector::GetData<data_ptr_t>(input.row_locations);
 	const auto target_locations = FlatVector::GetData<data_ptr_t>(chunk_state.row_locations);
 
@@ -351,7 +356,7 @@ void TupleDataCollection::CopyRows(TupleDataChunkState &chunk_state, TupleDataCh
 
 		// Recompute pointers after copying the data
 		TupleDataAllocator::RecomputeHeapPointers(input.heap_locations, append_sel, target_locations,
-		                                          chunk_state.heap_locations, 0, append_count, layout, 0);
+		                                          chunk_state.heap_locations, 0, append_count, layout, 0, context);
 	}
 }
 
@@ -462,7 +467,7 @@ void TupleDataCollection::InitializeScan(TupleDataParallelScanState &state, vect
 	InitializeScan(state.scan_state, std::move(column_ids), properties);
 }
 
-bool TupleDataCollection::Scan(TupleDataScanState &state, DataChunk &result) {
+bool TupleDataCollection::Scan(TupleDataScanState &state, DataChunk &result, optional_ptr<ClientContext> context) {
 	const auto segment_index_before = state.segment_index;
 	idx_t segment_index;
 	idx_t chunk_index;
@@ -476,11 +481,13 @@ bool TupleDataCollection::Scan(TupleDataScanState &state, DataChunk &result) {
 	if (segment_index_before != DConstants::INVALID_INDEX && segment_index != segment_index_before) {
 		FinalizePinState(state.pin_state, segments[segment_index_before]);
 	}
-	ScanAtIndex(state.pin_state, state.chunk_state, state.chunk_state.column_ids, segment_index, chunk_index, result);
+	ScanAtIndex(state.pin_state, state.chunk_state, state.chunk_state.column_ids, segment_index, chunk_index, result,
+	            context);
 	return true;
 }
 
-bool TupleDataCollection::Scan(TupleDataParallelScanState &gstate, TupleDataLocalScanState &lstate, DataChunk &result) {
+bool TupleDataCollection::Scan(TupleDataParallelScanState &gstate, TupleDataLocalScanState &lstate, DataChunk &result,
+                               optional_ptr<ClientContext> context) {
 	lstate.pin_state.properties = gstate.scan_state.pin_state.properties;
 
 	const auto segment_index_before = lstate.segment_index;
@@ -498,7 +505,7 @@ bool TupleDataCollection::Scan(TupleDataParallelScanState &gstate, TupleDataLoca
 		FinalizePinState(lstate.pin_state, segments[lstate.segment_index]);
 	}
 	ScanAtIndex(lstate.pin_state, lstate.chunk_state, gstate.scan_state.chunk_state.column_ids, lstate.segment_index,
-	            lstate.chunk_index, result);
+	            lstate.chunk_index, result, context);
 	return true;
 }
 
@@ -539,10 +546,10 @@ bool TupleDataCollection::NextScanIndex(TupleDataScanState &state, idx_t &segmen
 }
 void TupleDataCollection::ScanAtIndex(TupleDataPinState &pin_state, TupleDataChunkState &chunk_state,
                                       const vector<column_t> &column_ids, idx_t segment_index, idx_t chunk_index,
-                                      DataChunk &result) {
+                                      DataChunk &result, optional_ptr<ClientContext> context) {
 	auto &segment = segments[segment_index];
 	auto &chunk = segment.chunks[chunk_index];
-	segment.allocator->InitializeChunkState(segment, pin_state, chunk_state, chunk_index, false);
+	segment.allocator->InitializeChunkState(segment, pin_state, chunk_state, chunk_index, false, context);
 	result.Reset();
 
 	ResetCachedCastVectors(chunk_state, column_ids);
@@ -570,7 +577,7 @@ string TupleDataCollection::ToString() {
 	string result = StringUtil::Format("TupleDataCollection - [%llu Chunks, %llu Rows]\n", ChunkCount(), Count());
 	idx_t chunk_idx = 0;
 	idx_t row_count = 0;
-	while (Scan(scan_state, chunk)) {
+	while (Scan(scan_state, chunk, nullptr)) {
 		result +=
 		    StringUtil::Format("Chunk %llu - [Rows %llu - %llu]\n", chunk_idx, row_count, row_count + chunk.size()) +
 		    chunk.ToString();

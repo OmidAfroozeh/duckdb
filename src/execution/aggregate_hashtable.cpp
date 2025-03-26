@@ -163,11 +163,11 @@ void GroupedAggregateHashTable::Destroy() {
 		if (data_collection->Count() == 0) {
 			continue;
 		}
-		TupleDataChunkIterator iterator(*data_collection, TupleDataPinProperties::DESTROY_AFTER_DONE, false);
+		TupleDataChunkIterator iterator(*data_collection, TupleDataPinProperties::DESTROY_AFTER_DONE, false, context);
 		auto &row_locations = iterator.GetChunkState().row_locations;
 		do {
 			RowOperations::DestroyStates(row_state, layout, row_locations, iterator.GetCurrentChunkCount());
-		} while (iterator.Next());
+		} while (iterator.Next(context));
 		data_collection->Reset();
 	}
 	// LCOV_EXCL_STOP
@@ -273,7 +273,7 @@ void GroupedAggregateHashTable::ReinsertTuples(PartitionedTupleData &data) {
 		if (data_collection->Count() == 0) {
 			continue;
 		}
-		TupleDataChunkIterator iterator(*data_collection, TupleDataPinProperties::ALREADY_PINNED, false);
+		TupleDataChunkIterator iterator(*data_collection, TupleDataPinProperties::ALREADY_PINNED, false, context);
 		const auto row_locations = iterator.GetRowLocations();
 		do {
 			for (idx_t i = 0; i < iterator.GetCurrentChunkCount(); i++) {
@@ -292,7 +292,7 @@ void GroupedAggregateHashTable::ReinsertTuples(PartitionedTupleData &data) {
 				entry.SetPointer(row_location);
 				D_ASSERT(entry.IsOccupied());
 			}
-		} while (iterator.Next());
+		} while (iterator.Next(context));
 	}
 }
 
@@ -382,7 +382,7 @@ optional_idx GroupedAggregateHashTable::TryAddDictionaryGroups(DataChunk &groups
 		unique_values.SetCardinality(unique_count);
 		// now we know which entries we are going to add - hash them
 		auto &hashes = dict_state.hashes;
-		unique_values.Hash(hashes);
+		unique_values.Hash(hashes, context);
 
 		// add the dictionary groups to the hash table
 		new_group_count = FindOrCreateGroups(unique_values, hashes, new_dictionary_pointers, state.new_groups);
@@ -434,7 +434,7 @@ optional_idx GroupedAggregateHashTable::TryAddConstantGroups(DataChunk &groups, 
 	unique_values.Flatten();
 
 	auto &hashes = dict_state.hashes;
-	unique_values.Hash(hashes);
+	unique_values.Hash(hashes, context);
 
 	// add the single constant group to the hash table
 	auto &new_dictionary_pointers = dict_state.new_dictionary_pointers;
@@ -482,7 +482,7 @@ idx_t GroupedAggregateHashTable::AddChunk(DataChunk &groups, DataChunk &payload,
 	}
 	// otherwise append the raw values
 	Vector hashes(LogicalType::HASH);
-	groups.Hash(hashes);
+	groups.Hash(hashes, context);
 
 	return AddChunk(groups, hashes, payload, filter);
 }
@@ -609,7 +609,7 @@ idx_t GroupedAggregateHashTable::FindOrCreateGroupsInternal(DataChunk &groups, V
 
 	if (skip_lookups) {
 		// Just appending now
-		partitioned_data->AppendUnified(state.partitioned_append_state, state.group_chunk,
+		partitioned_data->AppendUnified(state.partitioned_append_state, state.group_chunk, context,
 		                                *FlatVector::IncrementalSelectionVector(), chunk_size);
 		RowOperations::InitializeStates(layout, state.partitioned_append_state.chunk_state.row_locations,
 		                                *FlatVector::IncrementalSelectionVector(), chunk_size);
@@ -701,7 +701,7 @@ idx_t GroupedAggregateHashTable::FindOrCreateGroupsInternal(DataChunk &groups, V
 				data = partitioned_data.get();
 				append_state = &state.partitioned_append_state;
 			}
-			data->AppendUnified(*append_state, state.group_chunk, state.empty_vector, new_entry_count);
+			data->AppendUnified(*append_state, state.group_chunk, context, state.empty_vector, new_entry_count);
 			RowOperations::InitializeStates(layout, append_state->chunk_state.row_locations,
 			                                *FlatVector::IncrementalSelectionVector(), new_entry_count);
 
@@ -766,7 +766,7 @@ void GroupedAggregateHashTable::FindOrCreateGroups(DataChunk &groups, Vector &ad
 idx_t GroupedAggregateHashTable::FindOrCreateGroups(DataChunk &groups, Vector &addresses_out,
                                                     SelectionVector &new_groups_out) {
 	Vector hashes(LogicalType::HASH);
-	groups.Hash(hashes);
+	groups.Hash(hashes, context);
 	return FindOrCreateGroups(groups, hashes, addresses_out, new_groups_out);
 }
 
@@ -785,8 +785,8 @@ struct FlushMoveState {
 		hash_col_idx = layout.ColumnCount() - 1;
 	}
 
-	bool Scan() {
-		if (collection.Scan(scan_state, groups)) {
+	bool Scan(optional_ptr<ClientContext> context) {
+		if (collection.Scan(scan_state, groups, context)) {
 			collection.Gather(scan_state.chunk_state.row_locations, *FlatVector::IncrementalSelectionVector(),
 			                  groups.size(), hash_col_idx, hashes, *FlatVector::IncrementalSelectionVector(), nullptr);
 			return true;
@@ -833,7 +833,7 @@ void GroupedAggregateHashTable::Combine(TupleDataCollection &other_data, optiona
 
 	idx_t chunk_idx = 0;
 	const auto chunk_count = other_data.ChunkCount();
-	while (fm_state.Scan()) {
+	while (fm_state.Scan(context)) {
 		// Check for interrupts with each chunk
 		if (context.interrupted) {
 			throw InterruptException();
@@ -876,7 +876,7 @@ bool GroupedAggregateHashTable::Scan(AggregateHTScanState &scan_state, DataChunk
 	distinct_rows.Reset();
 	auto &current_partition = partitioned_data->GetPartitions()[scan_state.partition_idx];
 
-	if (current_partition->Scan(scan_state.scan_states, distinct_rows)) {
+	if (current_partition->Scan(scan_state.scan_states, distinct_rows, context)) {
 		FetchAggregates(distinct_rows, payload_rows);
 		return true;
 	} else {
