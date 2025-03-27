@@ -124,7 +124,7 @@ public:
 
 	//! Select
 	virtual void Filter(TransactionData transaction, idx_t vector_index, ColumnScanState &state, Vector &result,
-	                    SelectionVector &sel, idx_t &count, const TableFilter &filter, TableFilterState &filter_state);
+	                    SelectionVector &sel, idx_t &count, const TableFilter &filter, TableFilterState &filter_state, optional_ptr<ClientContext> context);
 	virtual void Select(TransactionData transaction, idx_t vector_index, ColumnScanState &state, Vector &result,
 	                    SelectionVector &sel, idx_t count);
 	virtual void SelectCommitted(idx_t vector_index, ColumnScanState &state, Vector &result, SelectionVector &sel,

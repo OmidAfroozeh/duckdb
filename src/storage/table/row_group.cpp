@@ -647,7 +647,7 @@ void RowGroup::TemplatedScan(TransactionData transaction, CollectionScanState &s
 					} else {
 						auto &col_data = GetColumn(filter.table_column_index);
 						col_data.Filter(transaction, state.vector_index, state.column_scans[scan_idx], result_vector,
-						                sel, approved_tuple_count, filter.filter, table_filter_state);
+						                sel, approved_tuple_count, filter.filter, table_filter_state, context);
 					}
 				}
 				for (auto &table_filter : filter_list) {

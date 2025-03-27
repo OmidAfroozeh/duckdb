@@ -200,7 +200,7 @@ idx_t ColumnData::ScanVector(ColumnScanState &state, Vector &result, idx_t remai
 			}
 			state.previous_states.emplace_back(std::move(state.scan_state));
 			state.current = next;
-			state.current->InitializeScan(state);
+			state.current->InitializeScan(state, context);
 			state.segment_checked = false;
 			D_ASSERT(state.row_index >= state.current->start &&
 			         state.row_index <= state.current->start + state.current->count);
@@ -347,8 +347,8 @@ idx_t ColumnData::ScanCount(ColumnScanState &state, Vector &result, idx_t scan_c
 
 void ColumnData::Filter(TransactionData transaction, idx_t vector_index, ColumnScanState &state, Vector &result,
                         SelectionVector &sel, idx_t &s_count, const TableFilter &filter,
-                        TableFilterState &filter_state) {
-	idx_t scan_count = Scan(transaction, vector_index, state, result);
+                        TableFilterState &filter_state, optional_ptr<ClientContext> context) {
+	idx_t scan_count = Scan(transaction, vector_index, state, result, context);
 
 	UnifiedVectorFormat vdata;
 	result.ToUnifiedFormat(scan_count, vdata);
