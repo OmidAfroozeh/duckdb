@@ -334,7 +334,7 @@ unsafe_unique_array<UnifiedVectorFormat> DataChunk::ToUnifiedFormat() {
 	return unified_data;
 }
 
-void DataChunk::Hash(Vector &result) {
+void DataChunk::Hash(Vector &result, optional_ptr<ClientContext> context) {
 	D_ASSERT(result.GetType().id() == LogicalType::HASH);
 	VectorOperations::Hash(data[0], result, size());
 	for (idx_t i = 1; i < ColumnCount(); i++) {
@@ -342,7 +342,7 @@ void DataChunk::Hash(Vector &result) {
 	}
 }
 
-void DataChunk::Hash(vector<idx_t> &column_ids, Vector &result) {
+void DataChunk::Hash(vector<idx_t> &column_ids, Vector &result, optional_ptr<ClientContext> context) {
 	D_ASSERT(result.GetType().id() == LogicalType::HASH);
 	D_ASSERT(!column_ids.empty());
 
