@@ -382,7 +382,7 @@ optional_idx GroupedAggregateHashTable::TryAddDictionaryGroups(DataChunk &groups
 		unique_values.SetCardinality(unique_count);
 		// now we know which entries we are going to add - hash them
 		auto &hashes = dict_state.hashes;
-		unique_values.Hash(hashes);
+		unique_values.Hash(hashes, context);
 
 		// add the dictionary groups to the hash table
 		new_group_count = FindOrCreateGroups(unique_values, hashes, new_dictionary_pointers, state.new_groups);
@@ -434,7 +434,7 @@ optional_idx GroupedAggregateHashTable::TryAddConstantGroups(DataChunk &groups, 
 	unique_values.Flatten();
 
 	auto &hashes = dict_state.hashes;
-	unique_values.Hash(hashes);
+	unique_values.Hash(hashes, context);
 
 	// add the single constant group to the hash table
 	auto &new_dictionary_pointers = dict_state.new_dictionary_pointers;
@@ -482,7 +482,7 @@ idx_t GroupedAggregateHashTable::AddChunk(DataChunk &groups, DataChunk &payload,
 	}
 	// otherwise append the raw values
 	Vector hashes(LogicalType::HASH);
-	groups.Hash(hashes);
+	groups.Hash(hashes, context);
 
 	return AddChunk(groups, hashes, payload, filter);
 }
@@ -766,7 +766,7 @@ void GroupedAggregateHashTable::FindOrCreateGroups(DataChunk &groups, Vector &ad
 idx_t GroupedAggregateHashTable::FindOrCreateGroups(DataChunk &groups, Vector &addresses_out,
                                                     SelectionVector &new_groups_out) {
 	Vector hashes(LogicalType::HASH);
-	groups.Hash(hashes);
+	groups.Hash(hashes, context);
 	return FindOrCreateGroups(groups, hashes, addresses_out, new_groups_out);
 }
 

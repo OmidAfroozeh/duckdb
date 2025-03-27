@@ -115,7 +115,7 @@ void DictionaryCompressionStorage::FinalizeCompress(CompressionState &state_p) {
 unique_ptr<SegmentScanState> DictionaryCompressionStorage::StringInitScan(ColumnSegment &segment, optional_ptr<ClientContext> context) {
 	auto &buffer_manager = BufferManager::GetBufferManager(segment.db);
 	auto state = make_uniq<CompressedStringScanState>(buffer_manager.Pin(segment.block));
-	state->Initialize(segment, true);
+	state->Initialize(segment, true, context);
 	return std::move(state);
 }
 

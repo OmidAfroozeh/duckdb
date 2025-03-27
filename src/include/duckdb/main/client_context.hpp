@@ -29,6 +29,7 @@
 #include "duckdb/main/table_description.hpp"
 #include "duckdb/planner/expression/bound_parameter_data.hpp"
 #include "duckdb/transaction/transaction_context.hpp"
+#include "duckdb/optimizer/UnifiedStringDictionary.h"
 
 namespace duckdb {
 class Appender;
@@ -206,6 +207,8 @@ public:
 
 	//! Returns the current query string (if any)
 	const string &GetCurrentQuery();
+
+	UnifiedStringsDictionary& GetCurrentQueryUssr();
 
 	connection_t GetConnectionId() const;
 

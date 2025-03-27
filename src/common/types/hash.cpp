@@ -111,8 +111,6 @@ hash_t Hash(string_t val) {
 		D_ASSERT(h == Hash(val.GetData(), val.GetSize()));
 
 		return h;
-	} else if ((USSR_MASK & cast_pointer_to_uint64(val.GetPointer())) == UnifiedStringsDictionary::USSR_prefix) {
-		return *(reinterpret_cast<uint64_t *>(val.GetPointer()) - 1);
 	}
 	return Hash(val.GetData(), val.GetSize());
 }

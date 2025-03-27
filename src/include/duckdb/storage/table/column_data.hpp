@@ -194,10 +194,10 @@ protected:
 	void AppendTransientSegment(SegmentLock &l, idx_t start_row);
 	void AppendSegment(SegmentLock &l, unique_ptr<ColumnSegment> segment);
 
-	void BeginScanVectorInternal(ColumnScanState &state, optional_ptr<ClientContext> context = nullptr);
+	void BeginScanVectorInternal(ColumnScanState &state, optional_ptr<ClientContext> = nullptr);
 	//! Scans a base vector from the column
-	idx_t ScanVector(ColumnScanState &state, Vector &result, idx_t remaining, ScanVectorType scan_type,
-	                 idx_t result_offset = 0, optional_ptr<ClientContext> context = nullptr);
+	idx_t ScanVector(ColumnScanState &state, Vector &result, idx_t remaining, ScanVectorType scan_type, optional_ptr<ClientContext> context = nullptr,
+	                 idx_t result_offset = 0);
 	//! Scans a vector from the column merged with any potential updates
 	idx_t ScanVector(TransactionData transaction, idx_t vector_index, ColumnScanState &state, Vector &result,
 	                 idx_t target_scan, ScanVectorType scan_type, ScanVectorMode mode, optional_ptr<ClientContext> context = nullptr);

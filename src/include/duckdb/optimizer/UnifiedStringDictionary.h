@@ -51,7 +51,6 @@ public:
 // Singleton
 class UnifiedStringsDictionary {
 private:
-	static UnifiedStringsDictionary *ussr_instance;
 
 	// Overarching USSR buffer, contains DataRegion + HT + extra, 1MB size
 	unsafe_unique_array<data_t> buffer;
@@ -60,19 +59,15 @@ private:
 
 	unique_ptr<LinearProbingHashTable> LinearProbingHT;
 
-	// private constructor
-	UnifiedStringsDictionary();
-
 	// temporary solution for concurrency
 	std::mutex insertLock;
 
 public:
-	static UnifiedStringsDictionary *getInstance();
-	static uint64_t USSR_prefix;
+	UnifiedStringsDictionary();
+	~UnifiedStringsDictionary();
+	uint64_t USSR_prefix;
 
 	string_t insert(string_t str);
-
-	static void destroy_UnifiedStrings();
 };
 
 } // namespace duckdb

@@ -44,7 +44,6 @@
 #include "duckdb/transaction/transaction_context.hpp"
 #include "duckdb/transaction/transaction_manager.hpp"
 
-#include "duckdb/optimizer/UnifiedStringDictionary.h"
 
 namespace duckdb {
 
@@ -58,6 +57,8 @@ public:
 	unique_ptr<Executor> executor;
 	//! The progress bar
 	unique_ptr<ProgressBar> progress_bar;
+
+	unique_ptr<UnifiedStringsDictionary> ussr;
 
 public:
 	void SetOpenResult(BaseQueryResult &result) {
@@ -205,6 +206,8 @@ void ClientContext::BeginQueryInternal(ClientContextLock &lock, const string &qu
 	LogQueryInternal(lock, query);
 	active_query->query = query;
 
+	active_query->ussr = make_uniq<UnifiedStringsDictionary>();
+
 	query_progress.Initialize();
 	// Notify any registered state of query begin
 	for (auto &state : registered_state->States()) {
@@ -226,7 +229,7 @@ void ClientContext::BeginQueryInternal(ClientContextLock &lock, const string &qu
 ErrorData ClientContext::EndQueryInternal(ClientContextLock &lock, bool success, bool invalidate_transaction,
                                           optional_ptr<ErrorData> previous_error) {
 	client_data->profiler->EndQuery();
-	UnifiedStringsDictionary::destroy_UnifiedStrings();
+	active_query->ussr.reset();
 	if (active_query->executor) {
 		active_query->executor->CancelTasks();
 	}
@@ -318,6 +321,11 @@ Logger &ClientContext::GetLogger() const {
 const string &ClientContext::GetCurrentQuery() {
 	D_ASSERT(active_query);
 	return active_query->query;
+}
+
+UnifiedStringsDictionary& ClientContext::GetCurrentQueryUssr() {
+	D_ASSERT(active_query);
+	return *(active_query->ussr);
 }
 
 connection_t ClientContext::GetConnectionId() const {

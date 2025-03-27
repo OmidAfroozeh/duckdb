@@ -8,6 +8,7 @@
 #include "duckdb/common/uhugeint.hpp"
 #include "duckdb/common/value_operations/value_operations.hpp"
 #include "duckdb/common/vector_operations/vector_operations.hpp"
+#include "duckdb/main/client_context.hpp"
 
 namespace duckdb {
 
@@ -22,7 +23,8 @@ struct HashOp {
 
 template <>
 inline hash_t HashOp::Operation<string_t>(string_t input, bool is_null, optional_ptr<ClientContext> context) {
-	return is_null ? HashOp::NULL_HASH : duckdb::string_hash(input, 10, /*some_salt=*/true);
+	auto ussr_prefix = (context) ? context->GetCurrentQueryUssr().USSR_prefix: 0;
+	return is_null ? HashOp::NULL_HASH : duckdb::string_hash(input, ussr_prefix, /*some_salt=*/true);
 }
 
 static inline hash_t CombineHashScalar(hash_t a, hash_t b) {
