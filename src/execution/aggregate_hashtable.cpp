@@ -609,7 +609,7 @@ idx_t GroupedAggregateHashTable::FindOrCreateGroupsInternal(DataChunk &groups, V
 
 	if (skip_lookups) {
 		// Just appending now
-		partitioned_data->AppendUnified(state.partitioned_append_state, state.group_chunk,
+		partitioned_data->AppendUnified(state.partitioned_append_state, state.group_chunk, context,
 		                                *FlatVector::IncrementalSelectionVector(), chunk_size);
 		RowOperations::InitializeStates(layout, state.partitioned_append_state.chunk_state.row_locations,
 		                                *FlatVector::IncrementalSelectionVector(), chunk_size);
@@ -701,7 +701,7 @@ idx_t GroupedAggregateHashTable::FindOrCreateGroupsInternal(DataChunk &groups, V
 				data = partitioned_data.get();
 				append_state = &state.partitioned_append_state;
 			}
-			data->AppendUnified(*append_state, state.group_chunk, state.empty_vector, new_entry_count);
+			data->AppendUnified(*append_state, state.group_chunk, context, state.empty_vector, new_entry_count);
 			RowOperations::InitializeStates(layout, append_state->chunk_state.row_locations,
 			                                *FlatVector::IncrementalSelectionVector(), new_entry_count);
 

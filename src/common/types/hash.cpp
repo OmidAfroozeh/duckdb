@@ -155,7 +155,7 @@ hash_t Hash(uint8_t *val, size_t size) {
 }
 
 hash_t string_hash(string_t val, uint64_t ussr_prefix, bool) {
-	if(!val.IsInlined() && (USSR_MASK & cast_pointer_to_uint64(val.GetPointer())) == ussr_prefix){
+	if(!val.IsInlined() && (0xFFFFFFFFFFF80000 & cast_pointer_to_uint64(val.GetPointer())) == ussr_prefix){
 		return *(reinterpret_cast<uint64_t *>(val.GetPointer()) - 1);
 	}
 	return Hash(val);

@@ -35,17 +35,17 @@ void PartitionedTupleData::InitializeAppendState(PartitionedTupleDataAppendState
 	InitializeAppendStateInternal(state, properties);
 }
 
-void PartitionedTupleData::Append(PartitionedTupleDataAppendState &state, DataChunk &input,
+void PartitionedTupleData::Append(PartitionedTupleDataAppendState &state, DataChunk &input,  optional_ptr<ClientContext> context,
                                   const SelectionVector &append_sel, const idx_t append_count) {
 	TupleDataCollection::ToUnifiedFormat(state.chunk_state, input);
-	AppendUnified(state, input, append_sel, append_count);
+	AppendUnified(state, input, context, append_sel, append_count);
 }
 
 bool PartitionedTupleData::UseFixedSizeMap() const {
 	return MaxPartitionIndex() < PartitionedTupleDataAppendState::MAP_THRESHOLD;
 }
 
-void PartitionedTupleData::AppendUnified(PartitionedTupleDataAppendState &state, DataChunk &input,
+void PartitionedTupleData::AppendUnified(PartitionedTupleDataAppendState &state, DataChunk &input, optional_ptr<ClientContext> context,
                                          const SelectionVector &append_sel, const idx_t append_count) {
 	const idx_t actual_append_count = append_count == DConstants::INVALID_INDEX ? input.size() : append_count;
 
@@ -62,19 +62,19 @@ void PartitionedTupleData::AppendUnified(PartitionedTupleDataAppendState &state,
 		auto &partition_pin_state = *state.partition_pin_states[partition_index.GetIndex()];
 
 		const auto size_before = partition.SizeInBytes();
-		partition.AppendUnified(partition_pin_state, state.chunk_state, input, append_sel, actual_append_count);
+		partition.AppendUnified(partition_pin_state, state.chunk_state, input, context, append_sel, actual_append_count);
 		data_size += partition.SizeInBytes() - size_before;
 	} else {
 		// Compute the heap sizes for the whole chunk
 		if (!layout.AllConstant()) {
-			TupleDataCollection::ComputeHeapSizes(state.chunk_state, input, state.partition_sel, actual_append_count);
+			TupleDataCollection::ComputeHeapSizes(state.chunk_state, input, state.partition_sel, actual_append_count, context);
 		}
 
 		// Build the buffer space
 		BuildBufferSpace(state);
 
 		// Now scatter everything in one go
-		partitions[0]->Scatter(state.chunk_state, input, state.partition_sel, actual_append_count);
+		partitions[0]->Scatter(state.chunk_state, input, state.partition_sel, actual_append_count, context);
 	}
 
 	count += actual_append_count;

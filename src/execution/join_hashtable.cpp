@@ -311,15 +311,15 @@ void JoinHashTable::GetRowPointers(DataChunk &keys, TupleDataChunkState &key_sta
 void JoinHashTable::Hash(DataChunk &keys, const SelectionVector &sel, idx_t count, Vector &hashes) {
 	if (count == keys.size()) {
 		// no null values are filtered: use regular hash functions
-		VectorOperations::Hash(keys.data[0], hashes, keys.size());
+		VectorOperations::Hash(keys.data[0], hashes, keys.size(), context);
 		for (idx_t i = 1; i < equality_types.size(); i++) {
-			VectorOperations::CombineHash(hashes, keys.data[i], keys.size());
+			VectorOperations::CombineHash(hashes, keys.data[i], keys.size(), context);
 		}
 	} else {
 		// null values were filtered: use selection vector
-		VectorOperations::Hash(keys.data[0], hashes, sel, count);
+		VectorOperations::Hash(keys.data[0], hashes, sel, count, context);
 		for (idx_t i = 1; i < equality_types.size(); i++) {
-			VectorOperations::CombineHash(hashes, keys.data[i], sel, count);
+			VectorOperations::CombineHash(hashes, keys.data[i], sel, count, context);
 		}
 	}
 }
@@ -409,7 +409,7 @@ void JoinHashTable::Build(PartitionedTupleDataAppendState &append_state, DataChu
 	hash_values.ToUnifiedFormat(source_chunk.size(), append_state.chunk_state.vector_data.back().unified);
 
 	// We already called TupleDataCollection::ToUnifiedFormat, so we can AppendUnified here
-	sink_collection->AppendUnified(append_state, source_chunk, *current_sel, added_count);
+	sink_collection->AppendUnified(append_state, source_chunk, context, *current_sel, added_count);
 }
 
 idx_t JoinHashTable::PrepareKeys(DataChunk &keys, vector<TupleDataVectorFormat> &vector_data,

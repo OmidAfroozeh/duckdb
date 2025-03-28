@@ -92,12 +92,12 @@ public:
 	void InitializeAppendState(PartitionedTupleDataAppendState &state,
 	                           TupleDataPinProperties properties = TupleDataPinProperties::UNPIN_AFTER_DONE) const;
 	//! Appends a DataChunk to this PartitionedTupleData
-	void Append(PartitionedTupleDataAppendState &state, DataChunk &input,
+	void Append(PartitionedTupleDataAppendState &state, DataChunk &input, optional_ptr<ClientContext> context,
 	            const SelectionVector &append_sel = *FlatVector::IncrementalSelectionVector(),
 	            const idx_t append_count = DConstants::INVALID_INDEX);
 	//! Appends a DataChunk to this PartitionedTupleData
 	//! - ToUnifiedFormat has already been called
-	void AppendUnified(PartitionedTupleDataAppendState &state, DataChunk &input,
+	void AppendUnified(PartitionedTupleDataAppendState &state, DataChunk &input, optional_ptr<ClientContext> context,
 	                   const SelectionVector &append_sel = *FlatVector::IncrementalSelectionVector(),
 	                   const idx_t append_count = DConstants::INVALID_INDEX);
 	//! Appends rows to this PartitionedTupleData
