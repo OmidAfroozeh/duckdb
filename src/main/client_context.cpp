@@ -44,7 +44,6 @@
 #include "duckdb/transaction/transaction_context.hpp"
 #include "duckdb/transaction/transaction_manager.hpp"
 
-
 namespace duckdb {
 
 struct ActiveQueryContext {
@@ -323,7 +322,7 @@ const string &ClientContext::GetCurrentQuery() {
 	return active_query->query;
 }
 
-UnifiedStringsDictionary& ClientContext::GetCurrentQueryUssr() {
+UnifiedStringsDictionary &ClientContext::GetCurrentQueryUssr() {
 	D_ASSERT(active_query);
 	return *(active_query->ussr);
 }

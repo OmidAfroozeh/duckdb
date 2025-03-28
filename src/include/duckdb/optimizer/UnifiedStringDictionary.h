@@ -11,8 +11,6 @@
 
 namespace duckdb {
 
-
-
 struct LinearProbingHashTable {
 private:
 	static constexpr uint64_t BUFFER_SIZE = static_cast<uint64_t>(1024 * 1024);
@@ -28,7 +26,6 @@ private:
 	static constexpr uint64_t HT_SIZE = 0xFFFF;
 
 	static constexpr idx_t PROBING_LIMIT = 3;
-
 
 private:
 	uint64_t currentEmptySlot;
@@ -70,7 +67,6 @@ private:
 	static constexpr idx_t PROBING_LIMIT = 3;
 
 private:
-
 	// Overarching USSR buffer, contains DataRegion + HT + extra, 1MB size
 	unsafe_unique_array<data_t> buffer;
 	// Start of the DataRegion

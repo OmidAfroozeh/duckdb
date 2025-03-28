@@ -208,7 +208,7 @@ public:
 	//! Returns the current query string (if any)
 	const string &GetCurrentQuery();
 
-	UnifiedStringsDictionary& GetCurrentQueryUssr();
+	UnifiedStringsDictionary &GetCurrentQueryUssr();
 
 	connection_t GetConnectionId() const;
 

@@ -6,9 +6,7 @@
 #include <string>
 namespace duckdb {
 
-
-
-//void UnifiedStringsDictionary::destroy_UnifiedStrings() {
+// void UnifiedStringsDictionary::destroy_UnifiedStrings() {
 //	// error prone, don't know how to fix
 //	// for now only used for getting statistics, singleton causes memory leak!!!
 //	if (ussr_instance) {
@@ -47,7 +45,7 @@ UnifiedStringsDictionary::UnifiedStringsDictionary() {
 	LinearProbingHT = make_uniq<LinearProbingHashTable>(HT_address);
 }
 
-//UnifiedStringsDictionary *UnifiedStringsDictionary::getInstance() {
+// UnifiedStringsDictionary *UnifiedStringsDictionary::getInstance() {
 //	//	static std::mutex* singletonLock = new std::mutex();
 //	static std::mutex &singletonLock = *new std::mutex();
 //	lock_guard<std::mutex> guard(singletonLock);
@@ -99,11 +97,10 @@ string_t UnifiedStringsDictionary::insert(string_t str) {
 
 UnifiedStringsDictionary::~UnifiedStringsDictionary() {
 	this->buffer.reset();
-	#ifdef DEBUG
+#ifdef DEBUG
 	this->LinearProbingHT->getStatistics();
-	#endif
+#endif
 }
-
 
 LinearProbingHashTable::LinearProbingHashTable(data_ptr_t bufferHT) {
 	HT = reinterpret_cast<uint32_t *>(bufferHT);

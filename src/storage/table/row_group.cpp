@@ -499,7 +499,8 @@ bool RowGroup::CheckZonemapSegments(CollectionScanState &state) {
 }
 
 template <TableScanType TYPE>
-void RowGroup::TemplatedScan(TransactionData transaction, CollectionScanState &state, DataChunk &result, optional_ptr<ClientContext> context) {
+void RowGroup::TemplatedScan(TransactionData transaction, CollectionScanState &state, DataChunk &result,
+                             optional_ptr<ClientContext> context) {
 	const bool ALLOW_UPDATES = TYPE != TableScanType::TABLE_SCAN_COMMITTED_ROWS_DISALLOW_UPDATES &&
 	                           TYPE != TableScanType::TABLE_SCAN_COMMITTED_ROWS_OMIT_PERMANENTLY_DELETED;
 	const auto &column_ids = state.GetColumnIds();
@@ -713,11 +714,13 @@ void RowGroup::TemplatedScan(TransactionData transaction, CollectionScanState &s
 	}
 }
 
-void RowGroup::Scan(TransactionData transaction, CollectionScanState &state, DataChunk &result, optional_ptr<ClientContext> context) {
+void RowGroup::Scan(TransactionData transaction, CollectionScanState &state, DataChunk &result,
+                    optional_ptr<ClientContext> context) {
 	TemplatedScan<TableScanType::TABLE_SCAN_REGULAR>(transaction, state, result, context);
 }
 
-void RowGroup::ScanCommitted(CollectionScanState &state, DataChunk &result, TableScanType type, optional_ptr<ClientContext> context) {
+void RowGroup::ScanCommitted(CollectionScanState &state, DataChunk &result, TableScanType type,
+                             optional_ptr<ClientContext> context) {
 	auto &transaction_manager = DuckTransactionManager::Get(GetCollection().GetAttached());
 
 	transaction_t start_ts;

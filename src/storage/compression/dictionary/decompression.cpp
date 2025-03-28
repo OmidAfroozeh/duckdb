@@ -24,8 +24,8 @@ string_t CompressedStringScanState::FetchStringFromDict(int32_t dict_offset, uin
 	return string_t(str_ptr, string_len);
 }
 
-void CompressedStringScanState::Initialize(ColumnSegment &segment, bool initialize_dictionary, optional_ptr<ClientContext> context) {
-
+void CompressedStringScanState::Initialize(ColumnSegment &segment, bool initialize_dictionary,
+                                           optional_ptr<ClientContext> context) {
 
 	baseptr = handle->Ptr() + segment.GetBlockOffset();
 
@@ -57,7 +57,7 @@ void CompressedStringScanState::Initialize(ColumnSegment &segment, bool initiali
 	for (uint32_t i = 1; i < index_buffer_count; i++) {
 		// NOTE: the passing of dict_child_vector, will not be used, its for big strings
 		uint16_t str_len = GetStringLength(i);
-				dict_child_data[i] = FetchStringFromDict(UnsafeNumericCast<int32_t>(index_buffer_ptr[i]), str_len);
+		dict_child_data[i] = FetchStringFromDict(UnsafeNumericCast<int32_t>(index_buffer_ptr[i]), str_len);
 		auto str = FetchStringFromDict(UnsafeNumericCast<int32_t>(index_buffer_ptr[i]), str_len);
 		// right now the context support is limited, next step is to find all the ways that context can be provided to
 		// this function and not only specific use cases

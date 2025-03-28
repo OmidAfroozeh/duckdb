@@ -61,7 +61,8 @@ idx_t StandardColumnData::Scan(TransactionData transaction, idx_t vector_index, 
 	auto scan_type = GetVectorScanType(state, target_count, result);
 	auto mode = ScanVectorMode::REGULAR_SCAN;
 	auto scan_count = ScanVector(transaction, vector_index, state, result, target_count, scan_type, mode, context);
-	validity.ScanVector(transaction, vector_index, state.child_states[0], result, target_count, scan_type, mode, context);
+	validity.ScanVector(transaction, vector_index, state.child_states[0], result, target_count, scan_type, mode,
+	                    context);
 	return scan_count;
 }
 

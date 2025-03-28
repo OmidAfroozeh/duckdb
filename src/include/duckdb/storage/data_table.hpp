@@ -85,7 +85,8 @@ public:
 	//! from offset and store them in result. Offset is incremented with how many
 	//! elements were returned.
 	//! Returns true if all pushed down filters were executed during data fetching
-	void Scan(DuckTransaction &transaction, DataChunk &result, TableScanState &state, optional_ptr<ClientContext> client_context);
+	void Scan(DuckTransaction &transaction, DataChunk &result, TableScanState &state,
+	          optional_ptr<ClientContext> client_context);
 
 	//! Fetch data from the specific row identifiers from the base table
 	void Fetch(DuckTransaction &transaction, DataChunk &result, const vector<StorageIndex> &column_ids,
@@ -295,6 +296,5 @@ private:
 	atomic<bool> is_root;
 
 	optional_ptr<ClientContext> clientContext;
-
 };
 } // namespace duckdb

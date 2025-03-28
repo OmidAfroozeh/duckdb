@@ -46,8 +46,8 @@ bool DataTableInfo::IsTemporary() const {
 }
 
 DataTable::DataTable(AttachedDatabase &db, shared_ptr<TableIOManager> table_io_manager_p, const string &schema,
-                     const string &table, vector<ColumnDefinition> column_definitions_p, optional_ptr<ClientContext> context,
-                     unique_ptr<PersistentTableData> data)
+                     const string &table, vector<ColumnDefinition> column_definitions_p,
+                     optional_ptr<ClientContext> context, unique_ptr<PersistentTableData> data)
     : db(db), info(make_shared_ptr<DataTableInfo>(db, std::move(table_io_manager_p), schema, table, context)),
       column_definitions(std::move(column_definitions_p)), is_root(true), clientContext(context) {
 	// initialize the table with the existing data from disk, if any
@@ -64,7 +64,7 @@ DataTable::DataTable(AttachedDatabase &db, shared_ptr<TableIOManager> table_io_m
 }
 
 DataTable::DataTable(ClientContext &context, DataTable &parent, ColumnDefinition &new_column, Expression &default_value)
-    : db(parent.db), info(parent.info), is_root(true), clientContext(context){
+    : db(parent.db), info(parent.info), is_root(true), clientContext(context) {
 	// add the column definitions from this DataTable
 	for (auto &column_def : parent.column_definitions) {
 		column_definitions.emplace_back(column_def.Copy());
@@ -288,7 +288,8 @@ bool DataTable::NextParallelScan(ClientContext &context, ParallelTableScanState 
 	}
 }
 
-void DataTable::Scan(DuckTransaction &transaction, DataChunk &result, TableScanState &state, optional_ptr<ClientContext> client_context) {
+void DataTable::Scan(DuckTransaction &transaction, DataChunk &result, TableScanState &state,
+                     optional_ptr<ClientContext> client_context) {
 	// scan the persistent segments
 	if (state.table_state.Scan(transaction, result, client_context)) {
 		D_ASSERT(result.size() > 0);

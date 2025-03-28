@@ -166,8 +166,8 @@ void ColumnData::BeginScanVectorInternal(ColumnScanState &state, optional_ptr<Cl
 	D_ASSERT(state.current->type == type);
 }
 
-idx_t ColumnData::ScanVector(ColumnScanState &state, Vector &result, idx_t remaining, ScanVectorType scan_type,  optional_ptr<ClientContext> context,
-                             idx_t base_result_offset) {
+idx_t ColumnData::ScanVector(ColumnScanState &state, Vector &result, idx_t remaining, ScanVectorType scan_type,
+                             optional_ptr<ClientContext> context, idx_t base_result_offset) {
 	if (scan_type == ScanVectorType::SCAN_FLAT_VECTOR && result.GetVectorType() != VectorType::FLAT_VECTOR) {
 		throw InternalException("ScanVector called with SCAN_FLAT_VECTOR but result is not a flat vector");
 	}
@@ -280,7 +280,8 @@ void ColumnData::UpdateInternal(TransactionData transaction, idx_t column_index,
 }
 
 idx_t ColumnData::ScanVector(TransactionData transaction, idx_t vector_index, ColumnScanState &state, Vector &result,
-                             idx_t target_scan, ScanVectorType scan_type, ScanVectorMode mode, optional_ptr<ClientContext> context) {
+                             idx_t target_scan, ScanVectorType scan_type, ScanVectorMode mode,
+                             optional_ptr<ClientContext> context) {
 	auto scan_count = ScanVector(state, result, target_scan, scan_type, context);
 	if (scan_type != ScanVectorType::SCAN_ENTIRE_VECTOR) {
 		// if we are scanning an entire vector we cannot have updates
@@ -297,7 +298,8 @@ idx_t ColumnData::ScanVector(TransactionData transaction, idx_t vector_index, Co
 	return ScanVector(transaction, vector_index, state, result, target_scan, scan_type, mode, context);
 }
 
-idx_t ColumnData::Scan(TransactionData transaction, idx_t vector_index, ColumnScanState &state, Vector &result, optional_ptr<ClientContext> context) {
+idx_t ColumnData::Scan(TransactionData transaction, idx_t vector_index, ColumnScanState &state, Vector &result,
+                       optional_ptr<ClientContext> context) {
 	auto target_count = GetVectorCount(vector_index);
 	return Scan(transaction, vector_index, state, result, target_count, context);
 }
@@ -342,12 +344,12 @@ idx_t ColumnData::ScanCount(ColumnScanState &state, Vector &result, idx_t scan_c
 	}
 	// ScanCount can only be used if there are no updates
 	D_ASSERT(!HasUpdates());
-	return ScanVector(state, result, scan_count, ScanVectorType::SCAN_FLAT_VECTOR, nullptr,result_offset);
+	return ScanVector(state, result, scan_count, ScanVectorType::SCAN_FLAT_VECTOR, nullptr, result_offset);
 }
 
 void ColumnData::Filter(TransactionData transaction, idx_t vector_index, ColumnScanState &state, Vector &result,
-                        SelectionVector &sel, idx_t &s_count, const TableFilter &filter,
-                        TableFilterState &filter_state, optional_ptr<ClientContext> context) {
+                        SelectionVector &sel, idx_t &s_count, const TableFilter &filter, TableFilterState &filter_state,
+                        optional_ptr<ClientContext> context) {
 	idx_t scan_count = Scan(transaction, vector_index, state, result, context);
 
 	UnifiedVectorFormat vdata;

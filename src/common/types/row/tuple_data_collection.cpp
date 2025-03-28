@@ -187,33 +187,36 @@ void TupleDataCollection::InitializeChunkState(TupleDataChunkState &chunk_state,
 	chunk_state.column_ids = std::move(column_ids);
 }
 
-void TupleDataCollection::Append(DataChunk &new_chunk , optional_ptr<ClientContext> context, const SelectionVector &append_sel, idx_t append_count) {
+void TupleDataCollection::Append(DataChunk &new_chunk, optional_ptr<ClientContext> context,
+                                 const SelectionVector &append_sel, idx_t append_count) {
 	TupleDataAppendState append_state;
 	InitializeAppend(append_state);
 	Append(append_state, new_chunk, context, append_sel, append_count);
 }
 
-void TupleDataCollection::Append(DataChunk &new_chunk, vector<column_t> column_ids, optional_ptr<ClientContext> context, const SelectionVector &append_sel,
-                                 const idx_t append_count) {
+void TupleDataCollection::Append(DataChunk &new_chunk, vector<column_t> column_ids, optional_ptr<ClientContext> context,
+                                 const SelectionVector &append_sel, const idx_t append_count) {
 	TupleDataAppendState append_state;
 	InitializeAppend(append_state, std::move(column_ids));
 	Append(append_state, new_chunk, context, append_sel, append_count);
 }
 
-void TupleDataCollection::Append(TupleDataAppendState &append_state, DataChunk &new_chunk, optional_ptr<ClientContext> context,
-                                 const SelectionVector &append_sel, const idx_t append_count) {
+void TupleDataCollection::Append(TupleDataAppendState &append_state, DataChunk &new_chunk,
+                                 optional_ptr<ClientContext> context, const SelectionVector &append_sel,
+                                 const idx_t append_count) {
 	Append(append_state.pin_state, append_state.chunk_state, new_chunk, context, append_sel, append_count);
 }
 
-void TupleDataCollection::Append(TupleDataPinState &pin_state, TupleDataChunkState &chunk_state, DataChunk &new_chunk, optional_ptr<ClientContext> context,
-                                 const SelectionVector &append_sel, const idx_t append_count) {
+void TupleDataCollection::Append(TupleDataPinState &pin_state, TupleDataChunkState &chunk_state, DataChunk &new_chunk,
+                                 optional_ptr<ClientContext> context, const SelectionVector &append_sel,
+                                 const idx_t append_count) {
 	TupleDataCollection::ToUnifiedFormat(chunk_state, new_chunk);
 	AppendUnified(pin_state, chunk_state, new_chunk, context, append_sel, append_count);
 }
 
 void TupleDataCollection::AppendUnified(TupleDataPinState &pin_state, TupleDataChunkState &chunk_state,
-                                        DataChunk &new_chunk, optional_ptr<ClientContext> context, const SelectionVector &append_sel,
-                                        const idx_t append_count) {
+                                        DataChunk &new_chunk, optional_ptr<ClientContext> context,
+                                        const SelectionVector &append_sel, const idx_t append_count) {
 	const idx_t actual_append_count = append_count == DConstants::INVALID_INDEX ? new_chunk.size() : append_count;
 	if (actual_append_count == 0) {
 		return;

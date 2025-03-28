@@ -157,10 +157,12 @@ struct VectorOperations {
 	//===--------------------------------------------------------------------===//
 	// hashes = HASH(input)
 	static void Hash(Vector &input, Vector &hashes, idx_t count, optional_ptr<ClientContext> context = nullptr);
-	static void Hash(Vector &input, Vector &hashes, const SelectionVector &rsel, idx_t count, optional_ptr<ClientContext> context = nullptr);
+	static void Hash(Vector &input, Vector &hashes, const SelectionVector &rsel, idx_t count,
+	                 optional_ptr<ClientContext> context = nullptr);
 	// hashes ^= HASH(input)
 	static void CombineHash(Vector &hashes, Vector &input, idx_t count, optional_ptr<ClientContext> context = nullptr);
-	static void CombineHash(Vector &hashes, Vector &input, const SelectionVector &rsel, idx_t count, optional_ptr<ClientContext> context = nullptr);
+	static void CombineHash(Vector &hashes, Vector &input, const SelectionVector &rsel, idx_t count,
+	                        optional_ptr<ClientContext> context = nullptr);
 
 	//===--------------------------------------------------------------------===//
 	// Generate functions
