@@ -139,7 +139,7 @@ public:
 	             optional_ptr<ClientContext> context = nullptr) const;
 	//! Copy rows from input to the built Chunk state
 	void CopyRows(TupleDataChunkState &chunk_state, TupleDataChunkState &input, const SelectionVector &append_sel,
-	              const idx_t append_count) const;
+	              const idx_t append_count, optional_ptr<ClientContext> context = nullptr) const;
 
 	//! Finalizes the Pin state, releasing or storing blocks
 	void FinalizePinState(TupleDataPinState &pin_state, TupleDataSegment &segment);

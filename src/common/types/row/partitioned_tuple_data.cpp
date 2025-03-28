@@ -86,7 +86,7 @@ void PartitionedTupleData::AppendUnified(PartitionedTupleDataAppendState &state,
 }
 
 void PartitionedTupleData::Append(PartitionedTupleDataAppendState &state, TupleDataChunkState &input,
-                                  const idx_t append_count) {
+                                  const idx_t append_count, optional_ptr<ClientContext> context) {
 	// Compute partition indices and store them in state.partition_indices
 	ComputePartitionIndices(input.row_locations, append_count, state.partition_indices);
 
@@ -113,7 +113,7 @@ void PartitionedTupleData::Append(PartitionedTupleDataAppendState &state, TupleD
 		BuildBufferSpace(state);
 
 		// Copy the rows
-		partitions[0]->CopyRows(state.chunk_state, input, state.partition_sel, append_count);
+		partitions[0]->CopyRows(state.chunk_state, input, state.partition_sel, append_count, context);
 	}
 
 	count += append_count;
@@ -277,7 +277,7 @@ void PartitionedTupleData::Repartition(ClientContext &context, PartitionedTupleD
 				if (context.interrupted) {
 					throw InterruptException();
 				}
-				new_partitioned_data.Append(append_state, chunk_state, iterator.GetCurrentChunkCount());
+				new_partitioned_data.Append(append_state, chunk_state, iterator.GetCurrentChunkCount(), context);
 			} while (iterator.Next());
 
 			RepartitionFinalizeStates(*this, new_partitioned_data, append_state, partition_idx);

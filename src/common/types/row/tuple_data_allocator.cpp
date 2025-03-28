@@ -354,7 +354,7 @@ static inline void VerifyStrings(const TupleDataLayout &layout, const LogicalTyp
 void TupleDataAllocator::RecomputeHeapPointers(Vector &old_heap_ptrs, const SelectionVector &old_heap_sel,
                                                const data_ptr_t row_locations[], Vector &new_heap_ptrs,
                                                const idx_t offset, const idx_t count, const TupleDataLayout &layout,
-                                               const idx_t base_col_offset) {
+                                               const idx_t base_col_offset, optional_ptr<ClientContext> context) {
 	const auto old_heap_locations = FlatVector::GetData<data_ptr_t>(old_heap_ptrs);
 
 	UnifiedVectorFormat new_heap_data;
@@ -387,10 +387,21 @@ void TupleDataAllocator::RecomputeHeapPointers(Vector &old_heap_ptrs, const Sele
 				const auto string_location = row_location + col_offset;
 				if (Load<uint32_t>(string_location) > string_t::INLINE_LENGTH) {
 					const auto string_ptr_location = string_location + string_t::HEADER_SIZE;
-					const auto string_ptr = Load<data_ptr_t>(string_ptr_location);
-					const auto diff = string_ptr - old_heap_ptr;
-					D_ASSERT(diff >= 0);
-					Store<data_ptr_t>(new_heap_ptr + diff, string_ptr_location);
+					auto str = string_t(Load<char *>(string_ptr_location), Load<uint32_t>(string_location));
+					if (context) {
+						if ((UnifiedStringsDictionary::USSR_MASK & cast_pointer_to_uint64(str.GetPointer())) !=
+						    context->GetCurrentQueryUssr().USSR_prefix) {
+							const auto string_ptr = Load<data_ptr_t>(string_ptr_location);
+							const auto diff = string_ptr - old_heap_ptr;
+							D_ASSERT(diff >= 0);
+							Store<data_ptr_t>(new_heap_ptr + diff, string_ptr_location);
+						}
+					} else {
+						const auto string_ptr = Load<data_ptr_t>(string_ptr_location);
+						const auto diff = string_ptr - old_heap_ptr;
+						D_ASSERT(diff >= 0);
+						Store<data_ptr_t>(new_heap_ptr + diff, string_ptr_location);
+					}
 				}
 			}
 			VerifyStrings(layout, type.id(), row_locations, col_idx, base_col_offset, col_offset, offset, count);

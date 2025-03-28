@@ -79,7 +79,8 @@ public:
 	                          idx_t chunk_idx, bool init_heap);
 	static void RecomputeHeapPointers(Vector &old_heap_ptrs, const SelectionVector &old_heap_sel,
 	                                  const data_ptr_t row_locations[], Vector &new_heap_ptrs, const idx_t offset,
-	                                  const idx_t count, const TupleDataLayout &layout, const idx_t base_col_offset);
+	                                  const idx_t count, const TupleDataLayout &layout, const idx_t base_col_offset,
+	                                  optional_ptr<ClientContext> context = nullptr);
 	//! Releases or stores any handles in the management state that are no longer required
 	void ReleaseOrStoreHandles(TupleDataPinState &state, TupleDataSegment &segment, TupleDataChunk &chunk,
 	                           bool release_heap);

@@ -101,7 +101,8 @@ public:
 	                   const SelectionVector &append_sel = *FlatVector::IncrementalSelectionVector(),
 	                   const idx_t append_count = DConstants::INVALID_INDEX);
 	//! Appends rows to this PartitionedTupleData
-	void Append(PartitionedTupleDataAppendState &state, TupleDataChunkState &input, const idx_t count);
+	void Append(PartitionedTupleDataAppendState &state, TupleDataChunkState &input, const idx_t count,
+	            optional_ptr<ClientContext> context = nullptr);
 	//! Flushes any remaining data in the append state into this PartitionedTupleData
 	void FlushAppendState(PartitionedTupleDataAppendState &state);
 	//! Combine another PartitionedTupleData into this PartitionedTupleData

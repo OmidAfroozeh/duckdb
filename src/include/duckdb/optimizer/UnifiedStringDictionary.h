@@ -51,7 +51,7 @@ public:
 
 // Singleton
 class UnifiedStringsDictionary {
-private:
+public:
 	static constexpr uint64_t BUFFER_SIZE = static_cast<uint64_t>(1024 * 1024);
 
 	static constexpr uint64_t USSR_MASK = 0xFFFFFFFFFFF80000;

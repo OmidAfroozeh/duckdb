@@ -318,7 +318,8 @@ void VerifyHeapSizes(const data_ptr_t source_locations[], const idx_t heap_sizes
 // LCOV_EXCL_STOP
 
 void TupleDataCollection::CopyRows(TupleDataChunkState &chunk_state, TupleDataChunkState &input,
-                                   const SelectionVector &append_sel, const idx_t append_count) const {
+                                   const SelectionVector &append_sel, const idx_t append_count,
+                                   optional_ptr<ClientContext> context) const {
 	const auto source_locations = FlatVector::GetData<data_ptr_t>(input.row_locations);
 	const auto target_locations = FlatVector::GetData<data_ptr_t>(chunk_state.row_locations);
 
@@ -354,7 +355,7 @@ void TupleDataCollection::CopyRows(TupleDataChunkState &chunk_state, TupleDataCh
 
 		// Recompute pointers after copying the data
 		TupleDataAllocator::RecomputeHeapPointers(input.heap_locations, append_sel, target_locations,
-		                                          chunk_state.heap_locations, 0, append_count, layout, 0);
+		                                          chunk_state.heap_locations, 0, append_count, layout, 0, context);
 	}
 }
 

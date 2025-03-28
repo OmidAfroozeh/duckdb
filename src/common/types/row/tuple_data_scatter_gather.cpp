@@ -5,7 +5,36 @@
 #include "duckdb/common/types/row/tuple_data_collection.hpp"
 #include "duckdb/common/uhugeint.hpp"
 
+#include <execinfo.h>
+#include <iostream>
+#include <cstdlib>
+#include <cxxabi.h>
+#include <dlfcn.h>
+
 namespace duckdb {
+
+void printStackTrace() {
+	constexpr int MAX_FRAMES = 64;
+	void *callstack[MAX_FRAMES];
+	int frames = backtrace(callstack, MAX_FRAMES);
+
+	for (int i = 1; i < frames; ++i) // skip frame 0 (this function)
+	{
+		Dl_info info;
+		if (dladdr(callstack[i], &info) && info.dli_sname) {
+			int status;
+			char *demangled = abi::__cxa_demangle(info.dli_sname, nullptr, nullptr, &status);
+			if (status == 0 && demangled) {
+				std::cout << demangled << "\n";
+				std::free(demangled);
+			} else {
+				std::cout << info.dli_sname << "\n";
+			}
+		} else {
+			std::cout << "?? (no symbol)\n";
+		}
+	}
+}
 
 using ValidityBytes = TupleDataLayout::ValidityBytes;
 
@@ -34,9 +63,6 @@ inline void TupleDataValueStore(const string_t &source, const data_ptr_t &row_lo
 	if (source.IsInlined()) {
 		Store<string_t>(source, row_location + offset_in_row);
 	} else {
-		if(!context){
-			Printer::Print("GOTCHA");
-		}
 		if (context) {
 			if (((0xFFFFFFFFFFF80000 & cast_pointer_to_uint64(source.GetPointer())) ==
 			     context->GetCurrentQueryUssr().USSR_prefix)) {
@@ -121,9 +147,6 @@ void TupleDataCollection::ComputeHeapSizes(TupleDataChunkState &chunk_state, con
 }
 
 static idx_t StringHeapSize(const string_t &val, optional_ptr<ClientContext> context) {
-	if(!context){
-		Printer::Print("GOTCHA");
-	}
 	if (context) {
 		if (!val.IsInlined() && (0xFFFFFFFFFFF80000 & cast_pointer_to_uint64(val.GetPointer())) ==
 		                            context->GetCurrentQueryUssr().USSR_prefix) {
@@ -660,7 +683,8 @@ TupleDataTemplatedScatter(const Vector &, const TupleDataVectorFormat &source_fo
 	if (validity.AllValid()) {
 		for (idx_t i = 0; i < append_count; i++) {
 			const auto source_idx = source_sel.get_index(append_sel.get_index(i));
-			TupleDataValueStore<T>(data[source_idx], target_locations[i], offset_in_row, target_heap_locations[i]);
+			TupleDataValueStore<T>(data[source_idx], target_locations[i], offset_in_row, target_heap_locations[i],
+			                       context);
 		}
 	} else {
 		for (idx_t i = 0; i < append_count; i++) {
