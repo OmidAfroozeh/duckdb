@@ -105,7 +105,7 @@ void PartitionedTupleData::Append(PartitionedTupleDataAppendState &state, TupleD
 		partition.Build(partition_pin_state, state.chunk_state, 0, append_count);
 		data_size += partition.SizeInBytes() - size_before;
 
-		partition.CopyRows(state.chunk_state, input, *FlatVector::IncrementalSelectionVector(), append_count);
+		partition.CopyRows(state.chunk_state, input, *FlatVector::IncrementalSelectionVector(), append_count, context);
 	} else {
 		// Build the buffer space
 		state.chunk_state.heap_sizes.Slice(input.heap_sizes, state.partition_sel, append_count);
