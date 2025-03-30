@@ -354,7 +354,7 @@ void ColumnData::Filter(TransactionData transaction, idx_t vector_index, ColumnS
 
 	UnifiedVectorFormat vdata;
 	result.ToUnifiedFormat(scan_count, vdata);
-	ColumnSegment::FilterSelection(sel, result, vdata, filter, filter_state, scan_count, s_count);
+	ColumnSegment::FilterSelection(sel, result, vdata, filter, filter_state, scan_count, s_count, context);
 }
 
 void ColumnData::Select(TransactionData transaction, idx_t vector_index, ColumnScanState &state, Vector &result,

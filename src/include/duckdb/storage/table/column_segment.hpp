@@ -75,7 +75,7 @@ public:
 
 	static idx_t FilterSelection(SelectionVector &sel, Vector &vector, UnifiedVectorFormat &vdata,
 	                             const TableFilter &filter, TableFilterState &filter_state, idx_t scan_count,
-	                             idx_t &approved_tuple_count);
+	                             idx_t &approved_tuple_count, optional_ptr<ClientContext> context = nullptr);
 
 	//! Skip a scan forward to the row_index specified in the scan state
 	void Skip(ColumnScanState &state);
