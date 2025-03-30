@@ -61,7 +61,10 @@ void CompressedStringScanState::Initialize(ColumnSegment &segment, bool initiali
 		auto str = FetchStringFromDict(UnsafeNumericCast<int32_t>(index_buffer_ptr[i]), str_len);
 		// right now the context support is limited, next step is to find all the ways that context can be provided to
 		// this function and not only specific use cases
-		dict_child_data[i] = (context) ? context.get()->GetCurrentQueryUssr().insert(str) : str;
+		if(!context){
+			Printer::Print(to_string(context.get()->GetCurrentQueryUssr().USSR_prefix));
+		}
+		dict_child_data[i] = (context) ? context->GetCurrentQueryUssr().insert(str) : str;
 	}
 }
 

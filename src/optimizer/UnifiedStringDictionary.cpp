@@ -97,6 +97,7 @@ string_t UnifiedStringsDictionary::insert(string_t str) {
 
 UnifiedStringsDictionary::~UnifiedStringsDictionary() {
 	this->buffer.reset();
+//	this->LinearProbingHT.reset();
 #ifdef DEBUG
 	this->LinearProbingHT->getStatistics();
 #endif

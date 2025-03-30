@@ -146,7 +146,9 @@ public:
 	void VerifyCharacters() const;
 	void VerifyNull() const;
 
+
 	struct StringComparisonOperators {
+		static uint64_t eq_check_counter;
 		static inline bool Equals(const string_t &a, const string_t &b) {
 #ifdef DUCKDB_DEBUG_NO_INLINE
 			if (a.GetSize() != b.GetSize()) {
@@ -164,6 +166,7 @@ public:
 			a_bulk_comp = Load<uint64_t>(const_data_ptr_cast(&a) + 8u);
 			b_bulk_comp = Load<uint64_t>(const_data_ptr_cast(&b) + 8u);
 			if (a_bulk_comp == b_bulk_comp) {
+				eq_check_counter++;
 				// either they are both inlined (so compare equal) or point to the same string (so compare equal)
 				return true;
 			}
