@@ -365,14 +365,14 @@ static inline void TightLoopCombineHash(const T *__restrict ldata, hash_t *__res
 		for (idx_t i = 0; i < count; i++) {
 			auto ridx = HAS_RSEL ? rsel->get_index(i) : i;
 			auto idx = sel_vector->get_index(ridx);
-			auto other_hash = HashOp::Operation(ldata[idx], !mask.RowIsValid(idx));
+			auto other_hash = HashOp::Operation(ldata[idx], !mask.RowIsValid(idx), context);
 			hash_data[ridx] = CombineHashScalar(hash_data[ridx], other_hash);
 		}
 	} else {
 		for (idx_t i = 0; i < count; i++) {
 			auto ridx = HAS_RSEL ? rsel->get_index(i) : i;
 			auto idx = sel_vector->get_index(ridx);
-			auto other_hash = duckdb::Hash<T>(ldata[idx]);
+			auto other_hash = HashOp::Operation(ldata[idx], false, context);
 			hash_data[ridx] = CombineHashScalar(hash_data[ridx], other_hash);
 		}
 	}

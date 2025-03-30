@@ -34,13 +34,13 @@ inline void TupleDataValueStore(const string_t &source, const data_ptr_t &row_lo
 	if (source.IsInlined()) {
 		Store<string_t>(source, row_location + offset_in_row);
 	} else {
-//		if (context) {
-//			if (((0xFFFFFFFFFFF80000 & cast_pointer_to_uint64(source.GetPointer())) ==
-//			     context->GetCurrentQueryUssr().USSR_prefix)) {
-//				Store<string_t>(source, row_location + offset_in_row);
-//				return;
-//			}
-//		}
+		if (context) {
+			if (((0xFFFFFFFFFFF80000 & cast_pointer_to_uint64(source.GetPointer())) ==
+			     context->GetCurrentQueryUssr().USSR_prefix)) {
+				Store<string_t>(source, row_location + offset_in_row);
+				return;
+			}
+		}
 		FastMemcpy(heap_location, source.GetData(), source.GetSize());
 		Store<string_t>(string_t(const_char_ptr_cast(heap_location), UnsafeNumericCast<uint32_t>(source.GetSize())),
 		                row_location + offset_in_row);
@@ -118,12 +118,12 @@ void TupleDataCollection::ComputeHeapSizes(TupleDataChunkState &chunk_state, con
 }
 
 static idx_t StringHeapSize(const string_t &val, optional_ptr<ClientContext> context) {
-//	if (context) {
-//		if (!val.IsInlined() && (0xFFFFFFFFFFF80000 & cast_pointer_to_uint64(val.GetPointer())) ==
-//		                            context->GetCurrentQueryUssr().USSR_prefix) {
-//			return 0;
-//		}
-//	}
+	if (context) {
+		if (!val.IsInlined() && (0xFFFFFFFFFFF80000 & cast_pointer_to_uint64(val.GetPointer())) ==
+		                            context->GetCurrentQueryUssr().USSR_prefix) {
+			return 0;
+		}
+	}
 
 	return val.IsInlined() ? 0 : val.GetSize();
 }
