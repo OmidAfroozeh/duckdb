@@ -358,8 +358,8 @@ void ColumnData::Filter(TransactionData transaction, idx_t vector_index, ColumnS
 }
 
 void ColumnData::Select(TransactionData transaction, idx_t vector_index, ColumnScanState &state, Vector &result,
-                        SelectionVector &sel, idx_t s_count) {
-	Scan(transaction, vector_index, state, result);
+                        SelectionVector &sel, idx_t s_count, optional_ptr<ClientContext> context) {
+	Scan(transaction, vector_index, state, result, context);
 	result.Slice(sel, s_count);
 }
 

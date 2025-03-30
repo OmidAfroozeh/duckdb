@@ -76,7 +76,7 @@ public:
 	           const idx_t append_offset, const idx_t append_count);
 	//! Initializes a chunk, making its pointers valid
 	void InitializeChunkState(TupleDataSegment &segment, TupleDataPinState &pin_state, TupleDataChunkState &chunk_state,
-	                          idx_t chunk_idx, bool init_heap);
+	                          idx_t chunk_idx, bool init_heap, optional_ptr<ClientContext> context);
 	static void RecomputeHeapPointers(Vector &old_heap_ptrs, const SelectionVector &old_heap_sel,
 	                                  const data_ptr_t row_locations[], Vector &new_heap_ptrs, const idx_t offset,
 	                                  const idx_t count, const TupleDataLayout &layout, const idx_t base_col_offset,
@@ -96,7 +96,7 @@ private:
 	//! Internal function for InitializeChunkState
 	void InitializeChunkStateInternal(TupleDataPinState &pin_state, TupleDataChunkState &chunk_state, idx_t offset,
 	                                  bool recompute, bool init_heap_pointers, bool init_heap_sizes,
-	                                  unsafe_vector<reference<TupleDataChunkPart>> &parts);
+	                                  unsafe_vector<reference<TupleDataChunkPart>> &parts, optional_ptr<ClientContext> context = nullptr);
 	//! Internal function for ReleaseOrStoreHandles
 	static void ReleaseOrStoreHandlesInternal(TupleDataSegment &segment,
 	                                          unsafe_vector<BufferHandle> &pinned_row_handles,

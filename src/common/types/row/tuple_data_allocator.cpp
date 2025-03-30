@@ -222,7 +222,7 @@ TupleDataChunkPart TupleDataAllocator::BuildChunkPart(TupleDataPinState &pin_sta
 }
 
 void TupleDataAllocator::InitializeChunkState(TupleDataSegment &segment, TupleDataPinState &pin_state,
-                                              TupleDataChunkState &chunk_state, idx_t chunk_idx, bool init_heap) {
+                                              TupleDataChunkState &chunk_state, idx_t chunk_idx, bool init_heap, optional_ptr<ClientContext> context = nullptr) {
 	D_ASSERT(this == segment.allocator.get());
 	D_ASSERT(chunk_idx < segment.ChunkCount());
 	auto &chunk = segment.chunks[chunk_idx];
@@ -239,7 +239,7 @@ void TupleDataAllocator::InitializeChunkState(TupleDataSegment &segment, TupleDa
 		parts.emplace_back(part);
 	}
 
-	InitializeChunkStateInternal(pin_state, chunk_state, 0, true, init_heap, init_heap, parts);
+	InitializeChunkStateInternal(pin_state, chunk_state, 0, true, init_heap, init_heap, parts, context);
 }
 
 static inline void InitializeHeapSizes(const data_ptr_t row_locations[], idx_t heap_sizes[], const idx_t offset,
@@ -264,7 +264,7 @@ static inline void InitializeHeapSizes(const data_ptr_t row_locations[], idx_t h
 void TupleDataAllocator::InitializeChunkStateInternal(TupleDataPinState &pin_state, TupleDataChunkState &chunk_state,
                                                       idx_t offset, bool recompute, bool init_heap_pointers,
                                                       bool init_heap_sizes,
-                                                      unsafe_vector<reference<TupleDataChunkPart>> &parts) {
+                                                      unsafe_vector<reference<TupleDataChunkPart>> &parts, optional_ptr<ClientContext> context) {
 	auto row_locations = FlatVector::GetData<data_ptr_t>(chunk_state.row_locations);
 	auto heap_sizes = FlatVector::GetData<idx_t>(chunk_state.heap_sizes);
 	auto heap_locations = FlatVector::GetData<data_ptr_t>(chunk_state.heap_locations);
@@ -305,7 +305,7 @@ void TupleDataAllocator::InitializeChunkStateInternal(TupleDataPinState &pin_sta
 					Vector new_heap_ptrs(
 					    Value::POINTER(CastPointerToValue(new_base_heap_ptr + part.heap_block_offset)));
 					RecomputeHeapPointers(old_heap_ptrs, *ConstantVector::ZeroSelectionVector(), row_locations,
-					                      new_heap_ptrs, offset, next, layout, 0);
+					                      new_heap_ptrs, offset, next, layout, 0, context);
 					part.base_heap_ptr = new_base_heap_ptr;
 				}
 			}
@@ -387,21 +387,28 @@ void TupleDataAllocator::RecomputeHeapPointers(Vector &old_heap_ptrs, const Sele
 				const auto string_location = row_location + col_offset;
 				if (Load<uint32_t>(string_location) > string_t::INLINE_LENGTH) {
 					const auto string_ptr_location = string_location + string_t::HEADER_SIZE;
-					auto str = string_t(Load<char *>(string_ptr_location), Load<uint32_t>(string_location));
-					if (context) {
-						if ((UnifiedStringsDictionary::USSR_MASK & cast_pointer_to_uint64(str.GetPointer())) !=
-						    context->GetCurrentQueryUssr().USSR_prefix) {
-							const auto string_ptr = Load<data_ptr_t>(string_ptr_location);
-							const auto diff = string_ptr - old_heap_ptr;
-							D_ASSERT(diff >= 0);
-							Store<data_ptr_t>(new_heap_ptr + diff, string_ptr_location);
-						}
-					} else {
+//					auto str = string_t(Load<char *>(string_ptr_location), Load<uint32_t>(string_location));
+//					if (context) {
+//						if ((UnifiedStringsDictionary::USSR_MASK & cast_pointer_to_uint64(str.GetPointer())) !=
+//						    context->GetCurrentQueryUssr().USSR_prefix) {
+//							const auto string_ptr = Load<data_ptr_t>(string_ptr_location);
+//							const auto diff = string_ptr - old_heap_ptr;
+//							D_ASSERT(diff >= 0);
+//							Store<data_ptr_t>(new_heap_ptr + diff, string_ptr_location);
+//						}
+//					} else {
+//						auto str = StackTrace::GetStackTrace();
+//						Printer::Print(str);
+//						Printer::Print("NO CONTEXT BE CAREFUL!!!!!");
 						const auto string_ptr = Load<data_ptr_t>(string_ptr_location);
 						const auto diff = string_ptr - old_heap_ptr;
 						D_ASSERT(diff >= 0);
+//						if(diff < 0){
+////							Printer::Print("Oh no!");
+//							continue;
+//						}
 						Store<data_ptr_t>(new_heap_ptr + diff, string_ptr_location);
-					}
+//					}
 				}
 			}
 			VerifyStrings(layout, type.id(), row_locations, col_idx, base_col_offset, col_offset, offset, count);

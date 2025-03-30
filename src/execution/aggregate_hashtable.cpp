@@ -167,7 +167,7 @@ void GroupedAggregateHashTable::Destroy() {
 		auto &row_locations = iterator.GetChunkState().row_locations;
 		do {
 			RowOperations::DestroyStates(row_state, layout, row_locations, iterator.GetCurrentChunkCount());
-		} while (iterator.Next());
+		} while (iterator.Next(context));
 		data_collection->Reset();
 	}
 	// LCOV_EXCL_STOP
@@ -292,7 +292,7 @@ void GroupedAggregateHashTable::ReinsertTuples(PartitionedTupleData &data) {
 				entry.SetPointer(row_location);
 				D_ASSERT(entry.IsOccupied());
 			}
-		} while (iterator.Next());
+		} while (iterator.Next(context));
 	}
 }
 

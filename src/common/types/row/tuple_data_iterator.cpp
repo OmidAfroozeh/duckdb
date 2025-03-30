@@ -34,16 +34,17 @@ TupleDataChunkIterator::TupleDataChunkIterator(TupleDataCollection &collection_p
 	Reset();
 }
 
-void TupleDataChunkIterator::InitializeCurrentChunk() {
+void TupleDataChunkIterator::InitializeCurrentChunk(optional_ptr<ClientContext> context) {
 	auto &segment = collection.segments[current_segment_idx];
-	segment.allocator->InitializeChunkState(segment, state.pin_state, state.chunk_state, current_chunk_idx, init_heap);
+	segment.allocator->InitializeChunkState(segment, state.pin_state, state.chunk_state, current_chunk_idx, init_heap, context);
 }
 
 bool TupleDataChunkIterator::Done() const {
 	return current_segment_idx == end_segment_idx && current_chunk_idx == end_chunk_idx;
 }
 
-bool TupleDataChunkIterator::Next() {
+bool TupleDataChunkIterator::Next(optional_ptr<ClientContext> context) {
+
 	D_ASSERT(!Done()); // Check if called after already done
 
 	// Set the next indices and checks if we're at the end of the collection
@@ -62,7 +63,7 @@ bool TupleDataChunkIterator::Next() {
 		collection.FinalizePinState(state.pin_state, collection.segments[segment_idx_before]);
 	}
 
-	InitializeCurrentChunk();
+	InitializeCurrentChunk(context);
 	return true;
 }
 

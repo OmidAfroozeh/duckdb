@@ -278,7 +278,7 @@ void PartitionedTupleData::Repartition(ClientContext &context, PartitionedTupleD
 					throw InterruptException();
 				}
 				new_partitioned_data.Append(append_state, chunk_state, iterator.GetCurrentChunkCount(), context);
-			} while (iterator.Next());
+			} while (iterator.Next(context));
 
 			RepartitionFinalizeStates(*this, new_partitioned_data, append_state, partition_idx);
 		}

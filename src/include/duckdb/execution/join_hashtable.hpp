@@ -192,7 +192,7 @@ public:
 	void ScanFullOuter(JoinHTScanState &state, Vector &addresses, DataChunk &result) const;
 
 	//! Fill the pointer with all the addresses from the hashtable for full scan
-	static idx_t FillWithHTOffsets(JoinHTScanState &state, Vector &addresses);
+	static idx_t FillWithHTOffsets(optional_ptr<ClientContext> context, JoinHTScanState &state, Vector &addresses);
 
 	idx_t Count() const {
 		return data_collection->Count();

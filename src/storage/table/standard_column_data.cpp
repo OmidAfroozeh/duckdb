@@ -103,7 +103,7 @@ void StandardColumnData::Filter(TransactionData transaction, idx_t vector_index,
 }
 
 void StandardColumnData::Select(TransactionData transaction, idx_t vector_index, ColumnScanState &state, Vector &result,
-                                SelectionVector &sel, idx_t sel_count) {
+                                SelectionVector &sel, idx_t sel_count, optional_ptr<ClientContext> context) {
 	// check if we can do a specialized select
 	// the compression functions need to support this
 	auto compression = GetCompressionFunction();
@@ -115,7 +115,7 @@ void StandardColumnData::Select(TransactionData transaction, idx_t vector_index,
 	bool scan_entire_vector = scan_type == ScanVectorType::SCAN_ENTIRE_VECTOR;
 	if (!has_select || !validity_has_select || !scan_entire_vector) {
 		// we are not scanning an entire vector - this can have several causes (updates, etc)
-		ColumnData::Select(transaction, vector_index, state, result, sel, sel_count);
+		ColumnData::Select(transaction, vector_index, state, result, sel, sel_count, context);
 		return;
 	}
 	SelectVector(state, result, target_count, sel, sel_count);

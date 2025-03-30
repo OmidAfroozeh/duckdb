@@ -24,7 +24,7 @@ public:
 	//! Whether the iterator is done
 	bool Done() const;
 	//! Fetches the next STANDARD_VECTOR_SIZE row locations (and heap locations/sizes if init_heap is true)
-	bool Next();
+	bool Next(optional_ptr<ClientContext> context = nullptr);
 	//! Resets the scan indices to the start
 	void Reset();
 	//! Get the count of the current "DataChunk"
@@ -40,7 +40,7 @@ public:
 
 private:
 	//! Initializes the row locations (and heap locations/sizes if init_heap is true) at the current scan indices
-	void InitializeCurrentChunk();
+	void InitializeCurrentChunk(optional_ptr<ClientContext> context = nullptr);
 
 private:
 	//! The collection being iterated over

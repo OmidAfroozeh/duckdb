@@ -257,7 +257,7 @@ void RadixHTGlobalSinkState::Destroy() {
 		auto &row_locations = iterator.GetChunkState().row_locations;
 		do {
 			RowOperations::DestroyStates(row_state, layout, row_locations, iterator.GetCurrentChunkCount());
-		} while (iterator.Next());
+		} while (iterator.Next(context));
 		data_collection.Reset();
 	}
 }

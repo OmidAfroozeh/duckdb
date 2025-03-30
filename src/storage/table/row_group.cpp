@@ -696,7 +696,7 @@ void RowGroup::TemplatedScan(TransactionData transaction, CollectionScanState &s
 					auto &col_data = GetColumn(column);
 					if (TYPE == TableScanType::TABLE_SCAN_REGULAR) {
 						col_data.Select(transaction, state.vector_index, state.column_scans[i], result.data[i], sel,
-						                approved_tuple_count);
+						                approved_tuple_count, context);
 					} else {
 						col_data.SelectCommitted(state.vector_index, state.column_scans[i], result.data[i], sel,
 						                         approved_tuple_count, ALLOW_UPDATES);

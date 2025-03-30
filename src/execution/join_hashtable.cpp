@@ -727,7 +727,7 @@ void JoinHashTable::Finalize(idx_t chunk_idx_from, idx_t chunk_idx_to, bool para
 		TupleDataChunkState &chunk_state = iterator.GetChunkState();
 
 		InsertHashes(hashes, count, chunk_state, insert_state, parallel);
-	} while (iterator.Next());
+	} while (iterator.Next(context));
 }
 
 void JoinHashTable::InitializeScanStructure(ScanStructure &scan_structure, DataChunk &keys,
@@ -1369,7 +1369,7 @@ void JoinHashTable::ScanFullOuter(JoinHTScanState &state, Vector &addresses, Dat
 	}
 }
 
-idx_t JoinHashTable::FillWithHTOffsets(JoinHTScanState &state, Vector &addresses) {
+idx_t JoinHashTable::FillWithHTOffsets(optional_ptr<ClientContext> context,JoinHTScanState &state, Vector &addresses) {
 	// iterate over HT
 	auto key_locations = FlatVector::GetData<data_ptr_t>(addresses);
 	idx_t key_count = 0;
@@ -1382,7 +1382,7 @@ idx_t JoinHashTable::FillWithHTOffsets(JoinHTScanState &state, Vector &addresses
 			key_locations[key_count + i] = row_locations[i];
 		}
 		key_count += count;
-	} while (iterator.Next());
+	} while (iterator.Next(context));
 
 	return key_count;
 }

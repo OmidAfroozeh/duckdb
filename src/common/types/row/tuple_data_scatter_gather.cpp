@@ -5,36 +5,7 @@
 #include "duckdb/common/types/row/tuple_data_collection.hpp"
 #include "duckdb/common/uhugeint.hpp"
 
-#include <execinfo.h>
-#include <iostream>
-#include <cstdlib>
-#include <cxxabi.h>
-#include <dlfcn.h>
-
 namespace duckdb {
-
-void printStackTrace() {
-	constexpr int MAX_FRAMES = 64;
-	void *callstack[MAX_FRAMES];
-	int frames = backtrace(callstack, MAX_FRAMES);
-
-	for (int i = 1; i < frames; ++i) // skip frame 0 (this function)
-	{
-		Dl_info info;
-		if (dladdr(callstack[i], &info) && info.dli_sname) {
-			int status;
-			char *demangled = abi::__cxa_demangle(info.dli_sname, nullptr, nullptr, &status);
-			if (status == 0 && demangled) {
-				std::cout << demangled << "\n";
-				std::free(demangled);
-			} else {
-				std::cout << info.dli_sname << "\n";
-			}
-		} else {
-			std::cout << "?? (no symbol)\n";
-		}
-	}
-}
 
 using ValidityBytes = TupleDataLayout::ValidityBytes;
 
@@ -63,13 +34,13 @@ inline void TupleDataValueStore(const string_t &source, const data_ptr_t &row_lo
 	if (source.IsInlined()) {
 		Store<string_t>(source, row_location + offset_in_row);
 	} else {
-		if (context) {
-			if (((0xFFFFFFFFFFF80000 & cast_pointer_to_uint64(source.GetPointer())) ==
-			     context->GetCurrentQueryUssr().USSR_prefix)) {
-				Store<string_t>(source, row_location + offset_in_row);
-				return;
-			}
-		}
+//		if (context) {
+//			if (((0xFFFFFFFFFFF80000 & cast_pointer_to_uint64(source.GetPointer())) ==
+//			     context->GetCurrentQueryUssr().USSR_prefix)) {
+//				Store<string_t>(source, row_location + offset_in_row);
+//				return;
+//			}
+//		}
 		FastMemcpy(heap_location, source.GetData(), source.GetSize());
 		Store<string_t>(string_t(const_char_ptr_cast(heap_location), UnsafeNumericCast<uint32_t>(source.GetSize())),
 		                row_location + offset_in_row);
@@ -147,12 +118,12 @@ void TupleDataCollection::ComputeHeapSizes(TupleDataChunkState &chunk_state, con
 }
 
 static idx_t StringHeapSize(const string_t &val, optional_ptr<ClientContext> context) {
-	if (context) {
-		if (!val.IsInlined() && (0xFFFFFFFFFFF80000 & cast_pointer_to_uint64(val.GetPointer())) ==
-		                            context->GetCurrentQueryUssr().USSR_prefix) {
-			return 0;
-		}
-	}
+//	if (context) {
+//		if (!val.IsInlined() && (0xFFFFFFFFFFF80000 & cast_pointer_to_uint64(val.GetPointer())) ==
+//		                            context->GetCurrentQueryUssr().USSR_prefix) {
+//			return 0;
+//		}
+//	}
 
 	return val.IsInlined() ? 0 : val.GetSize();
 }

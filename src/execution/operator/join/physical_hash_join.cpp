@@ -702,7 +702,7 @@ void JoinFilterPushdownInfo::PushInFilter(const JoinFilterPushdownFilter &info, 
 	                              TupleDataPinProperties::KEEP_EVERYTHING_PINNED);
 
 	// Go through all the blocks and fill the keys addresses
-	idx_t key_count = ht.FillWithHTOffsets(join_ht_state, tuples_addresses);
+	idx_t key_count = ht.FillWithHTOffsets(ht.context, join_ht_state, tuples_addresses);
 
 	// Scan the build keys in the hash table
 	Vector build_vector(ht.layout.GetTypes()[build_idx], key_count);
