@@ -127,7 +127,7 @@ struct RowOperations {
 	// Out-of-Core Operators
 	//===--------------------------------------------------------------------===//
 	//! Swizzles blob pointers to offset within heap row
-	static void SwizzleColumns(const RowLayout &layout, const data_ptr_t base_row_ptr, const idx_t count);
+	static void SwizzleColumns(const RowLayout &layout, const data_ptr_t base_row_ptr, const idx_t count, optional_ptr<ClientContext> context);
 	//! Swizzles the base pointer of each row to offset within heap block
 	static void SwizzleHeapPointer(const RowLayout &layout, data_ptr_t row_ptr, const data_ptr_t heap_base_ptr,
 	                               const idx_t count, const idx_t base_offset = 0);
@@ -140,7 +140,7 @@ struct RowOperations {
 	                                 const data_ptr_t base_heap_ptr, const idx_t count);
 	//! Unswizzles all offsets back to pointers
 	static void UnswizzlePointers(const RowLayout &layout, const data_ptr_t base_row_ptr,
-	                              const data_ptr_t base_heap_ptr, const idx_t count);
+	                              const data_ptr_t base_heap_ptr, const idx_t count, optional_ptr<ClientContext> context);
 };
 
 } // namespace duckdb

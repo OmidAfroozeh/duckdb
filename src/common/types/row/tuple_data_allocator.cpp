@@ -387,28 +387,28 @@ void TupleDataAllocator::RecomputeHeapPointers(Vector &old_heap_ptrs, const Sele
 				const auto string_location = row_location + col_offset;
 				if (Load<uint32_t>(string_location) > string_t::INLINE_LENGTH) {
 					const auto string_ptr_location = string_location + string_t::HEADER_SIZE;
-//					auto str = string_t(Load<char *>(string_ptr_location), Load<uint32_t>(string_location));
-//					if (context) {
-//						if ((UnifiedStringsDictionary::USSR_MASK & cast_pointer_to_uint64(str.GetPointer())) !=
-//						    context->GetCurrentQueryUssr().USSR_prefix) {
-//							const auto string_ptr = Load<data_ptr_t>(string_ptr_location);
-//							const auto diff = string_ptr - old_heap_ptr;
-//							D_ASSERT(diff >= 0);
-//							Store<data_ptr_t>(new_heap_ptr + diff, string_ptr_location);
-//						}
-//					} else {
+					auto str = string_t(Load<char *>(string_ptr_location), Load<uint32_t>(string_location));
+					if (context) {
+						if ((UnifiedStringsDictionary::USSR_MASK & cast_pointer_to_uint64(str.GetPointer())) !=
+						    context->GetCurrentQueryUssr().USSR_prefix) {
+							const auto string_ptr = Load<data_ptr_t>(string_ptr_location);
+							const auto diff = string_ptr - old_heap_ptr;
+							D_ASSERT(diff >= 0);
+							Store<data_ptr_t>(new_heap_ptr + diff, string_ptr_location);
+						}
+					} else {
 //						auto str = StackTrace::GetStackTrace();
 //						Printer::Print(str);
 //						Printer::Print("NO CONTEXT BE CAREFUL!!!!!");
 						const auto string_ptr = Load<data_ptr_t>(string_ptr_location);
 						const auto diff = string_ptr - old_heap_ptr;
 						D_ASSERT(diff >= 0);
-//						if(diff < 0){
-////							Printer::Print("Oh no!");
-//							continue;
-//						}
+						if(diff < 0){
+//							Printer::Print("Oh no!");
+							continue;
+						}
 						Store<data_ptr_t>(new_heap_ptr + diff, string_ptr_location);
-//					}
+					}
 				}
 			}
 			VerifyStrings(layout, type.id(), row_locations, col_idx, base_col_offset, col_offset, offset, count);

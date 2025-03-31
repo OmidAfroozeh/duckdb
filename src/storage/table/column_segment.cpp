@@ -531,7 +531,7 @@ idx_t ColumnSegment::FilterSelection(SelectionVector &sel, Vector &vector, Unifi
 		case PhysicalType::VARCHAR: {
 			auto predicate = string_t(StringValue::Get(constant_filter.constant));
 			if(context){
-				Printer::Print("putting predicate in ussr");
+//				Printer::Print("putting predicate in ussr");
 				predicate = context->GetCurrentQueryUssr().insert(predicate);
 			}
 			FilterSelectionSwitch<string_t>(vdata, predicate, sel, approved_tuple_count,

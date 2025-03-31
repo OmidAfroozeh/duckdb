@@ -44,6 +44,8 @@
 #include "duckdb/transaction/transaction_context.hpp"
 #include "duckdb/transaction/transaction_manager.hpp"
 
+#include "duckdb/common/stacktrace.hpp"
+
 namespace duckdb {
 
 struct ActiveQueryContext {
@@ -189,7 +191,13 @@ unique_ptr<T> ClientContext::ErrorResult(ErrorData error, const string &query) {
 	return make_uniq<T>(std::move(error));
 }
 
+void ClientContext::segfault_handler(int t) {
+	Printer::Print(StackTrace::GetStackTrace());
+	exit(1);
+}
+
 void ClientContext::BeginQueryInternal(ClientContextLock &lock, const string &query) {
+//	signal(SIGSEGV, segfault_handler);
 	// check if we are on AutoCommit. In this case we should start a transaction
 	D_ASSERT(!active_query);
 	auto &db_inst = DatabaseInstance::GetDatabase(*this);
@@ -227,7 +235,7 @@ void ClientContext::BeginQueryInternal(ClientContextLock &lock, const string &qu
 
 ErrorData ClientContext::EndQueryInternal(ClientContextLock &lock, bool success, bool invalidate_transaction,
                                           optional_ptr<ErrorData> previous_error) {
-	Printer::Print(to_string(string_t::StringComparisonOperators::eq_check_counter));
+//	Printer::Print(to_string(string_t::StringComparisonOperators::eq_check_counter));
 	client_data->profiler->EndQuery();
 	if (active_query->executor) {
 		active_query->executor->CancelTasks();
