@@ -154,7 +154,7 @@ void RowOperations::UnswizzlePointers(const RowLayout &layout, const data_ptr_t 
 							// Overwrite the string offset with the pointer (if not inlined)
 							Store<data_ptr_t>(heap_row_ptrs[i] + Load<idx_t>(string_ptr), string_ptr);
 						} else{
-							Printer::Print("GOTCHAAAAA");
+//							Printer::Print("GOTCHAAAAA");
 						}
 						VerifyUnswizzledString(layout, col_idx, row_ptr + i * row_width);
 					}

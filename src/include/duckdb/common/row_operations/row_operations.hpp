@@ -75,12 +75,12 @@ struct RowOperations {
 	//===--------------------------------------------------------------------===//
 	//! Scatter group data to the rows. Initialises the ValidityMask.
 	static void Scatter(DataChunk &columns, UnifiedVectorFormat col_data[], const RowLayout &layout, Vector &rows,
-	                    RowDataCollection &string_heap, const SelectionVector &sel, idx_t count);
+	                    RowDataCollection &string_heap, const SelectionVector &sel, idx_t count, optional_ptr<ClientContext> context);
 	//! Gather a single column.
 	//! If heap_ptr is not null, then the data is assumed to contain swizzled pointers,
 	//! which will be unswizzled in memory.
 	static void Gather(Vector &rows, const SelectionVector &row_sel, Vector &col, const SelectionVector &col_sel,
-	                   const idx_t count, const RowLayout &layout, const idx_t col_no, const idx_t build_size = 0,
+	                   const idx_t count, const RowLayout &layout, const idx_t col_no,optional_ptr<ClientContext> context, const idx_t build_size = 0,
 	                   data_ptr_t heap_ptr = nullptr);
 
 	//===--------------------------------------------------------------------===//

@@ -50,13 +50,13 @@ static void TemplatedScatter(UnifiedVectorFormat &col, Vector &rows, const Selec
 }
 
 static void ComputeStringEntrySizes(const UnifiedVectorFormat &col, idx_t entry_sizes[], const SelectionVector &sel,
-                                    const idx_t count, const idx_t offset = 0) {
+                                    const idx_t count, optional_ptr<ClientContext> context, const idx_t offset = 0) {
 	auto data = UnifiedVectorFormat::GetData<string_t>(col);
 	for (idx_t i = 0; i < count; i++) {
 		auto idx = sel.get_index(i);
 		auto col_idx = col.sel->get_index(idx) + offset;
 		const auto &str = data[col_idx];
-		if (col.validity.RowIsValid(col_idx) && !str.IsInlined()) {
+		if (col.validity.RowIsValid(col_idx) && !str.IsInlined() && ((0xFFFFFFFFFFF80000 & cast_pointer_to_uint64(str.GetPointer())) != context->GetCurrentQueryUssr().USSR_prefix)) {
 			entry_sizes[i] += str.GetSize();
 		}
 	}
@@ -64,7 +64,7 @@ static void ComputeStringEntrySizes(const UnifiedVectorFormat &col, idx_t entry_
 
 static void ScatterStringVector(UnifiedVectorFormat &col, Vector &rows, data_ptr_t str_locations[],
                                 const SelectionVector &sel, const idx_t count, const idx_t col_offset,
-                                const idx_t col_no, const idx_t col_count) {
+                                const idx_t col_no, const idx_t col_count, optional_ptr<ClientContext> context) {
 	auto string_data = UnifiedVectorFormat::GetData<string_t>(col);
 	auto ptrs = FlatVector::GetData<data_ptr_t>(rows);
 
@@ -79,6 +79,8 @@ static void ScatterStringVector(UnifiedVectorFormat &col, Vector &rows, data_ptr
 			col_mask.SetInvalidUnsafe(col_no);
 			Store<string_t>(null, row + col_offset);
 		} else if (string_data[col_idx].IsInlined()) {
+			Store<string_t>(string_data[col_idx], row + col_offset);
+		} else if ((0xFFFFFFFFFFF80000 & cast_pointer_to_uint64(string_data[col_idx].GetPointer())) == context->GetCurrentQueryUssr().USSR_prefix){
 			Store<string_t>(string_data[col_idx], row + col_offset);
 		} else {
 			const auto &str = string_data[col_idx];
@@ -112,7 +114,7 @@ static void ScatterNestedVector(Vector &vec, UnifiedVectorFormat &col, Vector &r
 }
 
 void RowOperations::Scatter(DataChunk &columns, UnifiedVectorFormat col_data[], const RowLayout &layout, Vector &rows,
-                            RowDataCollection &string_heap, const SelectionVector &sel, idx_t count) {
+                            RowDataCollection &string_heap, const SelectionVector &sel, idx_t count, optional_ptr<ClientContext> context) {
 	if (count == 0) {
 		return;
 	}
@@ -145,7 +147,7 @@ void RowOperations::Scatter(DataChunk &columns, UnifiedVectorFormat col_data[], 
 			auto &col = col_data[col_no];
 			switch (types[col_no].InternalType()) {
 			case PhysicalType::VARCHAR:
-				ComputeStringEntrySizes(col, entry_sizes, sel, count);
+				ComputeStringEntrySizes(col, entry_sizes, sel, count, context);
 				break;
 			case PhysicalType::LIST:
 			case PhysicalType::STRUCT:
@@ -220,7 +222,7 @@ void RowOperations::Scatter(DataChunk &columns, UnifiedVectorFormat col_data[], 
 			TemplatedScatter<interval_t>(col, rows, sel, count, col_offset, col_no, column_count);
 			break;
 		case PhysicalType::VARCHAR:
-			ScatterStringVector(col, rows, data_locations, sel, count, col_offset, col_no, column_count);
+			ScatterStringVector(col, rows, data_locations, sel, count, col_offset, col_no, column_count, context);
 			break;
 		case PhysicalType::LIST:
 		case PhysicalType::STRUCT:

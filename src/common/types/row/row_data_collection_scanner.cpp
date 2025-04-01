@@ -292,7 +292,7 @@ void RowDataCollectionScanner::Scan(DataChunk &chunk, optional_ptr<ClientContext
 	// Deserialize the payload data
 	for (idx_t col_no = 0; col_no < layout.ColumnCount(); col_no++) {
 		RowOperations::Gather(addresses, *FlatVector::IncrementalSelectionVector(), chunk.data[col_no],
-		                      *FlatVector::IncrementalSelectionVector(), count, layout, col_no);
+		                      *FlatVector::IncrementalSelectionVector(), count, layout, col_no, context);
 	}
 	chunk.SetCardinality(count);
 	chunk.Verify();

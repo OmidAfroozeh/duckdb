@@ -292,7 +292,7 @@ void WindowDistinctAggregatorLocalState::Sink(DataChunk &sink_chunk, DataChunk &
 		local_sort = gastate.InitializeLocalSort();
 	}
 
-	local_sort->SinkChunk(sort_chunk, payload_chunk);
+	local_sort->SinkChunk(sort_chunk, payload_chunk, gastate.context);
 
 	if (local_sort->SizeInBytes() > gastate.memory_per_thread) {
 		local_sort->Sort(*gastate.global_sort, true);
