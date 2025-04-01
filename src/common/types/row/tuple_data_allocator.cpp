@@ -132,6 +132,9 @@ void TupleDataAllocator::Build(TupleDataSegment &segment, TupleDataPinState &pin
 	for (auto &indices : chunk_part_indices) {
 		chunk_parts.emplace_back(segment.chunks[indices.first].parts[indices.second]);
 	}
+	if(!context){
+		Printer::Print("no context at build");
+	}
 	InitializeChunkStateInternal(pin_state, chunk_state, append_offset, false, true, false, chunk_parts, context);
 
 	// To reduce metadata, we try to merge chunk parts where possible
@@ -224,7 +227,7 @@ TupleDataChunkPart TupleDataAllocator::BuildChunkPart(TupleDataPinState &pin_sta
 }
 
 void TupleDataAllocator::InitializeChunkState(TupleDataSegment &segment, TupleDataPinState &pin_state,
-                                              TupleDataChunkState &chunk_state, idx_t chunk_idx, bool init_heap, optional_ptr<ClientContext> context = nullptr) {
+                                              TupleDataChunkState &chunk_state, idx_t chunk_idx, bool init_heap, optional_ptr<ClientContext> context) {
 	D_ASSERT(this == segment.allocator.get());
 	D_ASSERT(chunk_idx < segment.ChunkCount());
 	auto &chunk = segment.chunks[chunk_idx];
@@ -240,7 +243,9 @@ void TupleDataAllocator::InitializeChunkState(TupleDataSegment &segment, TupleDa
 	for (auto &part : chunk.parts) {
 		parts.emplace_back(part);
 	}
-
+    if(!context){
+		Printer::Print("No context at intiializechunkstate");
+	}
 	InitializeChunkStateInternal(pin_state, chunk_state, 0, true, init_heap, init_heap, parts, context);
 }
 

@@ -240,7 +240,7 @@ void PartitionLocalMergeState::Scan() {
 
 	TupleDataScanState local_scan;
 	group_data.InitializeScan(local_scan, merge_state->column_ids);
-	while (group_data.Scan(chunk_state, local_scan, payload_chunk)) {
+	while (group_data.Scan(chunk_state, local_scan, payload_chunk, global_sort.context)) {
 		sort_chunk.Reset();
 		executor.Execute(payload_chunk, sort_chunk);
 

@@ -785,8 +785,8 @@ struct FlushMoveState {
 		hash_col_idx = layout.ColumnCount() - 1;
 	}
 
-	bool Scan() {
-		if (collection.Scan(scan_state, groups)) {
+	bool Scan(optional_ptr<ClientContext> context) {
+		if (collection.Scan(scan_state, groups, context)) {
 			collection.Gather(scan_state.chunk_state.row_locations, *FlatVector::IncrementalSelectionVector(),
 			                  groups.size(), hash_col_idx, hashes, *FlatVector::IncrementalSelectionVector(), nullptr);
 			return true;
@@ -833,7 +833,7 @@ void GroupedAggregateHashTable::Combine(TupleDataCollection &other_data, optiona
 
 	idx_t chunk_idx = 0;
 	const auto chunk_count = other_data.ChunkCount();
-	while (fm_state.Scan()) {
+	while (fm_state.Scan(context)) {
 		// Check for interrupts with each chunk
 		if (context.interrupted) {
 			throw InterruptException();
@@ -876,7 +876,7 @@ bool GroupedAggregateHashTable::Scan(AggregateHTScanState &scan_state, DataChunk
 	distinct_rows.Reset();
 	auto &current_partition = partitioned_data->GetPartitions()[scan_state.partition_idx];
 
-	if (current_partition->Scan(scan_state.scan_states, distinct_rows)) {
+	if (current_partition->Scan(scan_state.scan_states, distinct_rows, context)) {
 		FetchAggregates(distinct_rows, payload_rows);
 		return true;
 	} else {

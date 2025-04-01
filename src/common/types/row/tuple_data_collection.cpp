@@ -466,7 +466,7 @@ void TupleDataCollection::InitializeScan(TupleDataParallelScanState &state, vect
 	InitializeScan(state.scan_state, std::move(column_ids), properties);
 }
 
-bool TupleDataCollection::Scan(TupleDataScanState &state, DataChunk &result) {
+bool TupleDataCollection::Scan(TupleDataScanState &state, DataChunk &result, optional_ptr<ClientContext> context) {
 	const auto segment_index_before = state.segment_index;
 	idx_t segment_index;
 	idx_t chunk_index;
@@ -480,11 +480,11 @@ bool TupleDataCollection::Scan(TupleDataScanState &state, DataChunk &result) {
 	if (segment_index_before != DConstants::INVALID_INDEX && segment_index != segment_index_before) {
 		FinalizePinState(state.pin_state, segments[segment_index_before]);
 	}
-	ScanAtIndex(state.pin_state, state.chunk_state, state.chunk_state.column_ids, segment_index, chunk_index, result);
+	ScanAtIndex(state.pin_state, state.chunk_state, state.chunk_state.column_ids, segment_index, chunk_index, result, context);
 	return true;
 }
 
-bool TupleDataCollection::Scan(TupleDataParallelScanState &gstate, TupleDataLocalScanState &lstate, DataChunk &result) {
+bool TupleDataCollection::Scan(TupleDataParallelScanState &gstate, TupleDataLocalScanState &lstate, DataChunk &result, optional_ptr<ClientContext> context) {
 	lstate.pin_state.properties = gstate.scan_state.pin_state.properties;
 
 	const auto segment_index_before = lstate.segment_index;
@@ -502,7 +502,7 @@ bool TupleDataCollection::Scan(TupleDataParallelScanState &gstate, TupleDataLoca
 		FinalizePinState(lstate.pin_state, segments[lstate.segment_index]);
 	}
 	ScanAtIndex(lstate.pin_state, lstate.chunk_state, gstate.scan_state.chunk_state.column_ids, lstate.segment_index,
-	            lstate.chunk_index, result);
+	            lstate.chunk_index, result, context);
 	return true;
 }
 
@@ -543,10 +543,10 @@ bool TupleDataCollection::NextScanIndex(TupleDataScanState &state, idx_t &segmen
 }
 void TupleDataCollection::ScanAtIndex(TupleDataPinState &pin_state, TupleDataChunkState &chunk_state,
                                       const vector<column_t> &column_ids, idx_t segment_index, idx_t chunk_index,
-                                      DataChunk &result) {
+                                      DataChunk &result, optional_ptr<ClientContext> context) {
 	auto &segment = segments[segment_index];
 	auto &chunk = segment.chunks[chunk_index];
-	segment.allocator->InitializeChunkState(segment, pin_state, chunk_state, chunk_index, false);
+	segment.allocator->InitializeChunkState(segment, pin_state, chunk_state, chunk_index, false, context);
 	result.Reset();
 
 	ResetCachedCastVectors(chunk_state, column_ids);
@@ -574,7 +574,7 @@ string TupleDataCollection::ToString() {
 	string result = StringUtil::Format("TupleDataCollection - [%llu Chunks, %llu Rows]\n", ChunkCount(), Count());
 	idx_t chunk_idx = 0;
 	idx_t row_count = 0;
-	while (Scan(scan_state, chunk)) {
+	while (Scan(scan_state, chunk, nullptr)) {
 		result +=
 		    StringUtil::Format("Chunk %llu - [Rows %llu - %llu]\n", chunk_idx, row_count, row_count + chunk.size()) +
 		    chunk.ToString();

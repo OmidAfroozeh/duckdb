@@ -172,9 +172,9 @@ public:
 	void InitializeScan(TupleDataParallelScanState &gstate, vector<column_t> column_ids,
 	                    TupleDataPinProperties properties = TupleDataPinProperties::UNPIN_AFTER_DONE) const;
 	//! Scans a DataChunk from the TupleDataCollection
-	bool Scan(TupleDataScanState &state, DataChunk &result);
+	bool Scan(TupleDataScanState &state, DataChunk &result, optional_ptr<ClientContext> context);
 	//! Scans a DataChunk from the TupleDataCollection
-	bool Scan(TupleDataParallelScanState &gstate, TupleDataLocalScanState &lstate, DataChunk &result);
+	bool Scan(TupleDataParallelScanState &gstate, TupleDataLocalScanState &lstate, DataChunk &result, optional_ptr<ClientContext> context);
 	//! Whether the last scan has been completed on this TupleDataCollection
 	bool ScanComplete(const TupleDataScanState &state) const;
 
@@ -241,7 +241,7 @@ private:
 	bool NextScanIndex(TupleDataScanState &scan_state, idx_t &segment_index, idx_t &chunk_index);
 	//! Scans the chunk at the given segment/chunk indices
 	void ScanAtIndex(TupleDataPinState &pin_state, TupleDataChunkState &chunk_state, const vector<column_t> &column_ids,
-	                 idx_t segment_index, idx_t chunk_index, DataChunk &result);
+	                 idx_t segment_index, idx_t chunk_index, DataChunk &result, optional_ptr<ClientContext> context);
 
 	//! Verify count/data size of this collection
 	void Verify() const;
