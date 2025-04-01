@@ -7,6 +7,8 @@
 #include "duckdb/storage/buffer/block_handle.hpp"
 #include "duckdb/storage/buffer_manager.hpp"
 
+#include "duckdb/common/stacktrace.hpp"
+
 namespace duckdb {
 
 using ValidityBytes = TupleDataLayout::ValidityBytes;
@@ -81,7 +83,7 @@ void TupleDataAllocator::SetPartitionIndex(const idx_t index) {
 }
 
 void TupleDataAllocator::Build(TupleDataSegment &segment, TupleDataPinState &pin_state,
-                               TupleDataChunkState &chunk_state, const idx_t append_offset, const idx_t append_count) {
+                               TupleDataChunkState &chunk_state, const idx_t append_offset, const idx_t append_count, optional_ptr<ClientContext> context) {
 	D_ASSERT(this == segment.allocator.get());
 	auto &chunks = segment.chunks;
 	if (!chunks.empty()) {
@@ -130,7 +132,7 @@ void TupleDataAllocator::Build(TupleDataSegment &segment, TupleDataPinState &pin
 	for (auto &indices : chunk_part_indices) {
 		chunk_parts.emplace_back(segment.chunks[indices.first].parts[indices.second]);
 	}
-	InitializeChunkStateInternal(pin_state, chunk_state, append_offset, false, true, false, chunk_parts);
+	InitializeChunkStateInternal(pin_state, chunk_state, append_offset, false, true, false, chunk_parts, context);
 
 	// To reduce metadata, we try to merge chunk parts where possible
 	// Due to the way chunk parts are constructed, only the last part of the first chunk is eligible for merging
@@ -395,6 +397,8 @@ void TupleDataAllocator::RecomputeHeapPointers(Vector &old_heap_ptrs, const Sele
 							const auto diff = string_ptr - old_heap_ptr;
 							D_ASSERT(diff >= 0);
 							Store<data_ptr_t>(new_heap_ptr + diff, string_ptr_location);
+						}else{
+//							Printer::Print("GOTCHAAAAA2.0");
 						}
 					} else {
 //						auto str = StackTrace::GetStackTrace();
@@ -404,8 +408,11 @@ void TupleDataAllocator::RecomputeHeapPointers(Vector &old_heap_ptrs, const Sele
 						const auto diff = string_ptr - old_heap_ptr;
 						D_ASSERT(diff >= 0);
 						if(diff < 0){
-//							Printer::Print("Oh no!");
-							continue;
+							auto str = StackTrace::GetStackTrace();
+							Printer::Print(str);
+							Printer::Print("Oh no!");
+							exit(1);
+//							continue;
 						}
 						Store<data_ptr_t>(new_heap_ptr + diff, string_ptr_location);
 					}
@@ -439,7 +446,7 @@ void TupleDataAllocator::RecomputeHeapPointers(Vector &old_heap_ptrs, const Sele
 			const auto &struct_layout = layout.GetStructLayout(col_idx);
 			if (!struct_layout.AllConstant()) {
 				RecomputeHeapPointers(old_heap_ptrs, old_heap_sel, row_locations, new_heap_ptrs, offset, count,
-				                      struct_layout, base_col_offset + col_offset);
+				                      struct_layout, base_col_offset + col_offset, nullptr);
 			}
 			break;
 		}

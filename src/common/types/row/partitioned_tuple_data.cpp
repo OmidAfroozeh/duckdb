@@ -75,7 +75,7 @@ void PartitionedTupleData::AppendUnified(PartitionedTupleDataAppendState &state,
 		}
 
 		// Build the buffer space
-		BuildBufferSpace(state);
+		BuildBufferSpace(state, context);
 
 		// Now scatter everything in one go
 		partitions[0]->Scatter(state.chunk_state, input, state.partition_sel, actual_append_count, context);
@@ -102,7 +102,7 @@ void PartitionedTupleData::Append(PartitionedTupleDataAppendState &state, TupleD
 		state.chunk_state.heap_sizes.Reference(input.heap_sizes);
 
 		const auto size_before = partition.SizeInBytes();
-		partition.Build(partition_pin_state, state.chunk_state, 0, append_count);
+		partition.Build(partition_pin_state, state.chunk_state, 0, append_count, context);
 		data_size += partition.SizeInBytes() - size_before;
 
 		partition.CopyRows(state.chunk_state, input, *FlatVector::IncrementalSelectionVector(), append_count, context);
@@ -110,7 +110,7 @@ void PartitionedTupleData::Append(PartitionedTupleDataAppendState &state, TupleD
 		// Build the buffer space
 		state.chunk_state.heap_sizes.Slice(input.heap_sizes, state.partition_sel, append_count);
 		state.chunk_state.heap_sizes.Flatten(append_count);
-		BuildBufferSpace(state);
+		BuildBufferSpace(state, context);
 
 		// Copy the rows
 		partitions[0]->CopyRows(state.chunk_state, input, state.partition_sel, append_count, context);
@@ -185,16 +185,16 @@ void PartitionedTupleData::BuildPartitionSel(PartitionedTupleDataAppendState &st
 	}
 }
 
-void PartitionedTupleData::BuildBufferSpace(PartitionedTupleDataAppendState &state) {
+void PartitionedTupleData::BuildBufferSpace(PartitionedTupleDataAppendState &state, optional_ptr<ClientContext> context) {
 	if (UseFixedSizeMap()) {
-		BuildBufferSpace<true>(state);
+		BuildBufferSpace<true>(state, context);
 	} else {
-		BuildBufferSpace<false>(state);
+		BuildBufferSpace<false>(state, context);
 	}
 }
 
 template <bool fixed>
-void PartitionedTupleData::BuildBufferSpace(PartitionedTupleDataAppendState &state) {
+void PartitionedTupleData::BuildBufferSpace(PartitionedTupleDataAppendState &state, optional_ptr<ClientContext> context) {
 	using GETTER = TemplatedMapGetter<list_entry_t, fixed>;
 	const auto &partition_entries = state.GetMap<fixed>();
 	for (auto it = partition_entries.begin(); it != partition_entries.end(); ++it) {
@@ -211,7 +211,7 @@ void PartitionedTupleData::BuildBufferSpace(PartitionedTupleDataAppendState &sta
 
 		// Build out the buffer space for this partition
 		const auto size_before = partition.SizeInBytes();
-		partition.Build(partition_pin_state, state.chunk_state, partition_offset, partition_length);
+		partition.Build(partition_pin_state, state.chunk_state, partition_offset, partition_length, context);
 		data_size += partition.SizeInBytes() - size_before;
 	}
 }
@@ -270,7 +270,7 @@ void PartitionedTupleData::Repartition(ClientContext &context, PartitionedTupleD
 		auto &partition = *partitions[partition_idx];
 
 		if (partition.Count() > 0) {
-			TupleDataChunkIterator iterator(partition, TupleDataPinProperties::DESTROY_AFTER_DONE, true);
+			TupleDataChunkIterator iterator(partition, TupleDataPinProperties::DESTROY_AFTER_DONE, true, context);
 			auto &chunk_state = iterator.GetChunkState();
 			do {
 				// Check for interrupts with each chunk

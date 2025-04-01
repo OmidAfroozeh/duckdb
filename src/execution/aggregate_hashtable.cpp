@@ -163,7 +163,7 @@ void GroupedAggregateHashTable::Destroy() {
 		if (data_collection->Count() == 0) {
 			continue;
 		}
-		TupleDataChunkIterator iterator(*data_collection, TupleDataPinProperties::DESTROY_AFTER_DONE, false);
+		TupleDataChunkIterator iterator(*data_collection, TupleDataPinProperties::DESTROY_AFTER_DONE, false, context);
 		auto &row_locations = iterator.GetChunkState().row_locations;
 		do {
 			RowOperations::DestroyStates(row_state, layout, row_locations, iterator.GetCurrentChunkCount());
@@ -273,7 +273,7 @@ void GroupedAggregateHashTable::ReinsertTuples(PartitionedTupleData &data) {
 		if (data_collection->Count() == 0) {
 			continue;
 		}
-		TupleDataChunkIterator iterator(*data_collection, TupleDataPinProperties::ALREADY_PINNED, false);
+		TupleDataChunkIterator iterator(*data_collection, TupleDataPinProperties::ALREADY_PINNED, false, context);
 		const auto row_locations = iterator.GetRowLocations();
 		do {
 			for (idx_t i = 0; i < iterator.GetCurrentChunkCount(); i++) {

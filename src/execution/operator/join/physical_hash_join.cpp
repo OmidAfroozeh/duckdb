@@ -698,7 +698,7 @@ void JoinFilterPushdownInfo::PushInFilter(const JoinFilterPushdownFilter &info, 
 
 	Vector tuples_addresses(LogicalType::POINTER, ht.Count()); // allocate space for all the tuples
 
-	JoinHTScanState join_ht_state(data_collection, 0, data_collection.ChunkCount(),
+	JoinHTScanState join_ht_state(data_collection, 0, data_collection.ChunkCount(), ht.context,
 	                              TupleDataPinProperties::KEEP_EVERYTHING_PINNED);
 
 	// Go through all the blocks and fill the keys addresses
@@ -1384,7 +1384,7 @@ void HashJoinLocalSourceState::ExternalScanHT(HashJoinGlobalSinkState &sink, Has
 
 	if (!full_outer_scan_state) {
 		full_outer_scan_state = make_uniq<JoinHTScanState>(sink.hash_table->GetDataCollection(),
-		                                                   full_outer_chunk_idx_from, full_outer_chunk_idx_to);
+		                                                   full_outer_chunk_idx_from, full_outer_chunk_idx_to, sink.context);
 	}
 	sink.hash_table->ScanFullOuter(*full_outer_scan_state, addresses, chunk);
 

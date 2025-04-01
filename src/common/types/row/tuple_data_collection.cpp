@@ -226,7 +226,7 @@ void TupleDataCollection::AppendUnified(TupleDataPinState &pin_state, TupleDataC
 		TupleDataCollection::ComputeHeapSizes(chunk_state, new_chunk, append_sel, actual_append_count, context);
 	}
 
-	Build(pin_state, chunk_state, 0, actual_append_count);
+	Build(pin_state, chunk_state, 0, actual_append_count, context);
 	Scatter(chunk_state, new_chunk, append_sel, actual_append_count, context);
 }
 
@@ -295,10 +295,10 @@ void TupleDataCollection::GetVectorData(const TupleDataChunkState &chunk_state, 
 }
 
 void TupleDataCollection::Build(TupleDataPinState &pin_state, TupleDataChunkState &chunk_state,
-                                const idx_t append_offset, const idx_t append_count) {
+                                const idx_t append_offset, const idx_t append_count, optional_ptr<ClientContext> context) {
 	auto &segment = segments.back();
 	const auto size_before = segment.SizeInBytes();
-	segment.allocator->Build(segment, pin_state, chunk_state, append_offset, append_count);
+	segment.allocator->Build(segment, pin_state, chunk_state, append_offset, append_count, context);
 	data_size += segment.SizeInBytes() - size_before;
 	count += append_count;
 	Verify();

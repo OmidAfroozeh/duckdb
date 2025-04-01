@@ -177,9 +177,9 @@ protected:
 	static void BuildPartitionSel(PartitionedTupleDataAppendState &state, const SelectionVector &append_sel,
 	                              const idx_t append_count);
 	//! Builds out the buffer space in the partitions
-	void BuildBufferSpace(PartitionedTupleDataAppendState &state);
+	void BuildBufferSpace(PartitionedTupleDataAppendState &state, optional_ptr<ClientContext> context);
 	template <bool fixed>
-	void BuildBufferSpace(PartitionedTupleDataAppendState &state);
+	void BuildBufferSpace(PartitionedTupleDataAppendState &state, optional_ptr<ClientContext> context);
 	//! Create a collection for a specific a partition
 	unique_ptr<TupleDataCollection> CreatePartitionCollection(idx_t partition_index) const {
 		if (allocators) {

@@ -146,7 +146,7 @@ bool PerfectHashJoinExecutor::FullScanHashTable(LogicalType &key_type) {
 
 	idx_t key_count = 0;
 	if (data_collection.ChunkCount() > 0) {
-		JoinHTScanState join_ht_state(data_collection, 0, data_collection.ChunkCount(),
+		JoinHTScanState join_ht_state(data_collection, 0, data_collection.ChunkCount(), ht.context,
 		                              TupleDataPinProperties::KEEP_EVERYTHING_PINNED);
 
 		// Go through all the blocks and fill the keys addresses

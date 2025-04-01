@@ -129,7 +129,7 @@ public:
 
 	//! Builds out the buffer space for the specified Chunk state
 	void Build(TupleDataPinState &pin_state, TupleDataChunkState &chunk_state, const idx_t append_offset,
-	           const idx_t append_count);
+	           const idx_t append_count, optional_ptr<ClientContext> context);
 	//! Scatters the given DataChunk to the rows in the specified Chunk state
 	void Scatter(TupleDataChunkState &chunk_state, const DataChunk &new_chunk, const SelectionVector &append_sel,
 	             const idx_t append_count, optional_ptr<ClientContext> context = nullptr) const;

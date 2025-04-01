@@ -29,9 +29,9 @@ struct ClientConfig;
 
 struct JoinHTScanState {
 public:
-	JoinHTScanState(TupleDataCollection &collection, idx_t chunk_idx_from, idx_t chunk_idx_to,
+	JoinHTScanState(TupleDataCollection &collection, idx_t chunk_idx_from, idx_t chunk_idx_to, optional_ptr<ClientContext> context,
 	                TupleDataPinProperties properties = TupleDataPinProperties::ALREADY_PINNED)
-	    : iterator(collection, properties, chunk_idx_from, chunk_idx_to, false), offset_in_chunk(0) {
+	    : iterator(collection, properties, chunk_idx_from, chunk_idx_to, false, context), offset_in_chunk(0) {
 	}
 
 	TupleDataChunkIterator iterator;
