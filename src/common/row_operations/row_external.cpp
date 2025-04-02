@@ -39,6 +39,7 @@ void RowOperations::SwizzleColumns(const RowLayout &layout, const data_ptr_t bas
 				for (idx_t i = 0; i < next; i++) {
 					if (Load<uint32_t>(col_ptr) > string_t::INLINE_LENGTH) {
 						auto str = string_t(Load<char *>(string_ptr), Load<uint32_t>(col_ptr));
+//						str.Verify();
 						if ((UnifiedStringsDictionary::USSR_MASK & cast_pointer_to_uint64(str.GetPointer())) !=
 						    context->GetCurrentQueryUssr().USSR_prefix) {
 							// Overwrite the string pointer with the within-row offset (if not inlined)
@@ -148,13 +149,26 @@ void RowOperations::UnswizzlePointers(const RowLayout &layout, const data_ptr_t 
 				data_ptr_t string_ptr = col_ptr + string_t::HEADER_SIZE;
 				for (idx_t i = 0; i < next; i++) {
 					if (Load<uint32_t>(col_ptr) > string_t::INLINE_LENGTH) {
-						auto str = string_t(Load<char *>(string_ptr), Load<uint32_t>(col_ptr));
-						if ((UnifiedStringsDictionary::USSR_MASK & cast_pointer_to_uint64(str.GetPointer())) !=
+						// cannot use string_t here! could be null
+						auto str = reinterpret_cast<string_t *>(col_ptr);
+//						Printer::Print(to_string(reinterpret_cast<uint64_t>(str.GetPointer())));
+//						Printer::Print(to_string(reinterpret_cast<uint64_t>(string_ptr)));
+//						Printer::Print("-----");
+//						str.Verify();
+						if ((UnifiedStringsDictionary::USSR_MASK & reinterpret_cast<uint64_t>(str->GetPointer())) !=
 						    context->GetCurrentQueryUssr().USSR_prefix) {
 							// Overwrite the string offset with the pointer (if not inlined)
 							Store<data_ptr_t>(heap_row_ptrs[i] + Load<idx_t>(string_ptr), string_ptr);
 						} else {
-							//							Printer::Print("GOTCHAAAAA");
+//							Printer::Print(to_string(reinterpret_cast<uint64_t>(str.GetPointer())));
+//							Printer::Print(to_string(reinterpret_cast<uint64_t>(string_ptr) + reinterpret_cast<uint64_t>(heap_row_ptrs[i]) ));
+//							Printer::Print(to_string(reinterpret_cast<uint64_t>(string_ptr + 4)));
+//
+//							Printer::Print(to_string(context->GetCurrentQueryUssr().USSR_prefix));
+//							Printer::Print(str.GetString());
+//
+//							Printer::Print("-----");
+//														Printer::Print("GOTCHAAAAA");
 						}
 						VerifyUnswizzledString(layout, col_idx, row_ptr + i * row_width);
 					}
