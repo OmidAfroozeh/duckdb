@@ -133,7 +133,7 @@ void TupleDataAllocator::Build(TupleDataSegment &segment, TupleDataPinState &pin
 		chunk_parts.emplace_back(segment.chunks[indices.first].parts[indices.second]);
 	}
 	if(!context){
-		Printer::Print("no context at build");
+//		Printer::Print("no context at build");
 	}
 	InitializeChunkStateInternal(pin_state, chunk_state, append_offset, false, true, false, chunk_parts, context);
 
@@ -244,7 +244,7 @@ void TupleDataAllocator::InitializeChunkState(TupleDataSegment &segment, TupleDa
 		parts.emplace_back(part);
 	}
     if(!context){
-		Printer::Print("No context at intiializechunkstate");
+//		Printer::Print("No context at intiializechunkstate");
 	}
 	InitializeChunkStateInternal(pin_state, chunk_state, 0, true, init_heap, init_heap, parts, context);
 }

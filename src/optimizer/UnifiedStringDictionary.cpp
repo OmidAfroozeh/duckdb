@@ -99,7 +99,7 @@ UnifiedStringsDictionary::~UnifiedStringsDictionary() {
 	this->buffer.reset();
 //	this->LinearProbingHT.reset();
 #ifdef DEBUG
-	this->LinearProbingHT->getStatistics();
+//	this->LinearProbingHT->getStatistics();
 #endif
 }
 
