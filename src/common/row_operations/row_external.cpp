@@ -150,12 +150,17 @@ void RowOperations::UnswizzlePointers(const RowLayout &layout, const data_ptr_t 
 				for (idx_t i = 0; i < next; i++) {
 					if (Load<uint32_t>(col_ptr) > string_t::INLINE_LENGTH) {
 						// cannot use string_t here! could be null
-						auto str = reinterpret_cast<string_t *>(col_ptr);
+						auto str = Load<string_t>(col_ptr);
 //						Printer::Print(to_string(reinterpret_cast<uint64_t>(str.GetPointer())));
 //						Printer::Print(to_string(reinterpret_cast<uint64_t>(string_ptr)));
 //						Printer::Print("-----");
 //						str.Verify();
-						if ((UnifiedStringsDictionary::USSR_MASK & reinterpret_cast<uint64_t>(str->GetPointer())) !=
+						if(str.IsInlined()){
+							Store<data_ptr_t>(heap_row_ptrs[i] + Load<idx_t>(string_ptr), string_ptr);
+						}else{
+
+
+						if ((UnifiedStringsDictionary::USSR_MASK & reinterpret_cast<uint64_t>(str.GetDataUnsafe())) !=
 						    context->GetCurrentQueryUssr().USSR_prefix) {
 							// Overwrite the string offset with the pointer (if not inlined)
 							Store<data_ptr_t>(heap_row_ptrs[i] + Load<idx_t>(string_ptr), string_ptr);
@@ -169,6 +174,7 @@ void RowOperations::UnswizzlePointers(const RowLayout &layout, const data_ptr_t 
 //
 //							Printer::Print("-----");
 //														Printer::Print("GOTCHAAAAA");
+						}
 						}
 						VerifyUnswizzledString(layout, col_idx, row_ptr + i * row_width);
 					}
