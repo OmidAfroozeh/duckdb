@@ -96,7 +96,8 @@ private:
 	//! Internal function for InitializeChunkState
 	void InitializeChunkStateInternal(TupleDataPinState &pin_state, TupleDataChunkState &chunk_state, idx_t offset,
 	                                  bool recompute, bool init_heap_pointers, bool init_heap_sizes,
-	                                  unsafe_vector<reference<TupleDataChunkPart>> &parts, optional_ptr<ClientContext> context);
+	                                  unsafe_vector<reference<TupleDataChunkPart>> &parts,
+	                                  optional_ptr<ClientContext> context);
 	//! Internal function for ReleaseOrStoreHandles
 	static void ReleaseOrStoreHandlesInternal(TupleDataSegment &segment,
 	                                          unsafe_vector<BufferHandle> &pinned_row_handles,

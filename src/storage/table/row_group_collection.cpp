@@ -15,6 +15,7 @@
 #include "duckdb/storage/table/row_group_segment_tree.hpp"
 #include "duckdb/storage/table/scan_state.hpp"
 #include "duckdb/storage/table_storage_info.hpp"
+#include "duckdb/transaction/duck_transaction.hpp"
 
 namespace duckdb {
 
@@ -257,7 +258,7 @@ bool RowGroupCollection::Scan(DuckTransaction &transaction, const vector<Storage
 
 	while (true) {
 		chunk.Reset();
-		state.local_state.Scan(transaction, chunk, transaction.context.lock());
+		state.local_state.Scan(transaction, chunk, transaction.context.lock().get());
 		if (chunk.size() == 0) {
 			return true;
 		}

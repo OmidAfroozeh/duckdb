@@ -128,8 +128,7 @@ public:
 	                    SelectionVector &sel, idx_t &count, const TableFilter &filter, TableFilterState &filter_state,
 	                    optional_ptr<ClientContext> context);
 	virtual void Select(TransactionData transaction, idx_t vector_index, ColumnScanState &state, Vector &result,
-	                    SelectionVector &sel, idx_t count,
-	                    optional_ptr<ClientContext> context);
+	                    SelectionVector &sel, idx_t count, optional_ptr<ClientContext> context);
 	virtual void SelectCommitted(idx_t vector_index, ColumnScanState &state, Vector &result, SelectionVector &sel,
 	                             idx_t count, bool allow_updates);
 

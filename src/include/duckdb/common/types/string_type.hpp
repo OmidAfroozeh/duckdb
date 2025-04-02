@@ -146,7 +146,6 @@ public:
 	void VerifyCharacters() const;
 	void VerifyNull() const;
 
-
 	struct StringComparisonOperators {
 		static uint64_t eq_check_counter;
 		static inline bool Equals(const string_t &a, const string_t &b) {

@@ -40,8 +40,7 @@ public:
 	            SelectionVector &sel, idx_t &count, const TableFilter &filter, TableFilterState &filter_state,
 	            optional_ptr<ClientContext> context) override;
 	void Select(TransactionData transaction, idx_t vector_index, ColumnScanState &state, Vector &result,
-	            SelectionVector &sel, idx_t sel_count,
-	            optional_ptr<ClientContext> context) override;
+	            SelectionVector &sel, idx_t sel_count, optional_ptr<ClientContext> context) override;
 
 	void InitializeAppend(ColumnAppendState &state) override;
 	void AppendData(BaseStatistics &stats, ColumnAppendState &state, UnifiedVectorFormat &vdata, idx_t count) override;

@@ -183,7 +183,8 @@ RowDataCollectionScanner::RowDataCollectionScanner(RowDataCollection &rows_p, Ro
 	ValidateUnscannedBlock();
 }
 
-void RowDataCollectionScanner::SwizzleBlockInternal(RowDataBlock &data_block, RowDataBlock &heap_block, optional_ptr<ClientContext> context) {
+void RowDataCollectionScanner::SwizzleBlockInternal(RowDataBlock &data_block, RowDataBlock &heap_block,
+                                                    optional_ptr<ClientContext> context) {
 	// Pin the data block and swizzle the pointers within the rows
 	D_ASSERT(!data_block.block->IsSwizzled());
 	auto data_handle = rows.buffer_manager.Pin(data_block.block);

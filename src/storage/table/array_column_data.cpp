@@ -96,8 +96,7 @@ idx_t ArrayColumnData::ScanCount(ColumnScanState &state, Vector &result, idx_t c
 }
 
 void ArrayColumnData::Select(TransactionData transaction, idx_t vector_index, ColumnScanState &state, Vector &result,
-                             SelectionVector &sel, idx_t sel_count,
-                             optional_ptr<ClientContext> context) {
+                             SelectionVector &sel, idx_t sel_count, optional_ptr<ClientContext> context) {
 	bool is_supported = !child_column->type.IsNested();
 	if (!is_supported) {
 		ColumnData::Select(transaction, vector_index, state, result, sel, sel_count, context);

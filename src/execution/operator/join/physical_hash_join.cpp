@@ -1383,8 +1383,8 @@ void HashJoinLocalSourceState::ExternalScanHT(HashJoinGlobalSinkState &sink, Has
 	D_ASSERT(local_stage == HashJoinSourceStage::SCAN_HT);
 
 	if (!full_outer_scan_state) {
-		full_outer_scan_state = make_uniq<JoinHTScanState>(sink.hash_table->GetDataCollection(),
-		                                                   full_outer_chunk_idx_from, full_outer_chunk_idx_to, sink.context);
+		full_outer_scan_state = make_uniq<JoinHTScanState>(
+		    sink.hash_table->GetDataCollection(), full_outer_chunk_idx_from, full_outer_chunk_idx_to, sink.context);
 	}
 	sink.hash_table->ScanFullOuter(*full_outer_scan_state, addresses, chunk);
 

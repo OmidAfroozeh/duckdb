@@ -56,7 +56,9 @@ static void ComputeStringEntrySizes(const UnifiedVectorFormat &col, idx_t entry_
 		auto idx = sel.get_index(i);
 		auto col_idx = col.sel->get_index(idx) + offset;
 		const auto &str = data[col_idx];
-		if (col.validity.RowIsValid(col_idx) && !str.IsInlined() && ((0xFFFFFFFFFFF80000 & cast_pointer_to_uint64(str.GetPointer())) != context->GetCurrentQueryUssr().USSR_prefix)) {
+		if (col.validity.RowIsValid(col_idx) && !str.IsInlined() &&
+		    ((0xFFFFFFFFFFF80000 & cast_pointer_to_uint64(str.GetPointer())) !=
+		     context->GetCurrentQueryUssr().USSR_prefix)) {
 			entry_sizes[i] += str.GetSize();
 		}
 	}
@@ -80,7 +82,8 @@ static void ScatterStringVector(UnifiedVectorFormat &col, Vector &rows, data_ptr
 			Store<string_t>(null, row + col_offset);
 		} else if (string_data[col_idx].IsInlined()) {
 			Store<string_t>(string_data[col_idx], row + col_offset);
-		} else if ((0xFFFFFFFFFFF80000 & cast_pointer_to_uint64(string_data[col_idx].GetPointer())) == context->GetCurrentQueryUssr().USSR_prefix){
+		} else if ((0xFFFFFFFFFFF80000 & cast_pointer_to_uint64(string_data[col_idx].GetPointer())) ==
+		           context->GetCurrentQueryUssr().USSR_prefix) {
 			Store<string_t>(string_data[col_idx], row + col_offset);
 		} else {
 			const auto &str = string_data[col_idx];
@@ -114,7 +117,8 @@ static void ScatterNestedVector(Vector &vec, UnifiedVectorFormat &col, Vector &r
 }
 
 void RowOperations::Scatter(DataChunk &columns, UnifiedVectorFormat col_data[], const RowLayout &layout, Vector &rows,
-                            RowDataCollection &string_heap, const SelectionVector &sel, idx_t count, optional_ptr<ClientContext> context) {
+                            RowDataCollection &string_heap, const SelectionVector &sel, idx_t count,
+                            optional_ptr<ClientContext> context) {
 	if (count == 0) {
 		return;
 	}

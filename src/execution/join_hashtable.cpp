@@ -1369,7 +1369,7 @@ void JoinHashTable::ScanFullOuter(JoinHTScanState &state, Vector &addresses, Dat
 	}
 }
 
-idx_t JoinHashTable::FillWithHTOffsets(optional_ptr<ClientContext> context,JoinHTScanState &state, Vector &addresses) {
+idx_t JoinHashTable::FillWithHTOffsets(optional_ptr<ClientContext> context, JoinHTScanState &state, Vector &addresses) {
 	// iterate over HT
 	auto key_locations = FlatVector::GetData<data_ptr_t>(addresses);
 	idx_t key_count = 0;

@@ -72,7 +72,6 @@ class ClientContext : public enable_shared_from_this<ClientContext> {
 	friend class ConnectionManager;
 
 public:
-
 	static void segfault_handler(int t);
 
 	DUCKDB_API explicit ClientContext(shared_ptr<DatabaseInstance> db);

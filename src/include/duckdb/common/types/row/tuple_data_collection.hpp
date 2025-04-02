@@ -174,7 +174,8 @@ public:
 	//! Scans a DataChunk from the TupleDataCollection
 	bool Scan(TupleDataScanState &state, DataChunk &result, optional_ptr<ClientContext> context);
 	//! Scans a DataChunk from the TupleDataCollection
-	bool Scan(TupleDataParallelScanState &gstate, TupleDataLocalScanState &lstate, DataChunk &result, optional_ptr<ClientContext> context);
+	bool Scan(TupleDataParallelScanState &gstate, TupleDataLocalScanState &lstate, DataChunk &result,
+	          optional_ptr<ClientContext> context);
 	//! Whether the last scan has been completed on this TupleDataCollection
 	bool ScanComplete(const TupleDataScanState &state) const;
 

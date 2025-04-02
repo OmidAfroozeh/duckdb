@@ -295,7 +295,8 @@ void TupleDataCollection::GetVectorData(const TupleDataChunkState &chunk_state, 
 }
 
 void TupleDataCollection::Build(TupleDataPinState &pin_state, TupleDataChunkState &chunk_state,
-                                const idx_t append_offset, const idx_t append_count, optional_ptr<ClientContext> context) {
+                                const idx_t append_offset, const idx_t append_count,
+                                optional_ptr<ClientContext> context) {
 	auto &segment = segments.back();
 	const auto size_before = segment.SizeInBytes();
 	segment.allocator->Build(segment, pin_state, chunk_state, append_offset, append_count, context);
@@ -480,11 +481,13 @@ bool TupleDataCollection::Scan(TupleDataScanState &state, DataChunk &result, opt
 	if (segment_index_before != DConstants::INVALID_INDEX && segment_index != segment_index_before) {
 		FinalizePinState(state.pin_state, segments[segment_index_before]);
 	}
-	ScanAtIndex(state.pin_state, state.chunk_state, state.chunk_state.column_ids, segment_index, chunk_index, result, context);
+	ScanAtIndex(state.pin_state, state.chunk_state, state.chunk_state.column_ids, segment_index, chunk_index, result,
+	            context);
 	return true;
 }
 
-bool TupleDataCollection::Scan(TupleDataParallelScanState &gstate, TupleDataLocalScanState &lstate, DataChunk &result, optional_ptr<ClientContext> context) {
+bool TupleDataCollection::Scan(TupleDataParallelScanState &gstate, TupleDataLocalScanState &lstate, DataChunk &result,
+                               optional_ptr<ClientContext> context) {
 	lstate.pin_state.properties = gstate.scan_state.pin_state.properties;
 
 	const auto segment_index_before = lstate.segment_index;

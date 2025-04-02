@@ -8,13 +8,12 @@
 #include "duckdb/common/row_operations/row_operations.hpp"
 #include "duckdb/common/types/row/row_layout.hpp"
 
-
-
 namespace duckdb {
 
 using ValidityBytes = RowLayout::ValidityBytes;
 
-void RowOperations::SwizzleColumns(const RowLayout &layout, const data_ptr_t base_row_ptr, const idx_t count, optional_ptr<ClientContext> context) {
+void RowOperations::SwizzleColumns(const RowLayout &layout, const data_ptr_t base_row_ptr, const idx_t count,
+                                   optional_ptr<ClientContext> context) {
 
 	const idx_t row_width = layout.GetRowWidth();
 	data_ptr_t heap_row_ptrs[STANDARD_VECTOR_SIZE];
@@ -45,8 +44,8 @@ void RowOperations::SwizzleColumns(const RowLayout &layout, const data_ptr_t bas
 							// Overwrite the string pointer with the within-row offset (if not inlined)
 							Store<idx_t>(UnsafeNumericCast<idx_t>(Load<data_ptr_t>(string_ptr) - heap_row_ptrs[i]),
 							             string_ptr);
-						}else{
-//							Printer::Print("GOTCHAAAAA");
+						} else {
+							//							Printer::Print("GOTCHAAAAA");
 						}
 					}
 					col_ptr += row_width;
@@ -123,7 +122,8 @@ static inline void VerifyUnswizzledString(const RowLayout &layout, const idx_t &
 }
 
 void RowOperations::UnswizzlePointers(const RowLayout &layout, const data_ptr_t base_row_ptr,
-                                      const data_ptr_t base_heap_ptr, const idx_t count, optional_ptr<ClientContext> context) {
+                                      const data_ptr_t base_heap_ptr, const idx_t count,
+                                      optional_ptr<ClientContext> context) {
 	const idx_t row_width = layout.GetRowWidth();
 	data_ptr_t heap_row_ptrs[STANDARD_VECTOR_SIZE];
 	idx_t done = 0;
@@ -153,8 +153,8 @@ void RowOperations::UnswizzlePointers(const RowLayout &layout, const data_ptr_t 
 						    context->GetCurrentQueryUssr().USSR_prefix) {
 							// Overwrite the string offset with the pointer (if not inlined)
 							Store<data_ptr_t>(heap_row_ptrs[i] + Load<idx_t>(string_ptr), string_ptr);
-						} else{
-//							Printer::Print("GOTCHAAAAA");
+						} else {
+							//							Printer::Print("GOTCHAAAAA");
 						}
 						VerifyUnswizzledString(layout, col_idx, row_ptr + i * row_width);
 					}

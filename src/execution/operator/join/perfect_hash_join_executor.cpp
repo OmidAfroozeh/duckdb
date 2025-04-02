@@ -150,7 +150,7 @@ bool PerfectHashJoinExecutor::FullScanHashTable(LogicalType &key_type) {
 		                              TupleDataPinProperties::KEEP_EVERYTHING_PINNED);
 
 		// Go through all the blocks and fill the keys addresses
-		key_count = ht.FillWithHTOffsets(ht.context ,join_ht_state, tuples_addresses);
+		key_count = ht.FillWithHTOffsets(ht.context, join_ht_state, tuples_addresses);
 	}
 
 	// Scan the build keys in the hash table

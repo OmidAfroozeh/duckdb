@@ -185,7 +185,8 @@ void PartitionedTupleData::BuildPartitionSel(PartitionedTupleDataAppendState &st
 	}
 }
 
-void PartitionedTupleData::BuildBufferSpace(PartitionedTupleDataAppendState &state, optional_ptr<ClientContext> context) {
+void PartitionedTupleData::BuildBufferSpace(PartitionedTupleDataAppendState &state,
+                                            optional_ptr<ClientContext> context) {
 	if (UseFixedSizeMap()) {
 		BuildBufferSpace<true>(state, context);
 	} else {
@@ -194,7 +195,8 @@ void PartitionedTupleData::BuildBufferSpace(PartitionedTupleDataAppendState &sta
 }
 
 template <bool fixed>
-void PartitionedTupleData::BuildBufferSpace(PartitionedTupleDataAppendState &state, optional_ptr<ClientContext> context) {
+void PartitionedTupleData::BuildBufferSpace(PartitionedTupleDataAppendState &state,
+                                            optional_ptr<ClientContext> context) {
 	using GETTER = TemplatedMapGetter<list_entry_t, fixed>;
 	const auto &partition_entries = state.GetMap<fixed>();
 	for (auto it = partition_entries.begin(); it != partition_entries.end(); ++it) {

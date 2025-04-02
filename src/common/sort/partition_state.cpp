@@ -327,7 +327,8 @@ void PartitionLocalSinkState::Sink(DataChunk &input_chunk) {
 		const auto prev_rows_blocks = rows->blocks.size();
 		auto handles = rows->Build(row_count, key_locations, nullptr, row_sel);
 		auto input_data = input_chunk.ToUnifiedFormat();
-		RowOperations::Scatter(input_chunk, input_data.get(), payload_layout, addresses, *strings, *row_sel, row_count, gstate.context);
+		RowOperations::Scatter(input_chunk, input_data.get(), payload_layout, addresses, *strings, *row_sel, row_count,
+		                       gstate.context);
 		// Mark that row blocks contain pointers (heap blocks are pinned)
 		if (!payload_layout.AllConstant()) {
 			D_ASSERT(strings->keep_pinned);

@@ -365,7 +365,8 @@ BufferHandle PhysicalRangeJoin::SliceSortedPayload(DataChunk &payload, GlobalSor
 	auto sel = FlatVector::IncrementalSelectionVector();
 	for (idx_t col_no = 0; col_no < sorted_data.layout.ColumnCount(); col_no++) {
 		auto &col = payload.data[left_cols + col_no];
-		RowOperations::Gather(addresses, *sel, col, *sel, addr_count, sorted_data.layout, col_no,  state.context, 0,heap_ptr);
+		RowOperations::Gather(addresses, *sel, col, *sel, addr_count, sorted_data.layout, col_no, state.context, 0,
+		                      heap_ptr);
 		col.Slice(gsel, result_count);
 	}
 

@@ -83,7 +83,8 @@ void TupleDataAllocator::SetPartitionIndex(const idx_t index) {
 }
 
 void TupleDataAllocator::Build(TupleDataSegment &segment, TupleDataPinState &pin_state,
-                               TupleDataChunkState &chunk_state, const idx_t append_offset, const idx_t append_count, optional_ptr<ClientContext> context) {
+                               TupleDataChunkState &chunk_state, const idx_t append_offset, const idx_t append_count,
+                               optional_ptr<ClientContext> context) {
 	D_ASSERT(this == segment.allocator.get());
 	auto &chunks = segment.chunks;
 	if (!chunks.empty()) {
@@ -132,8 +133,8 @@ void TupleDataAllocator::Build(TupleDataSegment &segment, TupleDataPinState &pin
 	for (auto &indices : chunk_part_indices) {
 		chunk_parts.emplace_back(segment.chunks[indices.first].parts[indices.second]);
 	}
-	if(!context){
-//		Printer::Print("no context at build");
+	if (!context) {
+		//		Printer::Print("no context at build");
 	}
 	InitializeChunkStateInternal(pin_state, chunk_state, append_offset, false, true, false, chunk_parts, context);
 
@@ -227,7 +228,8 @@ TupleDataChunkPart TupleDataAllocator::BuildChunkPart(TupleDataPinState &pin_sta
 }
 
 void TupleDataAllocator::InitializeChunkState(TupleDataSegment &segment, TupleDataPinState &pin_state,
-                                              TupleDataChunkState &chunk_state, idx_t chunk_idx, bool init_heap, optional_ptr<ClientContext> context) {
+                                              TupleDataChunkState &chunk_state, idx_t chunk_idx, bool init_heap,
+                                              optional_ptr<ClientContext> context) {
 	D_ASSERT(this == segment.allocator.get());
 	D_ASSERT(chunk_idx < segment.ChunkCount());
 	auto &chunk = segment.chunks[chunk_idx];
@@ -243,8 +245,8 @@ void TupleDataAllocator::InitializeChunkState(TupleDataSegment &segment, TupleDa
 	for (auto &part : chunk.parts) {
 		parts.emplace_back(part);
 	}
-    if(!context){
-//		Printer::Print("No context at intiializechunkstate");
+	if (!context) {
+		//		Printer::Print("No context at intiializechunkstate");
 	}
 	InitializeChunkStateInternal(pin_state, chunk_state, 0, true, init_heap, init_heap, parts, context);
 }
@@ -271,7 +273,8 @@ static inline void InitializeHeapSizes(const data_ptr_t row_locations[], idx_t h
 void TupleDataAllocator::InitializeChunkStateInternal(TupleDataPinState &pin_state, TupleDataChunkState &chunk_state,
                                                       idx_t offset, bool recompute, bool init_heap_pointers,
                                                       bool init_heap_sizes,
-                                                      unsafe_vector<reference<TupleDataChunkPart>> &parts, optional_ptr<ClientContext> context) {
+                                                      unsafe_vector<reference<TupleDataChunkPart>> &parts,
+                                                      optional_ptr<ClientContext> context) {
 	auto row_locations = FlatVector::GetData<data_ptr_t>(chunk_state.row_locations);
 	auto heap_sizes = FlatVector::GetData<idx_t>(chunk_state.heap_sizes);
 	auto heap_locations = FlatVector::GetData<data_ptr_t>(chunk_state.heap_locations);
@@ -402,22 +405,22 @@ void TupleDataAllocator::RecomputeHeapPointers(Vector &old_heap_ptrs, const Sele
 							const auto diff = string_ptr - old_heap_ptr;
 							D_ASSERT(diff >= 0);
 							Store<data_ptr_t>(new_heap_ptr + diff, string_ptr_location);
-						}else{
-//							Printer::Print("GOTCHAAAAA2.0");
+						} else {
+							//							Printer::Print("GOTCHAAAAA2.0");
 						}
 					} else {
-//						auto str = StackTrace::GetStackTrace();
-//						Printer::Print(str);
-//						Printer::Print("NO CONTEXT BE CAREFUL!!!!!");
+						//						auto str = StackTrace::GetStackTrace();
+						//						Printer::Print(str);
+						//						Printer::Print("NO CONTEXT BE CAREFUL!!!!!");
 						const auto string_ptr = Load<data_ptr_t>(string_ptr_location);
 						const auto diff = string_ptr - old_heap_ptr;
 						D_ASSERT(diff >= 0);
-						if(diff < 0){
+						if (diff < 0) {
 							auto str = StackTrace::GetStackTrace();
 							Printer::Print(str);
 							Printer::Print("Oh no!");
 							exit(1);
-//							continue;
+							//							continue;
 						}
 						Store<data_ptr_t>(new_heap_ptr + diff, string_ptr_location);
 					}
