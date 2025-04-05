@@ -178,11 +178,11 @@ void UnifiedStringsDictionary::getStatistics() {
 
 	Printer::Print(statsStr);
 
-	Printer::PrintF("faster hash path triggered: %d, equal pointers for strings: %d",
-	                string_t::StringComparisonOperators::fast_hash_counter,
-	                string_t::StringComparisonOperators::eq_check_counter);
-	string_t::StringComparisonOperators::eq_check_counter = 0;
-	string_t::StringComparisonOperators::fast_hash_counter = 0;
+//	Printer::PrintF("faster hash path triggered: %d, equal pointers for strings: %d",
+//	                string_t::StringComparisonOperators::fast_hash_counter,
+//	                string_t::StringComparisonOperators::eq_check_counter);
+//	string_t::StringComparisonOperators::eq_check_counter = 0;
+//	string_t::StringComparisonOperators::fast_hash_counter = 0;
 }
 
 } // namespace duckdb
