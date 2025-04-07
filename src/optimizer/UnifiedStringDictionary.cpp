@@ -108,8 +108,6 @@ string_t UnifiedStringsDictionary::insertInternal(duckdb::string_t str) {
 		return str;
 	}
 
-	lock_guard<std::mutex> guard(insertLock);
-
 
 
 	auto increasedSlot = (str_len % 8 == 0) ? 1 + (str_len / 8) : 2 + (str_len / 8);
@@ -118,8 +116,18 @@ string_t UnifiedStringsDictionary::insertInternal(duckdb::string_t str) {
 	newBucket = newBucket << 16;
 	newBucket |= UnsafeNumericCast<uint32_t>(currentEmptySlot);
 	D_ASSERT((newBucket & 0x0000FFFF) == currentEmptySlot);
-	accepted++;
+
+
+	lock_guard<std::mutex> guard(insertLock);
+
+	if(HT[insertion_slot.GetIndex()] != 0){
+		candidates--;
+		insertInternal(str);
+	}
+
+
 	HT[insertion_slot.GetIndex()] = newBucket;
+	accepted++;
 	auto ret = currentEmptySlot;
 	// 1 slot for the pre-computed hash,
 	currentEmptySlot += increasedSlot;
