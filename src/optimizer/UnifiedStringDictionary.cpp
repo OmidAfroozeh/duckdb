@@ -118,7 +118,7 @@ string_t UnifiedStringsDictionary::insertInternal(duckdb::string_t str) {
 	D_ASSERT((newBucket & 0x0000FFFF) == currentEmptySlot);
 
 
-	lock_guard<std::mutex> guard(insertLock);
+	std::unique_lock<std::mutex> lock(insertLock);
 
 	if(HT[insertion_slot.GetIndex()] != 0){
 		candidates--;
@@ -127,6 +127,9 @@ string_t UnifiedStringsDictionary::insertInternal(duckdb::string_t str) {
 
 
 	HT[insertion_slot.GetIndex()] = newBucket;
+
+	lock.unlock();
+
 	accepted++;
 	auto ret = currentEmptySlot;
 	// 1 slot for the pre-computed hash,
