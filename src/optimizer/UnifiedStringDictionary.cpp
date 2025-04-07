@@ -39,6 +39,7 @@ UnifiedStringsDictionary::UnifiedStringsDictionary() {
 	accepted = 0;
 	nRejections_Probing = 0;
 	nRejections_SizeFull = 0;
+	already_in = 0;
 }
 
 string_t UnifiedStringsDictionary::insert(string_t str) {
@@ -137,7 +138,7 @@ string_t UnifiedStringsDictionary::insertInternal(duckdb::string_t str) {
 UnifiedStringsDictionary::~UnifiedStringsDictionary() {
 	this->buffer.reset();
 	//	this->LinearProbingHT.reset();
-		this->getStatistics();
+//		this->getStatistics();
 }
 
 
@@ -169,14 +170,14 @@ void UnifiedStringsDictionary::getStatistics() {
 	Printer::Print(header);
 
 	// Build stats row
-	std::string statsStr;
-	statsStr += padRight(std::to_string(candidates), w1);
-	statsStr += padRight(std::to_string(accepted), w2);
-	statsStr += padRight(std::to_string(already_in), w5);
-	statsStr += padRight(std::to_string(nRejections_SizeFull), w3);
-	statsStr += padRight(std::to_string(nRejections_Probing), w4);
-
-	Printer::Print(statsStr);
+//	std::string statsStr;
+//	statsStr += padRight(std::to_string(candidates), w1);
+//	statsStr += padRight(std::to_string(accepted), w2);
+//	statsStr += padRight(std::to_string(already_in), w5);
+//	statsStr += padRight(std::to_string(nRejections_SizeFull), w3);
+//	statsStr += padRight(std::to_string(nRejections_Probing), w4);
+//
+//	Printer::Print(statsStr);
 
 //	Printer::PrintF("faster hash path triggered: %d, equal pointers for strings: %d",
 //	                string_t::StringComparisonOperators::fast_hash_counter,
