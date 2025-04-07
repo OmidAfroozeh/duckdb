@@ -42,14 +42,14 @@ private:
 	uint32_t *HT;
 
 	// every attempt on inserting a string
-	uint64_t candidates;
+	atomic<uint64_t> candidates;
 	// accepted strings into the USSR
-	uint64_t accepted;
+	atomic<uint64_t> accepted;
 
-	uint64_t already_in;
+	atomic<uint64_t> already_in;
 
-	uint64_t nRejections_SizeFull;
-	uint64_t nRejections_Probing;
+	atomic<uint64_t> nRejections_SizeFull;
+	atomic<uint64_t> nRejections_Probing;
 
 
 public:
@@ -60,7 +60,7 @@ public:
 	string_t insert(string_t str);
 
 private:
-	string_t insertInternal(string_t str);
+	string_t insertInternal(string_t str, hash_t hash = 0);
 
 	void getStatistics();
 

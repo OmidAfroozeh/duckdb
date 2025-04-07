@@ -51,9 +51,14 @@ string_t UnifiedStringsDictionary::insert(string_t str) {
 	return insertInternal(str);
 }
 
-string_t UnifiedStringsDictionary::insertInternal(duckdb::string_t str) {
+string_t UnifiedStringsDictionary::insertInternal(duckdb::string_t str, hash_t hash ) {
 
-	hash_t h = Hash(str);
+	hash_t h;
+	if(!hash){
+		h = Hash(str);
+	} else{
+		h = hash;
+	}
 	uint32_t hashPrefix = Load<uint32_t>(const_data_ptr_cast(&h));
 
 	candidates++;
@@ -109,6 +114,7 @@ string_t UnifiedStringsDictionary::insertInternal(duckdb::string_t str) {
 	}
 
 
+	std::unique_lock<std::mutex> lock(insertLock);
 
 	auto increasedSlot = (str_len % 8 == 0) ? 1 + (str_len / 8) : 2 + (str_len / 8);
 
@@ -118,11 +124,10 @@ string_t UnifiedStringsDictionary::insertInternal(duckdb::string_t str) {
 	D_ASSERT((newBucket & 0x0000FFFF) == currentEmptySlot);
 
 
-	std::unique_lock<std::mutex> lock(insertLock);
 
 	if(HT[insertion_slot.GetIndex()] != 0){
 		candidates--;
-		insertInternal(str);
+		insertInternal(str, h);
 	}
 
 
