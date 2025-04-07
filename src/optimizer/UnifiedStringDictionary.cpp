@@ -128,7 +128,6 @@ string_t UnifiedStringsDictionary::insertInternal(duckdb::string_t str) {
 
 	HT[insertion_slot.GetIndex()] = newBucket;
 
-	lock.unlock();
 
 	accepted++;
 	auto ret = currentEmptySlot;
@@ -136,6 +135,8 @@ string_t UnifiedStringsDictionary::insertInternal(duckdb::string_t str) {
 	currentEmptySlot += increasedSlot;
 	D_ASSERT(ret < currentEmptySlot);
 	auto slot_ptr = DataRegion + ret;
+	lock.unlock();
+
 
 	D_ASSERT(cast_pointer_to_uint64(slot_ptr) > cast_pointer_to_uint64(DataRegion));
 	D_ASSERT(cast_pointer_to_uint64(slot_ptr) < cast_pointer_to_uint64(DataRegion + USSR_SIZE * USSR_SLOT_SIZE));
