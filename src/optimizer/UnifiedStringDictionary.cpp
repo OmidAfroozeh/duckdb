@@ -82,7 +82,7 @@ string_t UnifiedStringsDictionary::insertInternal(duckdb::string_t str) {
 
 		if (bucket_hashExtract == hashExtract) {
 			already_in++;
-			auto slot_ptr = DataRegion + slot + i;
+			auto slot_ptr = DataRegion + (bucket & 0x0000FFFF);
 			// double checking that the string found is equal to the original string
 			auto len = strlen(const_char_ptr_cast(slot_ptr));
 			if (len != str.GetSize()) {
