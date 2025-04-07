@@ -114,7 +114,7 @@ string_t UnifiedStringsDictionary::insertInternal(duckdb::string_t str, hash_t h
 	}
 
 
-	std::unique_lock<std::mutex> lock(insertLock);
+	std::lock_guard<std::mutex> guard(insertLock);
 
 	auto increasedSlot = (str_len % 8 == 0) ? 1 + (str_len / 8) : 2 + (str_len / 8);
 
@@ -140,7 +140,6 @@ string_t UnifiedStringsDictionary::insertInternal(duckdb::string_t str, hash_t h
 	currentEmptySlot += increasedSlot;
 	D_ASSERT(ret < currentEmptySlot);
 	auto slot_ptr = DataRegion + ret;
-	lock.unlock();
 
 
 	D_ASSERT(cast_pointer_to_uint64(slot_ptr) > cast_pointer_to_uint64(DataRegion));
