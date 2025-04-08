@@ -96,7 +96,7 @@ string_t UnifiedStringsDictionary::insertInternal(duckdb::string_t str, hash_t h
 
 		if (bucket == 0) {
 			auto str_len = str.GetSize() + 1;
-			std::unique_lock<std::mutex> guard(insertLock);
+			std::lock_guard<std::mutex> guard(insertLock);
 
 			// reject if not enough space left
 			auto remaining = (USSR_SIZE - currentEmptySlot) * 8;
@@ -143,8 +143,8 @@ string_t UnifiedStringsDictionary::insertInternal(duckdb::string_t str, hash_t h
 				}
 			}
 
-			reinterpret_cast<atomic<uint32_t >*>(HT[slot+i])->store(newBucket);
-//			HT[slot + i] = newBucket;
+//			reinterpret_cast<atomic<uint32_t >*>(HT[slot+i])->store(newBucket)
+			HT[slot + i] = newBucket;
 
 
 			accepted++;
@@ -161,7 +161,6 @@ string_t UnifiedStringsDictionary::insertInternal(duckdb::string_t str, hash_t h
 			memcpy(slot_ptr, str.GetData(), str.GetSize());
 			memcpy(slot_ptr - 1, &h, 8);
 			memset(slot_ptr + str.GetSize(), '\0', 1);
-			guard.unlock();
 			return string_t(const_char_ptr_cast(slot_ptr), UnsafeNumericCast<uint32_t>(str.GetSize()));
 		}
 
