@@ -114,10 +114,10 @@ string_t UnifiedStringsDictionary::insertInternal(duckdb::string_t str, hash_t h
 			newBucket |= UnsafeNumericCast<uint32_t>(currentEmptySlot);
 			//	Printer::Print(to_string(currentEmptySlot));
 
-			if((newBucket & 0x0000FFFF) != currentEmptySlot){
-				Printer::Print(to_string(currentEmptySlot));
-				//		Printer::Print("fuck");
-			}
+//			if((newBucket & 0x0000FFFF) != currentEmptySlot){
+//				Printer::Print(to_string(currentEmptySlot));
+//				//		Printer::Print("fuck");
+//			}
 			D_ASSERT((newBucket & 0x0000FFFF) == currentEmptySlot);
 
 			// another thread inserted
