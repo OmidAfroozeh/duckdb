@@ -53,12 +53,12 @@ string_t UnifiedStringsDictionary::insert(string_t str) {
 
 string_t UnifiedStringsDictionary::insertInternal(duckdb::string_t str, hash_t hash ) {
 
-	hash_t h;
-	if(!hash){
-		h = Hash(str);
-	} else{
-		h = hash;
-	}
+	hash_t h = Hash(str);
+//	if(!hash){
+//		h = Hash(str);
+//	} else{
+//		h = hash;
+//	}
 	uint32_t hashPrefix = Load<uint32_t>(const_data_ptr_cast(&h));
 
 	candidates++;
@@ -68,7 +68,6 @@ string_t UnifiedStringsDictionary::insertInternal(duckdb::string_t str, hash_t h
 
 	uint16_t hashExtract = hashPrefix >> 16;
 
-	optional_idx insertion_slot;
 
 	for (idx_t i = 0; i < PROBING_LIMIT; i++) {
 		// currently no looping around
@@ -81,10 +80,6 @@ string_t UnifiedStringsDictionary::insertInternal(duckdb::string_t str, hash_t h
 
 		uint16_t bucket_hashExtract = bucket >> 16;
 
-		if (bucket == 0) {
-			insertion_slot = slot + i;
-			break;
-		}
 
 		if (bucket_hashExtract == hashExtract) {
 			already_in++;
@@ -98,57 +93,77 @@ string_t UnifiedStringsDictionary::insertInternal(duckdb::string_t str, hash_t h
 			return (res_str == str) ? res_str : str;
 		}
 
+		if (bucket == 0) {
+			auto str_len = str.GetSize() + 1;
+			std::unique_lock<std::mutex> guard(insertLock);
+
+			// reject if not enough space left
+			auto remaining = (USSR_SIZE - currentEmptySlot) * 8;
+			if (str_len > remaining || currentEmptySlot > USSR_SIZE) {
+				nRejections_SizeFull++;
+				return str;
+			}
+
+
+
+			auto increasedSlot = (str_len % 8 == 0) ? 1 + (str_len / 8) : 2 + (str_len / 8);
+
+			uint32_t newBucket = UnsafeNumericCast<uint32_t>(hashExtract);
+			newBucket = newBucket << 16;
+			newBucket |= UnsafeNumericCast<uint32_t>(currentEmptySlot);
+			//	Printer::Print(to_string(currentEmptySlot));
+
+			if((newBucket & 0x0000FFFF) != currentEmptySlot){
+				Printer::Print(to_string(currentEmptySlot));
+				//		Printer::Print("fuck");
+			}
+			D_ASSERT((newBucket & 0x0000FFFF) == currentEmptySlot);
+
+			// another thread inserted
+			if(bucket != 0){
+				Printer::Print("ANOTHER THREAD INSERTED OH OH ");
+				exit(1);
+			}
+
+
+			HT[slot + i] = newBucket;
+
+
+			accepted++;
+			auto ret = currentEmptySlot;
+			// 1 slot for the pre-computed hash,
+			currentEmptySlot += increasedSlot;
+			D_ASSERT(ret < currentEmptySlot);
+			auto slot_ptr = DataRegion + ret;
+
+
+			D_ASSERT(cast_pointer_to_uint64(slot_ptr) > cast_pointer_to_uint64(DataRegion));
+			D_ASSERT(cast_pointer_to_uint64(slot_ptr) < cast_pointer_to_uint64(DataRegion + USSR_SIZE * USSR_SLOT_SIZE));
+
+			memcpy(slot_ptr, str.GetData(), str.GetSize());
+			memcpy(slot_ptr - 1, &h, 8);
+			memset(slot_ptr + str.GetSize(), '\0', 1);
+			guard.unlock();
+			return string_t(const_char_ptr_cast(slot_ptr), UnsafeNumericCast<uint32_t>(str.GetSize()));
+		}
+
+
+
 
 	}
-	if (!insertion_slot.IsValid()) {
 		nRejections_Probing++;
 		return str;
-	}
-
-	auto str_len = str.GetSize() + 1;
-	// reject if not enough space left
-	auto remaining = (USSR_SIZE - currentEmptySlot) * 8;
-	if (str_len > remaining || currentEmptySlot > USSR_SIZE) {
-		nRejections_SizeFull++;
-		return str;
-	}
-
-
-	std::lock_guard<std::mutex> guard(insertLock);
-
-	auto increasedSlot = (str_len % 8 == 0) ? 1 + (str_len / 8) : 2 + (str_len / 8);
-
-	uint32_t newBucket = UnsafeNumericCast<uint32_t>(hashExtract);
-	newBucket = newBucket << 16;
-	newBucket |= UnsafeNumericCast<uint32_t>(currentEmptySlot);
-	D_ASSERT((newBucket & 0x0000FFFF) == currentEmptySlot);
 
 
 
-	if(HT[insertion_slot.GetIndex()] != 0){
-		candidates--;
-		insertInternal(str, h);
-	}
 
+//	if(HT[insertion_slot.GetIndex()] != 0){
+//		candidates--;
+//		Printer::Print("OH UH");
+//		guard.unlock();
+//		insertInternal(str, h);
+//	}
 
-	HT[insertion_slot.GetIndex()] = newBucket;
-
-
-	accepted++;
-	auto ret = currentEmptySlot;
-	// 1 slot for the pre-computed hash,
-	currentEmptySlot += increasedSlot;
-	D_ASSERT(ret < currentEmptySlot);
-	auto slot_ptr = DataRegion + ret;
-
-
-	D_ASSERT(cast_pointer_to_uint64(slot_ptr) > cast_pointer_to_uint64(DataRegion));
-	D_ASSERT(cast_pointer_to_uint64(slot_ptr) < cast_pointer_to_uint64(DataRegion + USSR_SIZE * USSR_SLOT_SIZE));
-
-	memcpy(slot_ptr, str.GetData(), str.GetSize());
-	memcpy(slot_ptr - 1, &h, 8);
-	memset(slot_ptr + str.GetSize(), '\0', 1);
-	return string_t(const_char_ptr_cast(slot_ptr), UnsafeNumericCast<uint32_t>(str.GetSize()));
 }
 
 UnifiedStringsDictionary::~UnifiedStringsDictionary() {
