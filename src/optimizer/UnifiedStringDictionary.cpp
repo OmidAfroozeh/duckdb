@@ -120,7 +120,7 @@ string_t UnifiedStringsDictionary::insertInternal(duckdb::string_t str, hash_t h
 			D_ASSERT((newBucket & 0x0000FFFF) == currentEmptySlot);
 
 			// another thread inserted
-			if(bucket != 0){
+			if(HT[slot + i] != 0){
 				Printer::Print("ANOTHER THREAD INSERTED OH OH ");
 				exit(1);
 			}
