@@ -82,6 +82,7 @@ string_t UnifiedStringsDictionary::insertInternal(duckdb::string_t str, hash_t h
 
 
 		if (bucket_hashExtract == hashExtract) {
+			// wrong already_in, do this after checking if equal
 			already_in++;
 			auto slot_ptr = DataRegion + (bucket & 0x0000FFFF);
 			// double checking that the string found is equal to the original string
@@ -121,8 +122,25 @@ string_t UnifiedStringsDictionary::insertInternal(duckdb::string_t str, hash_t h
 
 			// another thread inserted
 			if(HT[slot + i] != 0){
-				Printer::Print("ANOTHER THREAD INSERTED OH OH ");
-				exit(1);
+				auto slot_hashExtract = HT[slot + i] >> 16;
+				if(slot_hashExtract == hashExtract){
+					already_in++;
+					auto slot_ptr = DataRegion + (HT[slot + i] & 0x0000FFFF);
+					// double checking that the string found is equal to the original string
+					auto len = strlen(const_char_ptr_cast(slot_ptr));
+					if (len != str.GetSize()) {
+						return str;
+					}
+					auto res_str = string_t(const_char_ptr_cast(slot_ptr), UnsafeNumericCast<uint32_t>(str.GetSize()));
+					if(res_str == str){
+						return res_str;
+					}
+					else{
+						continue;
+					}
+				} else{
+					continue;
+				}
 			}
 
 
