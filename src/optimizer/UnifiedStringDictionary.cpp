@@ -143,8 +143,8 @@ string_t UnifiedStringsDictionary::insertInternal(duckdb::string_t str, hash_t h
 				}
 			}
 
-
-			HT[slot + i] = newBucket;
+			reinterpret_cast<atomic<uint32_t >*>(HT[slot+i])->store(newBucket);
+//			HT[slot + i] = newBucket;
 
 
 			accepted++;
