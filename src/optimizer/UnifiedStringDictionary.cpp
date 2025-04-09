@@ -51,14 +51,18 @@ string_t UnifiedStringsDictionary::insert(string_t str) {
 	return insertInternal(str);
 }
 
-string_t UnifiedStringsDictionary::insertInternal(duckdb::string_t str, hash_t hash ) {
+string_t UnifiedStringsDictionary::insertInternal(duckdb::string_t str, hash_t hash) {
+
+	if (nRejections_Probing + nRejections_SizeFull > ATTEMPT_THRESHOLD) {
+		return str;
+	}
 
 	hash_t h = Hash(str);
-//	if(!hash){
-//		h = Hash(str);
-//	} else{
-//		h = hash;
-//	}
+	//	if(!hash){
+	//		h = Hash(str);
+	//	} else{
+	//		h = hash;
+	//	}
 	uint32_t hashPrefix = Load<uint32_t>(const_data_ptr_cast(&h));
 
 	candidates++;
@@ -68,7 +72,6 @@ string_t UnifiedStringsDictionary::insertInternal(duckdb::string_t str, hash_t h
 
 	uint16_t hashExtract = hashPrefix >> 16;
 
-
 	for (idx_t i = 0; i < PROBING_LIMIT; i++) {
 		// currently no looping around
 		if (slot + i > USSR_SIZE) {
@@ -76,10 +79,9 @@ string_t UnifiedStringsDictionary::insertInternal(duckdb::string_t str, hash_t h
 			return str;
 		}
 
-		uint32_t bucket = reinterpret_cast<atomic<uint32_t >*>(HT + ((slot + i)))->load(std::memory_order_acquire);
+		uint32_t bucket = reinterpret_cast<atomic<uint32_t> *>(HT + ((slot + i)))->load(std::memory_order_acquire);
 
 		uint16_t bucket_hashExtract = bucket >> 16;
-
 
 		if (bucket_hashExtract == hashExtract) {
 			// wrong already_in, do this after checking if equal
@@ -105,8 +107,6 @@ string_t UnifiedStringsDictionary::insertInternal(duckdb::string_t str, hash_t h
 				return str;
 			}
 
-
-
 			auto increasedSlot = (str_len % 8 == 0) ? 1 + (str_len / 8) : 2 + (str_len / 8);
 
 			uint32_t newBucket = UnsafeNumericCast<uint32_t>(hashExtract);
@@ -114,16 +114,16 @@ string_t UnifiedStringsDictionary::insertInternal(duckdb::string_t str, hash_t h
 			newBucket |= UnsafeNumericCast<uint32_t>(currentEmptySlot);
 			//	Printer::Print(to_string(currentEmptySlot));
 
-//			if((newBucket & 0x0000FFFF) != currentEmptySlot){
-//				Printer::Print(to_string(currentEmptySlot));
-//				//		Printer::Print("fuck");
-//			}
+			//			if((newBucket & 0x0000FFFF) != currentEmptySlot){
+			//				Printer::Print(to_string(currentEmptySlot));
+			//				//		Printer::Print("fuck");
+			//			}
 			D_ASSERT((newBucket & 0x0000FFFF) == currentEmptySlot);
 
 			// another thread inserted
-			if(HT[slot + i] != 0){
+			if (HT[slot + i] != 0) {
 				auto slot_hashExtract = HT[slot + i] >> 16;
-				if(slot_hashExtract == hashExtract){
+				if (slot_hashExtract == hashExtract) {
 					already_in++;
 					auto slot_ptr = DataRegion + (HT[slot + i] & 0x0000FFFF);
 					// double checking that the string found is equal to the original string
@@ -132,17 +132,15 @@ string_t UnifiedStringsDictionary::insertInternal(duckdb::string_t str, hash_t h
 						return str;
 					}
 					auto res_str = string_t(const_char_ptr_cast(slot_ptr), UnsafeNumericCast<uint32_t>(str.GetSize()));
-					if(res_str == str){
+					if (res_str == str) {
 						return res_str;
-					}
-					else{
+					} else {
 						continue;
 					}
-				} else{
+				} else {
 					continue;
 				}
 			}
-
 
 			accepted++;
 			auto ret = currentEmptySlot;
@@ -151,43 +149,34 @@ string_t UnifiedStringsDictionary::insertInternal(duckdb::string_t str, hash_t h
 			D_ASSERT(ret < currentEmptySlot);
 			auto slot_ptr = DataRegion + ret;
 
-
 			D_ASSERT(cast_pointer_to_uint64(slot_ptr) > cast_pointer_to_uint64(DataRegion));
-			D_ASSERT(cast_pointer_to_uint64(slot_ptr) < cast_pointer_to_uint64(DataRegion + USSR_SIZE * USSR_SLOT_SIZE));
+			D_ASSERT(cast_pointer_to_uint64(slot_ptr) <
+			         cast_pointer_to_uint64(DataRegion + USSR_SIZE * USSR_SLOT_SIZE));
 
 			memcpy(slot_ptr, str.GetData(), str.GetSize());
 			memcpy(slot_ptr - 1, &h, 8);
 			memset(slot_ptr + str.GetSize(), '\0', 1);
-			(reinterpret_cast<atomic<uint32_t >*>(HT + slot+i))->store(newBucket, std::memory_order_release);
+			(reinterpret_cast<atomic<uint32_t> *>(HT + slot + i))->store(newBucket, std::memory_order_release);
 
 			return string_t(const_char_ptr_cast(slot_ptr), UnsafeNumericCast<uint32_t>(str.GetSize()));
 		}
-
-
-
-
 	}
-		nRejections_Probing++;
-		return str;
+	nRejections_Probing++;
+	return str;
 
-
-
-
-//	if(HT[insertion_slot.GetIndex()] != 0){
-//		candidates--;
-//		Printer::Print("OH UH");
-//		guard.unlock();
-//		insertInternal(str, h);
-//	}
-
+	//	if(HT[insertion_slot.GetIndex()] != 0){
+	//		candidates--;
+	//		Printer::Print("OH UH");
+	//		guard.unlock();
+	//		insertInternal(str, h);
+	//	}
 }
 
 UnifiedStringsDictionary::~UnifiedStringsDictionary() {
 	this->buffer.reset();
 	//	this->LinearProbingHT.reset();
-//		this->getStatistics();
+	//		this->getStatistics();
 }
-
 
 void UnifiedStringsDictionary::getStatistics() {
 	// A small helper to pad strings on the right
@@ -217,20 +206,20 @@ void UnifiedStringsDictionary::getStatistics() {
 	Printer::Print(header);
 
 	// Build stats row
-//	std::string statsStr;
-//	statsStr += padRight(std::to_string(candidates), w1);
-//	statsStr += padRight(std::to_string(accepted), w2);
-//	statsStr += padRight(std::to_string(already_in), w5);
-//	statsStr += padRight(std::to_string(nRejections_SizeFull), w3);
-//	statsStr += padRight(std::to_string(nRejections_Probing), w4);
-//
-//	Printer::Print(statsStr);
+	//	std::string statsStr;
+	//	statsStr += padRight(std::to_string(candidates), w1);
+	//	statsStr += padRight(std::to_string(accepted), w2);
+	//	statsStr += padRight(std::to_string(already_in), w5);
+	//	statsStr += padRight(std::to_string(nRejections_SizeFull), w3);
+	//	statsStr += padRight(std::to_string(nRejections_Probing), w4);
+	//
+	//	Printer::Print(statsStr);
 
-//	Printer::PrintF("faster hash path triggered: %d, equal pointers for strings: %d",
-//	                string_t::StringComparisonOperators::fast_hash_counter,
-//	                string_t::StringComparisonOperators::eq_check_counter);
-//	string_t::StringComparisonOperators::eq_check_counter = 0;
-//	string_t::StringComparisonOperators::fast_hash_counter = 0;
+	//	Printer::PrintF("faster hash path triggered: %d, equal pointers for strings: %d",
+	//	                string_t::StringComparisonOperators::fast_hash_counter,
+	//	                string_t::StringComparisonOperators::eq_check_counter);
+	//	string_t::StringComparisonOperators::eq_check_counter = 0;
+	//	string_t::StringComparisonOperators::fast_hash_counter = 0;
 }
 
 } // namespace duckdb
