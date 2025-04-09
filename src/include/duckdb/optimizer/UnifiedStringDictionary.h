@@ -14,7 +14,9 @@ namespace duckdb {
 // Singleton
 class UnifiedStringsDictionary {
 public:
-	static constexpr uint64_t BUFFER_SIZE = static_cast<uint64_t>(1024 * 1024);
+	static constexpr uint64_t ATTEMPT_THRESHOLD = 100000
+
+	    static constexpr uint64_t BUFFER_SIZE = static_cast<uint64_t>(1024 * 1024);
 
 	static constexpr uint64_t USSR_MASK = 0xFFFFFFFFFFF80000;
 
@@ -51,7 +53,6 @@ private:
 	atomic<uint64_t> nRejections_SizeFull;
 	atomic<uint64_t> nRejections_Probing;
 
-
 public:
 	UnifiedStringsDictionary();
 	~UnifiedStringsDictionary();
@@ -63,7 +64,6 @@ private:
 	string_t insertInternal(string_t str, hash_t hash = 0);
 
 	void getStatistics();
-
 };
 
 } // namespace duckdb
