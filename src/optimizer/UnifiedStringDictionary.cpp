@@ -9,6 +9,7 @@ namespace duckdb {
 
 UnifiedStringsDictionary::UnifiedStringsDictionary() {
 
+	//TODO: something is wrong here with the pointers, DOUBLE CHECK!!!
 	buffer = make_unsafe_uniq_array_uninitialized<data_t>(BUFFER_SIZE);
 	USSR_prefix = cast_pointer_to_uint64(buffer.get() + USSR_SIZE * USSR_SLOT_SIZE) & USSR_MASK;
 
@@ -57,7 +58,7 @@ string_t UnifiedStringsDictionary::insertInternal(duckdb::string_t str, hash_t h
 		return str;
 	}
 
-	hash_t h = Hash(str);
+	hash_t h = HashString(const_data_ptr_cast(str.GetData()), str.GetSize());
 	//	if(!hash){
 	//		h = Hash(str);
 	//	} else{
@@ -154,7 +155,8 @@ string_t UnifiedStringsDictionary::insertInternal(duckdb::string_t str, hash_t h
 			         cast_pointer_to_uint64(DataRegion + USSR_SIZE * USSR_SLOT_SIZE));
 
 			memcpy(slot_ptr, str.GetData(), str.GetSize());
-			memcpy(slot_ptr - 1, &h, 8);
+			auto actual_hash = Hash(str);
+			memcpy(slot_ptr - 1, &actual_hash, 8);
 			memset(slot_ptr + str.GetSize(), '\0', 1);
 			(reinterpret_cast<atomic<uint32_t> *>(HT + slot + i))->store(newBucket, std::memory_order_release);
 
@@ -175,7 +177,7 @@ string_t UnifiedStringsDictionary::insertInternal(duckdb::string_t str, hash_t h
 UnifiedStringsDictionary::~UnifiedStringsDictionary() {
 	this->buffer.reset();
 	//	this->LinearProbingHT.reset();
-//			this->getStatistics();
+//	this->getStatistics();
 }
 
 void UnifiedStringsDictionary::getStatistics() {
@@ -214,11 +216,37 @@ void UnifiedStringsDictionary::getStatistics() {
 		statsStr += padRight(std::to_string(nRejections_Probing), w4);
 //
 //
-//	Printer::Print(statsStr);	Printer::PrintF("faster hash path triggered: %d, equal pointers for strings: %d",
+	Printer::Print(statsStr);
+	    //	Printer::PrintF("faster hash path triggered: %d, equal pointers for strings: %d",
 //		                string_t::StringComparisonOperators::faster_equality.load(),
 //		                string_t::StringComparisonOperators::faster_hash.load());
 //		string_t::StringComparisonOperators::faster_equality = 0;
 //		string_t::StringComparisonOperators::faster_hash = 0;
 }
 
+hash_t UnifiedStringsDictionary::HashString(const_data_ptr_t ptr, const idx_t len) {
+	// This seed slightly improves bit distribution, taken from here:
+	// https://github.com/martinus/robin-hood-hashing/blob/3.11.5/LICENSE
+	// MIT License Copyright (c) 2018-2021 Martin Ankerl
+	hash_t h = 0xe17a1465U ^ (len);
+
+	// Hash/combine in blocks of 8 bytes
+	const auto remainder = len & 7U;
+	for (const auto end = ptr + len - remainder; ptr != end; ptr += 8U) {
+		h ^= Load<hash_t>(ptr);
+	}
+
+	if (remainder != 0) {
+			D_ASSERT(len >= 8);
+			// Load remaining (<8) bytes (with a Load instead of a memcpy)
+			const auto inv_rem = 8U - remainder;
+			const auto hr = Load<hash_t>(ptr - inv_rem) >> (inv_rem * 8U);
+
+			h ^= hr;
+
+	}
+
+	// Finalize
+	return Hash(h);
+}
 } // namespace duckdb

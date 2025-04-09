@@ -16,7 +16,7 @@ class UnifiedStringsDictionary {
 public:
 	static constexpr uint64_t ATTEMPT_THRESHOLD = 100000;
 
-	static constexpr uint64_t BUFFER_SIZE = static_cast<uint64_t>(1024 * 1024);
+	    static constexpr uint64_t BUFFER_SIZE = static_cast<uint64_t>(1024 * 1024);
 
 	static constexpr uint64_t USSR_MASK = 0xFFFFFFFFFFF80000;
 
@@ -63,6 +63,7 @@ public:
 private:
 	string_t insertInternal(string_t str, hash_t hash = 0);
 
+	hash_t HashString(const_data_ptr_t ptr, const idx_t len);
 	void getStatistics();
 };
 
