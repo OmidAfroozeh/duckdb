@@ -76,7 +76,7 @@ string_t UnifiedStringsDictionary::insertInternal(duckdb::string_t str, hash_t h
 			return str;
 		}
 
-		uint32_t bucket = Load<uint32_t>(const_data_ptr_cast(HT + ((slot + i))));
+		uint32_t bucket = reinterpret_cast<atomic<uint32_t >*>(HT + ((slot + i)))->load(std::memory_order_acquire);
 
 		uint16_t bucket_hashExtract = bucket >> 16;
 
@@ -143,9 +143,6 @@ string_t UnifiedStringsDictionary::insertInternal(duckdb::string_t str, hash_t h
 				}
 			}
 
-//			reinterpret_cast<atomic<uint32_t >*>(HT[slot+i])->store(newBucket)
-			HT[slot + i] = newBucket;
-
 
 			accepted++;
 			auto ret = currentEmptySlot;
@@ -161,6 +158,8 @@ string_t UnifiedStringsDictionary::insertInternal(duckdb::string_t str, hash_t h
 			memcpy(slot_ptr, str.GetData(), str.GetSize());
 			memcpy(slot_ptr - 1, &h, 8);
 			memset(slot_ptr + str.GetSize(), '\0', 1);
+			(reinterpret_cast<atomic<uint32_t >*>(HT + slot+i))->store(newBucket, std::memory_order_release);
+
 			return string_t(const_char_ptr_cast(slot_ptr), UnsafeNumericCast<uint32_t>(str.GetSize()));
 		}
 
