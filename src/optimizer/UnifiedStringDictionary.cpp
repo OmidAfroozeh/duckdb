@@ -53,7 +53,7 @@ string_t UnifiedStringsDictionary::insert(string_t str) {
 
 string_t UnifiedStringsDictionary::insertInternal(duckdb::string_t str, hash_t hash) {
 
-	if (nRejections_Probing + nRejections_SizeFull > ATTEMPT_THRESHOLD) {
+	if (nRejections_Probing.load() + nRejections_SizeFull.load() > ATTEMPT_THRESHOLD) {
 		return str;
 	}
 
@@ -175,7 +175,7 @@ string_t UnifiedStringsDictionary::insertInternal(duckdb::string_t str, hash_t h
 UnifiedStringsDictionary::~UnifiedStringsDictionary() {
 	this->buffer.reset();
 	//	this->LinearProbingHT.reset();
-	//		this->getStatistics();
+			this->getStatistics();
 }
 
 void UnifiedStringsDictionary::getStatistics() {
@@ -206,20 +206,19 @@ void UnifiedStringsDictionary::getStatistics() {
 	Printer::Print(header);
 
 	// Build stats row
-	//	std::string statsStr;
-	//	statsStr += padRight(std::to_string(candidates), w1);
-	//	statsStr += padRight(std::to_string(accepted), w2);
-	//	statsStr += padRight(std::to_string(already_in), w5);
-	//	statsStr += padRight(std::to_string(nRejections_SizeFull), w3);
-	//	statsStr += padRight(std::to_string(nRejections_Probing), w4);
-	//
-	//	Printer::Print(statsStr);
+		std::string statsStr;
+		statsStr += padRight(std::to_string(candidates), w1);
+		statsStr += padRight(std::to_string(accepted), w2);
+		statsStr += padRight(std::to_string(already_in), w5);
+		statsStr += padRight(std::to_string(nRejections_SizeFull), w3);
+		statsStr += padRight(std::to_string(nRejections_Probing), w4);
 
-	//	Printer::PrintF("faster hash path triggered: %d, equal pointers for strings: %d",
-	//	                string_t::StringComparisonOperators::fast_hash_counter,
-	//	                string_t::StringComparisonOperators::eq_check_counter);
-	//	string_t::StringComparisonOperators::eq_check_counter = 0;
-	//	string_t::StringComparisonOperators::fast_hash_counter = 0;
+//
+//	Printer::Print(statsStr);	Printer::PrintF("faster hash path triggered: %d, equal pointers for strings: %d",
+//		                string_t::StringComparisonOperators::faster_equality.load(),
+//		                string_t::StringComparisonOperators::faster_hash.load());
+//		string_t::StringComparisonOperators::faster_equality = 0;
+//		string_t::StringComparisonOperators::faster_hash = 0;
 }
 
 } // namespace duckdb
