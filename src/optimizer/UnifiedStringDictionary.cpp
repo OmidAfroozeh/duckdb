@@ -53,7 +53,7 @@ string_t UnifiedStringsDictionary::insert(string_t str) {
 
 string_t UnifiedStringsDictionary::insertInternal(duckdb::string_t str, hash_t hash) {
 
-	if (nRejections_Probing.load() + nRejections_SizeFull.load() > ATTEMPT_THRESHOLD) {
+	if (nRejections_Probing.load() + nRejections_SizeFull.load() > ATTEMPT_THRESHOLD / 10) {
 		return str;
 	}
 
@@ -175,7 +175,7 @@ string_t UnifiedStringsDictionary::insertInternal(duckdb::string_t str, hash_t h
 UnifiedStringsDictionary::~UnifiedStringsDictionary() {
 	this->buffer.reset();
 	//	this->LinearProbingHT.reset();
-			this->getStatistics();
+//			this->getStatistics();
 }
 
 void UnifiedStringsDictionary::getStatistics() {
@@ -212,7 +212,7 @@ void UnifiedStringsDictionary::getStatistics() {
 		statsStr += padRight(std::to_string(already_in), w5);
 		statsStr += padRight(std::to_string(nRejections_SizeFull), w3);
 		statsStr += padRight(std::to_string(nRejections_Probing), w4);
-
+//
 //
 //	Printer::Print(statsStr);	Printer::PrintF("faster hash path triggered: %d, equal pointers for strings: %d",
 //		                string_t::StringComparisonOperators::faster_equality.load(),
