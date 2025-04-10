@@ -83,7 +83,7 @@ void WindowMergeSortTreeLocalState::SinkChunk(DataChunk &chunk, const idx_t row_
 		payload_chunk.Slice(*filter_sel, filtered);
 	}
 
-	local_sort->SinkChunk(sort_chunk, payload_chunk);
+	local_sort->SinkChunk(sort_chunk, payload_chunk, window_tree.global_sort->context);
 
 	//	Flush if we have too much data
 	if (local_sort->SizeInBytes() > window_tree.memory_per_thread) {

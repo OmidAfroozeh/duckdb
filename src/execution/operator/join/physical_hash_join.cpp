@@ -709,11 +709,11 @@ void JoinFilterPushdownInfo::PushInFilter(const JoinFilterPushdownFilter &info, 
 
 	Vector tuples_addresses(LogicalType::POINTER, ht.Count()); // allocate space for all the tuples
 
-	JoinHTScanState join_ht_state(data_collection, 0, data_collection.ChunkCount(),
+	JoinHTScanState join_ht_state(data_collection, 0, data_collection.ChunkCount(), ht.context,
 	                              TupleDataPinProperties::KEEP_EVERYTHING_PINNED);
 
 	// Go through all the blocks and fill the keys addresses
-	idx_t key_count = ht.FillWithHTOffsets(join_ht_state, tuples_addresses);
+	idx_t key_count = ht.FillWithHTOffsets(ht.context, join_ht_state, tuples_addresses);
 
 	// Scan the build keys in the hash table
 	Vector build_vector(ht.layout_ptr->GetTypes()[build_idx], key_count);
@@ -1417,8 +1417,8 @@ void HashJoinLocalSourceState::ExternalScanHT(HashJoinGlobalSinkState &sink, Has
 	D_ASSERT(local_stage == HashJoinSourceStage::SCAN_HT);
 
 	if (!full_outer_scan_state) {
-		full_outer_scan_state = make_uniq<JoinHTScanState>(sink.hash_table->GetDataCollection(),
-		                                                   full_outer_chunk_idx_from, full_outer_chunk_idx_to);
+		full_outer_scan_state = make_uniq<JoinHTScanState>(
+		    sink.hash_table->GetDataCollection(), full_outer_chunk_idx_from, full_outer_chunk_idx_to, sink.context);
 	}
 	sink.hash_table->ScanFullOuter(*full_outer_scan_state, addresses, chunk);
 

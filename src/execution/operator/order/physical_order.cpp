@@ -94,7 +94,7 @@ SinkResultType PhysicalOrder::Sink(ExecutionContext &context, DataChunk &chunk, 
 	// Sink the data into the local sort state
 	keys.Verify();
 	chunk.Verify();
-	local_sort_state.SinkChunk(keys, payload);
+	local_sort_state.SinkChunk(keys, payload, context.client);
 
 	// When sorting data reaches a certain size, we sort it
 	if (local_sort_state.SizeInBytes() >= gstate.memory_per_thread) {
