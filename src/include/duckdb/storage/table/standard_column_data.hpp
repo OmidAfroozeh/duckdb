@@ -31,15 +31,16 @@ public:
 	void InitializeScanWithOffset(ColumnScanState &state, idx_t row_idx) override;
 
 	idx_t Scan(TransactionData transaction, idx_t vector_index, ColumnScanState &state, Vector &result,
-	           idx_t target_count) override;
+	           idx_t target_count, optional_ptr<ClientContext> context) override;
 	idx_t ScanCommitted(idx_t vector_index, ColumnScanState &state, Vector &result, bool allow_updates,
 	                    idx_t target_count) override;
 	idx_t ScanCount(ColumnScanState &state, Vector &result, idx_t count, idx_t result_offset) override;
 
 	void Filter(TransactionData transaction, idx_t vector_index, ColumnScanState &state, Vector &result,
-	            SelectionVector &sel, idx_t &count, const TableFilter &filter, TableFilterState &filter_state) override;
+	            SelectionVector &sel, idx_t &count, const TableFilter &filter, TableFilterState &filter_state,
+	            optional_ptr<ClientContext> context) override;
 	void Select(TransactionData transaction, idx_t vector_index, ColumnScanState &state, Vector &result,
-	            SelectionVector &sel, idx_t sel_count) override;
+	            SelectionVector &sel, idx_t sel_count, optional_ptr<ClientContext> context) override;
 
 	void InitializeAppend(ColumnAppendState &state) override;
 	void AppendData(BaseStatistics &stats, ColumnAppendState &state, UnifiedVectorFormat &vdata, idx_t count) override;

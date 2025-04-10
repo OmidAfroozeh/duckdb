@@ -10,7 +10,7 @@ namespace duckdb {
 //===--------------------------------------------------------------------===//
 // Scan
 //===--------------------------------------------------------------------===//
-unique_ptr<SegmentScanState> ConstantInitScan(ColumnSegment &segment) {
+unique_ptr<SegmentScanState> ConstantInitScan(ColumnSegment &segment, optional_ptr<ClientContext> context = nullptr) {
 	return nullptr;
 }
 

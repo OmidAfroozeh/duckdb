@@ -150,11 +150,11 @@ void ColumnData::InitializePrefetch(PrefetchState &prefetch_state, ColumnScanSta
 	}
 }
 
-void ColumnData::BeginScanVectorInternal(ColumnScanState &state) {
+void ColumnData::BeginScanVectorInternal(ColumnScanState &state, optional_ptr<ClientContext> context) {
 	state.previous_states.clear();
 	if (!state.initialized) {
 		D_ASSERT(state.current);
-		state.current->InitializeScan(state);
+		state.current->InitializeScan(state, context);
 		state.internal_index = state.current->start;
 		state.initialized = true;
 	}
@@ -167,11 +167,11 @@ void ColumnData::BeginScanVectorInternal(ColumnScanState &state) {
 }
 
 idx_t ColumnData::ScanVector(ColumnScanState &state, Vector &result, idx_t remaining, ScanVectorType scan_type,
-                             idx_t base_result_offset) {
+                             optional_ptr<ClientContext> context, idx_t base_result_offset) {
 	if (scan_type == ScanVectorType::SCAN_FLAT_VECTOR && result.GetVectorType() != VectorType::FLAT_VECTOR) {
 		throw InternalException("ScanVector called with SCAN_FLAT_VECTOR but result is not a flat vector");
 	}
-	BeginScanVectorInternal(state);
+	BeginScanVectorInternal(state, context);
 	idx_t initial_remaining = remaining;
 	while (remaining > 0) {
 		D_ASSERT(state.row_index >= state.current->start &&
@@ -200,7 +200,7 @@ idx_t ColumnData::ScanVector(ColumnScanState &state, Vector &result, idx_t remai
 			}
 			state.previous_states.emplace_back(std::move(state.scan_state));
 			state.current = next;
-			state.current->InitializeScan(state);
+			state.current->InitializeScan(state, context);
 			state.segment_checked = false;
 			D_ASSERT(state.row_index >= state.current->start &&
 			         state.row_index <= state.current->start + state.current->count);
@@ -280,8 +280,9 @@ void ColumnData::UpdateInternal(TransactionData transaction, idx_t column_index,
 }
 
 idx_t ColumnData::ScanVector(TransactionData transaction, idx_t vector_index, ColumnScanState &state, Vector &result,
-                             idx_t target_scan, ScanVectorType scan_type, ScanVectorMode mode) {
-	auto scan_count = ScanVector(state, result, target_scan, scan_type);
+                             idx_t target_scan, ScanVectorType scan_type, ScanVectorMode mode,
+                             optional_ptr<ClientContext> context) {
+	auto scan_count = ScanVector(state, result, target_scan, scan_type, context);
 	if (scan_type != ScanVectorType::SCAN_ENTIRE_VECTOR) {
 		// if we are scanning an entire vector we cannot have updates
 		bool allow_updates = mode != ScanVectorMode::SCAN_COMMITTED_NO_UPDATES;
@@ -292,14 +293,15 @@ idx_t ColumnData::ScanVector(TransactionData transaction, idx_t vector_index, Co
 }
 
 idx_t ColumnData::ScanVector(TransactionData transaction, idx_t vector_index, ColumnScanState &state, Vector &result,
-                             idx_t target_scan, ScanVectorMode mode) {
+                             idx_t target_scan, ScanVectorMode mode, optional_ptr<ClientContext> context) {
 	auto scan_type = GetVectorScanType(state, target_scan, result);
-	return ScanVector(transaction, vector_index, state, result, target_scan, scan_type, mode);
+	return ScanVector(transaction, vector_index, state, result, target_scan, scan_type, mode, context);
 }
 
-idx_t ColumnData::Scan(TransactionData transaction, idx_t vector_index, ColumnScanState &state, Vector &result) {
+idx_t ColumnData::Scan(TransactionData transaction, idx_t vector_index, ColumnScanState &state, Vector &result,
+                       optional_ptr<ClientContext> context) {
 	auto target_count = GetVectorCount(vector_index);
-	return Scan(transaction, vector_index, state, result, target_count);
+	return Scan(transaction, vector_index, state, result, target_count, context);
 }
 
 idx_t ColumnData::ScanCommitted(idx_t vector_index, ColumnScanState &state, Vector &result, bool allow_updates) {
@@ -308,8 +310,8 @@ idx_t ColumnData::ScanCommitted(idx_t vector_index, ColumnScanState &state, Vect
 }
 
 idx_t ColumnData::Scan(TransactionData transaction, idx_t vector_index, ColumnScanState &state, Vector &result,
-                       idx_t scan_count) {
-	return ScanVector(transaction, vector_index, state, result, scan_count, ScanVectorMode::REGULAR_SCAN);
+                       idx_t scan_count, optional_ptr<ClientContext> context) {
+	return ScanVector(transaction, vector_index, state, result, scan_count, ScanVectorMode::REGULAR_SCAN, context);
 }
 
 idx_t ColumnData::ScanCommitted(idx_t vector_index, ColumnScanState &state, Vector &result, bool allow_updates,
@@ -342,22 +344,22 @@ idx_t ColumnData::ScanCount(ColumnScanState &state, Vector &result, idx_t scan_c
 	}
 	// ScanCount can only be used if there are no updates
 	D_ASSERT(!HasUpdates());
-	return ScanVector(state, result, scan_count, ScanVectorType::SCAN_FLAT_VECTOR, result_offset);
+	return ScanVector(state, result, scan_count, ScanVectorType::SCAN_FLAT_VECTOR, nullptr, result_offset);
 }
 
 void ColumnData::Filter(TransactionData transaction, idx_t vector_index, ColumnScanState &state, Vector &result,
-                        SelectionVector &sel, idx_t &s_count, const TableFilter &filter,
-                        TableFilterState &filter_state) {
-	idx_t scan_count = Scan(transaction, vector_index, state, result);
+                        SelectionVector &sel, idx_t &s_count, const TableFilter &filter, TableFilterState &filter_state,
+                        optional_ptr<ClientContext> context) {
+	idx_t scan_count = Scan(transaction, vector_index, state, result, context);
 
 	UnifiedVectorFormat vdata;
 	result.ToUnifiedFormat(scan_count, vdata);
-	ColumnSegment::FilterSelection(sel, result, vdata, filter, filter_state, scan_count, s_count);
+	ColumnSegment::FilterSelection(sel, result, vdata, filter, filter_state, scan_count, s_count, context);
 }
 
 void ColumnData::Select(TransactionData transaction, idx_t vector_index, ColumnScanState &state, Vector &result,
-                        SelectionVector &sel, idx_t s_count) {
-	Scan(transaction, vector_index, state, result);
+                        SelectionVector &sel, idx_t s_count, optional_ptr<ClientContext> context) {
+	Scan(transaction, vector_index, state, result, context);
 	result.Slice(sel, s_count);
 }
 
