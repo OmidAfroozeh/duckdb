@@ -366,15 +366,15 @@ void JoinHashTable::GetRowPointers(DataChunk &keys, TupleDataChunkState &key_sta
 void JoinHashTable::Hash(DataChunk &keys, const SelectionVector &sel, idx_t count, Vector &hashes) {
 	if (count == keys.size()) {
 		// no null values are filtered: use regular hash functions
-		VectorOperations::Hash(keys.data[0], hashes, keys.size());
+		VectorOperations::Hash(keys.data[0], hashes, keys.size(), context);
 		for (idx_t i = 1; i < equality_types.size(); i++) {
-			VectorOperations::CombineHash(hashes, keys.data[i], keys.size());
+			VectorOperations::CombineHash(hashes, keys.data[i], keys.size(), context);
 		}
 	} else {
 		// null values were filtered: use selection vector
-		VectorOperations::Hash(keys.data[0], hashes, sel, count);
+		VectorOperations::Hash(keys.data[0], hashes, sel, count, context);
 		for (idx_t i = 1; i < equality_types.size(); i++) {
-			VectorOperations::CombineHash(hashes, keys.data[i], sel, count);
+			VectorOperations::CombineHash(hashes, keys.data[i], sel, count, context);
 		}
 	}
 }
@@ -464,7 +464,7 @@ void JoinHashTable::Build(PartitionedTupleDataAppendState &append_state, DataChu
 	hash_values.ToUnifiedFormat(source_chunk.size(), append_state.chunk_state.vector_data.back().unified);
 
 	// We already called TupleDataCollection::ToUnifiedFormat, so we can AppendUnified here
-	sink_collection->AppendUnified(append_state, source_chunk, *current_sel, added_count);
+	sink_collection->AppendUnified(append_state, source_chunk, context, *current_sel, added_count);
 }
 
 idx_t JoinHashTable::PrepareKeys(DataChunk &keys, vector<TupleDataVectorFormat> &vector_data,
@@ -771,7 +771,7 @@ void JoinHashTable::Finalize(idx_t chunk_idx_from, idx_t chunk_idx_to, bool para
 	auto hash_data = FlatVector::GetData<hash_t>(hashes);
 
 	TupleDataChunkIterator iterator(*data_collection, TupleDataPinProperties::KEEP_EVERYTHING_PINNED, chunk_idx_from,
-	                                chunk_idx_to, false);
+	                                chunk_idx_to, false, context);
 	const auto row_locations = iterator.GetRowLocations();
 
 	InsertState insert_state(*this);
@@ -783,7 +783,7 @@ void JoinHashTable::Finalize(idx_t chunk_idx_from, idx_t chunk_idx_to, bool para
 		TupleDataChunkState &chunk_state = iterator.GetChunkState();
 
 		InsertHashes(hashes, count, chunk_state, insert_state, parallel);
-	} while (iterator.Next());
+	} while (iterator.Next(context));
 }
 
 void JoinHashTable::InitializeScanStructure(ScanStructure &scan_structure, DataChunk &keys,
@@ -1430,7 +1430,7 @@ void JoinHashTable::ScanFullOuter(JoinHTScanState &state, Vector &addresses, Dat
 	}
 }
 
-idx_t JoinHashTable::FillWithHTOffsets(JoinHTScanState &state, Vector &addresses) {
+idx_t JoinHashTable::FillWithHTOffsets(optional_ptr<ClientContext> context, JoinHTScanState &state, Vector &addresses) {
 	// iterate over HT
 	auto key_locations = FlatVector::GetData<data_ptr_t>(addresses);
 	idx_t key_count = 0;
@@ -1443,7 +1443,7 @@ idx_t JoinHashTable::FillWithHTOffsets(JoinHTScanState &state, Vector &addresses
 			key_locations[key_count + i] = row_locations[i];
 		}
 		key_count += count;
-	} while (iterator.Next());
+	} while (iterator.Next(context));
 
 	return key_count;
 }

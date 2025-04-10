@@ -6,21 +6,18 @@
 #include <string>
 namespace duckdb {
 
-uint64_t UnifiedStringsDictionary::USSR_prefix = 0;
-UnifiedStringsDictionary *UnifiedStringsDictionary::ussr_instance {nullptr};
-
-void UnifiedStringsDictionary::destroy_UnifiedStrings() {
-	// error prone, don't know how to fix
-	// for now only used for getting statistics, singleton causes memory leak!!!
-	if (ussr_instance) {
-		ussr_instance->buffer.reset();
-#ifdef DEBUG
-		ussr_instance->LinearProbingHT->getStatistics();
-#endif
-		delete ussr_instance;
-		ussr_instance = nullptr;
-	}
-}
+// void UnifiedStringsDictionary::destroy_UnifiedStrings() {
+//	// error prone, don't know how to fix
+//	// for now only used for getting statistics, singleton causes memory leak!!!
+//	if (ussr_instance) {
+//		ussr_instance->buffer.reset();
+//#ifdef DEBUG
+//		ussr_instance->LinearProbingHT->getStatistics();
+//#endif
+//		delete ussr_instance;
+//		ussr_instance = nullptr;
+//	}
+//}
 
 UnifiedStringsDictionary::UnifiedStringsDictionary() {
 
@@ -48,15 +45,15 @@ UnifiedStringsDictionary::UnifiedStringsDictionary() {
 	LinearProbingHT = make_uniq<LinearProbingHashTable>(HT_address);
 }
 
-UnifiedStringsDictionary *UnifiedStringsDictionary::getInstance() {
-	//	static std::mutex* singletonLock = new std::mutex();
-	static std::mutex &singletonLock = *new std::mutex();
-	lock_guard<std::mutex> guard(singletonLock);
-	if (!ussr_instance) {
-		ussr_instance = new UnifiedStringsDictionary();
-	}
-	return ussr_instance;
-}
+// UnifiedStringsDictionary *UnifiedStringsDictionary::getInstance() {
+//	//	static std::mutex* singletonLock = new std::mutex();
+//	static std::mutex &singletonLock = *new std::mutex();
+//	lock_guard<std::mutex> guard(singletonLock);
+//	if (!ussr_instance) {
+//		ussr_instance = new UnifiedStringsDictionary();
+//	}
+//	return ussr_instance;
+//}
 
 string_t UnifiedStringsDictionary::insert(string_t str) {
 	// no support for short strings now
@@ -96,6 +93,14 @@ string_t UnifiedStringsDictionary::insert(string_t str) {
 	}
 
 	return str;
+}
+
+UnifiedStringsDictionary::~UnifiedStringsDictionary() {
+	this->buffer.reset();
+//	this->LinearProbingHT.reset();
+#ifdef DEBUG
+//	this->LinearProbingHT->getStatistics();
+#endif
 }
 
 LinearProbingHashTable::LinearProbingHashTable(data_ptr_t bufferHT) {

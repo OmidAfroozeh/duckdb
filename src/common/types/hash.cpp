@@ -146,8 +146,6 @@ hash_t Hash(string_t val) {
 		D_ASSERT(h == Hash(val.GetData(), val.GetSize()));
 
 		return h;
-	} else if ((USSR_MASK & cast_pointer_to_uint64(val.GetPointer())) == UnifiedStringsDictionary::USSR_prefix) {
-		return *(reinterpret_cast<uint64_t *>(val.GetPointer()) - 1);
 	}
 	// Required for DUCKDB_DEBUG_NO_INLINE
 	return HashBytes<string_t::INLINE_LENGTH >= sizeof(hash_t)>(const_data_ptr_cast(val.GetData()), val.GetSize());
@@ -164,6 +162,13 @@ hash_t Hash(const char *val, size_t size) {
 
 hash_t Hash(uint8_t *val, size_t size) {
 	return HashBytes(const_data_ptr_cast(val), size);
+}
+
+hash_t string_hash(string_t val, uint64_t ussr_prefix, bool) {
+	if (!val.IsInlined() && (0xFFFFFFFFFFF80000 & cast_pointer_to_uint64(val.GetPointer())) == ussr_prefix) {
+		return *(reinterpret_cast<uint64_t *>(val.GetPointer()) - 1);
+	}
+	return Hash(val);
 }
 
 } // namespace duckdb

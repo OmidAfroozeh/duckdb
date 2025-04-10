@@ -48,7 +48,7 @@ static void TemplatedGatherLoop(Vector &rows, const SelectionVector &row_sel, Ve
 
 static void GatherVarchar(Vector &rows, const SelectionVector &row_sel, Vector &col, const SelectionVector &col_sel,
                           idx_t count, const RowLayout &layout, idx_t col_no, idx_t build_size,
-                          data_ptr_t base_heap_ptr) {
+                          data_ptr_t base_heap_ptr, optional_ptr<ClientContext> context) {
 	// Precompute mask indexes
 	const auto &offsets = layout.GetOffsets();
 	const auto col_offset = offsets[col_no];
@@ -75,11 +75,18 @@ static void GatherVarchar(Vector &rows, const SelectionVector &row_sel, Vector &
 			}
 			col_mask.SetInvalid(col_idx);
 		} else if (base_heap_ptr && Load<uint32_t>(col_ptr) > string_t::INLINE_LENGTH) {
-			//	Not inline, so unswizzle the copied pointer the pointer
-			auto heap_ptr_ptr = row + heap_offset;
-			auto heap_row_ptr = base_heap_ptr + Load<idx_t>(heap_ptr_ptr);
-			auto string_ptr = data_ptr_t(data + col_idx) + string_t::HEADER_SIZE;
-			Store<data_ptr_t>(heap_row_ptr + Load<idx_t>(string_ptr), string_ptr);
+			if ((0xFFFFFFFFFFF80000 & cast_pointer_to_uint64(data[col_idx].GetPointer())) !=
+			    context->GetCurrentQueryUssr().USSR_prefix) {
+				//	Not inline, so unswizzle the copied pointer the pointer
+				auto heap_ptr_ptr = row + heap_offset;
+				auto heap_row_ptr = base_heap_ptr + Load<idx_t>(heap_ptr_ptr);
+				auto string_ptr = data_ptr_t(data + col_idx) + string_t::HEADER_SIZE;
+				Store<data_ptr_t>(heap_row_ptr + Load<idx_t>(string_ptr), string_ptr);
+			} else {
+				auto str = data[col_idx];
+				str.GetSize();
+			}
+
 #ifdef DEBUG
 			data[col_idx].Verify();
 #endif
@@ -118,8 +125,8 @@ static void GatherNestedVector(Vector &rows, const SelectionVector &row_sel, Vec
 }
 
 void RowOperations::Gather(Vector &rows, const SelectionVector &row_sel, Vector &col, const SelectionVector &col_sel,
-                           const idx_t count, const RowLayout &layout, const idx_t col_no, const idx_t build_size,
-                           data_ptr_t heap_ptr) {
+                           const idx_t count, const RowLayout &layout, const idx_t col_no,
+                           optional_ptr<ClientContext> context, const idx_t build_size, data_ptr_t heap_ptr) {
 	D_ASSERT(rows.GetVectorType() == VectorType::FLAT_VECTOR);
 	D_ASSERT(rows.GetType().id() == LogicalTypeId::POINTER); // "Cannot gather from non-pointer type!"
 
@@ -166,7 +173,7 @@ void RowOperations::Gather(Vector &rows, const SelectionVector &row_sel, Vector 
 		TemplatedGatherLoop<interval_t>(rows, row_sel, col, col_sel, count, layout, col_no, build_size);
 		break;
 	case PhysicalType::VARCHAR:
-		GatherVarchar(rows, row_sel, col, col_sel, count, layout, col_no, build_size, heap_ptr);
+		GatherVarchar(rows, row_sel, col, col_sel, count, layout, col_no, build_size, heap_ptr, context);
 		break;
 	case PhysicalType::LIST:
 	case PhysicalType::STRUCT:
