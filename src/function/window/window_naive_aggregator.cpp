@@ -248,7 +248,7 @@ void WindowNaiveState::Evaluate(const WindowAggregatorGlobalState &gsink, const 
 							orderby_sort.Reference(arg_orderer->chunk);
 							orderby_sort.Slice(orderby_sel, orderby_count);
 							orderby_payload.SetCardinality(orderby_count);
-							local_sort.SinkChunk(orderby_sort, orderby_payload);
+							local_sort.SinkChunk(orderby_sort, orderby_payload, global_sort.context);
 						}
 						orderby_count = 0;
 						arg_orderer->Seek(f);
@@ -261,7 +261,7 @@ void WindowNaiveState::Evaluate(const WindowAggregatorGlobalState &gsink, const 
 				orderby_sort.Reference(arg_orderer->chunk);
 				orderby_sort.Slice(orderby_sel, orderby_count);
 				orderby_payload.SetCardinality(orderby_count);
-				local_sort.SinkChunk(orderby_sort, orderby_payload);
+				local_sort.SinkChunk(orderby_sort, orderby_payload, context);
 			}
 
 			global_sort.AddLocalState(local_sort);

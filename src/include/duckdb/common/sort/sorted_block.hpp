@@ -155,6 +155,7 @@ public:
 	void Scan(DataChunk &chunk);
 
 private:
+	optional_ptr<ClientContext> context;
 	//! The sorted data being scanned
 	unique_ptr<RowDataCollection> rows;
 	unique_ptr<RowDataCollection> heap;

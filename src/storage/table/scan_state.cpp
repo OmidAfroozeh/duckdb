@@ -179,9 +179,10 @@ CollectionScanState::CollectionScanState(TableScanState &parent_p)
       valid_sel(STANDARD_VECTOR_SIZE), random(-1), parent(parent_p) {
 }
 
-bool CollectionScanState::Scan(DuckTransaction &transaction, DataChunk &result) {
+bool CollectionScanState::Scan(DuckTransaction &transaction, DataChunk &result,
+                               optional_ptr<ClientContext> client_context) {
 	while (row_group) {
-		row_group->Scan(transaction, *this, result);
+		row_group->Scan(transaction, *this, result, client_context);
 		if (result.size() > 0) {
 			return true;
 		} else if (max_row <= row_group->start + row_group->count) {
