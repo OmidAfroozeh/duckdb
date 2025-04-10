@@ -54,7 +54,7 @@ string_t UnifiedStringsDictionary::insert(string_t str) {
 
 string_t UnifiedStringsDictionary::insertInternal(duckdb::string_t str, hash_t hash) {
 
-	if (nRejections_Probing.load() + nRejections_SizeFull.load() > ATTEMPT_THRESHOLD / 10) {
+	if (nRejections_Probing.load() + nRejections_SizeFull.load() > ATTEMPT_THRESHOLD / 100) {
 		return str;
 	}
 
@@ -85,7 +85,7 @@ string_t UnifiedStringsDictionary::insertInternal(duckdb::string_t str, hash_t h
 			already_in++;
 			auto slot_ptr = data_ptr_cast(DataRegion + (bucket & 0x0000FFFF));
 			// double checking that the string found is equal to the original string
-			auto res_str = string_t(const_char_ptr_cast(slot_ptr+1), UnsafeNumericCast<uint32_t>(str.GetSize()));
+			auto res_str = string_t(const_char_ptr_cast(slot_ptr+1), UnsafeNumericCast<uint32_t>(*slot_ptr));
 			return (res_str == str) ? res_str : str;
 		}
 
@@ -120,7 +120,7 @@ string_t UnifiedStringsDictionary::insertInternal(duckdb::string_t str, hash_t h
 					already_in++;
 					auto slot_ptr = data_ptr_cast(DataRegion + (HT[slot + i] & 0x0000FFFF));
 					// double checking that the string found is equal to the original string
-					auto res_str = string_t(const_char_ptr_cast(slot_ptr+1), UnsafeNumericCast<uint32_t>(str.GetSize()));
+					auto res_str = string_t(const_char_ptr_cast(slot_ptr+1), UnsafeNumericCast<uint32_t>(*slot_ptr));
 					if (res_str == str) {
 						return res_str;
 					} else {
@@ -146,7 +146,7 @@ string_t UnifiedStringsDictionary::insertInternal(duckdb::string_t str, hash_t h
 			memcpy(slot_ptr - 8, &h, 8);
 			(reinterpret_cast<atomic<uint32_t> *>(HT + slot + i))->store(newBucket, std::memory_order_release);
 
-			return string_t(const_char_ptr_cast(slot_ptr), UnsafeNumericCast<uint32_t>(str.GetSize()));
+			return string_t(const_char_ptr_cast(slot_ptr+1), UnsafeNumericCast<uint32_t>(*slot_ptr));
 		}
 	}
 	nRejections_Probing++;
