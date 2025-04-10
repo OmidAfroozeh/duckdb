@@ -357,7 +357,7 @@ void LocalStorage::InitializeScan(DataTable &table, CollectionScanState &state,
 }
 
 void LocalStorage::Scan(CollectionScanState &state, const vector<StorageIndex> &, DataChunk &result) {
-	state.Scan(transaction, result);
+	state.Scan(transaction, result, context);
 }
 
 void LocalStorage::InitializeParallelScan(DataTable &table, ParallelCollectionScanState &state) {

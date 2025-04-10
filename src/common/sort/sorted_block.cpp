@@ -69,7 +69,8 @@ void SortedData::Unswizzle() {
 		D_ASSERT(data_block->block->IsSwizzled());
 		auto data_handle_p = buffer_manager.Pin(data_block->block);
 		auto heap_handle_p = buffer_manager.Pin(heap_block->block);
-		RowOperations::UnswizzlePointers(layout, data_handle_p.Ptr(), heap_handle_p.Ptr(), data_block->count);
+		RowOperations::UnswizzlePointers(layout, data_handle_p.Ptr(), heap_handle_p.Ptr(), data_block->count,
+		                                 state.context);
 		state.heap_blocks.push_back(std::move(heap_block));
 		state.pinned_blocks.push_back(std::move(heap_handle_p));
 	}
@@ -290,6 +291,8 @@ PayloadScanner::PayloadScanner(SortedData &sorted_data, GlobalSortState &global_
 	auto &layout = sorted_data.layout;
 	const auto block_size = global_sort_state.buffer_manager.GetBlockSize();
 
+	context = global_sort_state.context;
+
 	// Create collections to put the data into so we can use RowDataCollectionScanner
 	rows = make_uniq<RowDataCollection>(global_sort_state.buffer_manager, block_size, 1U);
 	rows->count = count;
@@ -330,6 +333,8 @@ PayloadScanner::PayloadScanner(GlobalSortState &global_sort_state, idx_t block_i
 	auto &layout = sorted_data.layout;
 	const auto block_size = global_sort_state.buffer_manager.GetBlockSize();
 
+	context = global_sort_state.context;
+
 	// Create collections to put the data into so we can use RowDataCollectionScanner
 	rows = make_uniq<RowDataCollection>(global_sort_state.buffer_manager, block_size, 1U);
 	if (flush_p) {
@@ -353,7 +358,7 @@ PayloadScanner::PayloadScanner(GlobalSortState &global_sort_state, idx_t block_i
 }
 
 void PayloadScanner::Scan(DataChunk &chunk) {
-	scanner->Scan(chunk);
+	scanner->Scan(chunk, context);
 }
 
 int SBIterator::ComparisonValue(ExpressionType comparison) {

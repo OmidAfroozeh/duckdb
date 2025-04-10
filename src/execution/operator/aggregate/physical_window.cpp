@@ -570,7 +570,7 @@ WindowHashGroup::WindowHashGroup(WindowGlobalSinkState &gstate, const idx_t hash
 		//	No partition - align the heap blocks with the row blocks
 		rows = gpart.rows->CloneEmpty(gpart.rows->keep_pinned);
 		heap = gpart.strings->CloneEmpty(gpart.strings->keep_pinned);
-		RowDataCollectionScanner::AlignHeapBlocks(*rows, *heap, *gpart.rows, *gpart.strings, layout);
+		RowDataCollectionScanner::AlignHeapBlocks(*rows, *heap, *gpart.rows, *gpart.strings, layout, gstate.context);
 		external = true;
 	} else if (hash_bin < gpart.hash_groups.size()) {
 		// Overwrite the collections with the sorted data
@@ -698,7 +698,7 @@ void WindowLocalSourceState::Sink() {
 			//	TODO: Try to align on validity mask boundaries by starting ragged?
 			idx_t input_idx = scanner->Scanned();
 			input_chunk.Reset();
-			scanner->Scan(input_chunk);
+			scanner->Scan(input_chunk, gsink.context);
 			if (input_chunk.size() == 0) {
 				break;
 			}
@@ -733,7 +733,7 @@ void WindowLocalSourceState::Sink() {
 		}
 
 		// External scanning assumes all blocks are swizzled.
-		scanner->SwizzleBlock(task->begin_idx);
+		scanner->SwizzleBlock(task->begin_idx, gsink.context);
 		scanner.reset();
 	}
 }
@@ -905,7 +905,7 @@ void WindowLocalSourceState::GetData(DataChunk &result) {
 
 	const auto position = scanner->Scanned();
 	input_chunk.Reset();
-	scanner->Scan(input_chunk);
+	scanner->Scan(input_chunk, gsource.context);
 
 	const auto &executors = gsource.gsink.executors;
 	auto &gestates = window_hash_group->gestates;

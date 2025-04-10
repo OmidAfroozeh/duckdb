@@ -208,7 +208,7 @@ public:
 };
 
 template <class T>
-unique_ptr<SegmentScanState> AlpRDInitScan(ColumnSegment &segment) {
+unique_ptr<SegmentScanState> AlpRDInitScan(ColumnSegment &segment, optional_ptr<ClientContext> context = nullptr) {
 	auto result = make_uniq_base<SegmentScanState, AlpRDScanState<T>>(segment);
 	return result;
 }

@@ -396,14 +396,14 @@ struct SortedAggregateState {
 				PrefixSortBuffer(prefixed);
 				arg_chunk->Reset();
 				arguments->Scan(arg_state, *arg_chunk);
-				local_sort.SinkChunk(prefixed, *arg_chunk);
+				local_sort.SinkChunk(prefixed, *arg_chunk, order_bind.context);
 			}
 		} else if (ordering) {
 			ColumnDataScanState sort_state;
 			ordering->InitializeScan(sort_state);
 			for (sort_chunk->Reset(); ordering->Scan(sort_state, *sort_chunk); sort_chunk->Reset()) {
 				PrefixSortBuffer(prefixed);
-				local_sort.SinkChunk(prefixed, *sort_chunk);
+				local_sort.SinkChunk(prefixed, *sort_chunk, order_bind.context);
 			}
 		} else {
 			//	Force chunks so we can sort
@@ -413,9 +413,9 @@ struct SortedAggregateState {
 
 			PrefixSortBuffer(prefixed);
 			if (arg_chunk) {
-				local_sort.SinkChunk(prefixed, *arg_chunk);
+				local_sort.SinkChunk(prefixed, *arg_chunk, order_bind.context);
 			} else {
-				local_sort.SinkChunk(prefixed, *sort_chunk);
+				local_sort.SinkChunk(prefixed, *sort_chunk, order_bind.context);
 			}
 		}
 
