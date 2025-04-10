@@ -55,7 +55,7 @@ void PhysicalRangeJoin::LocalSortedTable::Sink(DataChunk &input, GlobalSortState
 	join_head.SetCardinality(keys.size());
 
 	// Sink the data into the local sort state
-	local_sort_state.SinkChunk(join_head, input);
+	local_sort_state.SinkChunk(join_head, input, global_sort_state.context);
 }
 
 PhysicalRangeJoin::GlobalSortedTable::GlobalSortedTable(ClientContext &context, const vector<BoundOrderByNode> &orders,
@@ -365,7 +365,8 @@ BufferHandle PhysicalRangeJoin::SliceSortedPayload(DataChunk &payload, GlobalSor
 	auto sel = FlatVector::IncrementalSelectionVector();
 	for (idx_t col_no = 0; col_no < sorted_data.layout.ColumnCount(); col_no++) {
 		auto &col = payload.data[left_cols + col_no];
-		RowOperations::Gather(addresses, *sel, col, *sel, addr_count, sorted_data.layout, col_no, 0, heap_ptr);
+		RowOperations::Gather(addresses, *sel, col, *sel, addr_count, sorted_data.layout, col_no, state.context, 0,
+		                      heap_ptr);
 		col.Slice(gsel, result_count);
 	}
 

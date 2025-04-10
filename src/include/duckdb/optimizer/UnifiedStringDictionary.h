@@ -11,21 +11,22 @@
 
 namespace duckdb {
 
-static constexpr uint64_t BUFFER_SIZE = static_cast<uint64_t>(1024 * 1024);
-
-static constexpr uint64_t USSR_MASK = 0xFFFFFFFFFFF80000;
-
-static constexpr uint64_t USSR_SLOT_SIZE = 8;
-static constexpr uint64_t USSR_SIZE = 0xFFFF;
-
-// first two bytes are the slot number into the data region
-// and the second two bytes are the hash extract (a part of the original string's hash)
-static constexpr uint64_t HT_BUCKET_SIZE = 4;
-static constexpr uint64_t HT_SIZE = 0xFFFF;
-
-static constexpr idx_t PROBING_LIMIT = 3;
-
 struct LinearProbingHashTable {
+private:
+	static constexpr uint64_t BUFFER_SIZE = static_cast<uint64_t>(1024 * 1024);
+
+	static constexpr uint64_t USSR_MASK = 0xFFFFFFFFFFF80000;
+
+	static constexpr uint64_t USSR_SLOT_SIZE = 8;
+	static constexpr uint64_t USSR_SIZE = 0xFFFF;
+
+	// first two bytes are the slot number into the data region
+	// and the second two bytes are the hash extract (a part of the original string's hash)
+	static constexpr uint64_t HT_BUCKET_SIZE = 4;
+	static constexpr uint64_t HT_SIZE = 0xFFFF;
+
+	static constexpr idx_t PROBING_LIMIT = 3;
+
 private:
 	uint64_t currentEmptySlot;
 
@@ -50,9 +51,22 @@ public:
 
 // Singleton
 class UnifiedStringsDictionary {
-private:
-	static UnifiedStringsDictionary *ussr_instance;
+public:
+	static constexpr uint64_t BUFFER_SIZE = static_cast<uint64_t>(1024 * 1024);
 
+	static constexpr uint64_t USSR_MASK = 0xFFFFFFFFFFF80000;
+
+	static constexpr uint64_t USSR_SLOT_SIZE = 8;
+	static constexpr uint64_t USSR_SIZE = 0xFFFF;
+
+	// first two bytes are the slot number into the data region
+	// and the second two bytes are the hash extract (a part of the original string's hash)
+	static constexpr uint64_t HT_BUCKET_SIZE = 4;
+	static constexpr uint64_t HT_SIZE = 0xFFFF;
+
+	static constexpr idx_t PROBING_LIMIT = 3;
+
+private:
 	// Overarching USSR buffer, contains DataRegion + HT + extra, 1MB size
 	unsafe_unique_array<data_t> buffer;
 	// Start of the DataRegion
@@ -60,19 +74,15 @@ private:
 
 	unique_ptr<LinearProbingHashTable> LinearProbingHT;
 
-	// private constructor
-	UnifiedStringsDictionary();
-
 	// temporary solution for concurrency
 	std::mutex insertLock;
 
 public:
-	static UnifiedStringsDictionary *getInstance();
-	static uint64_t USSR_prefix;
+	UnifiedStringsDictionary();
+	~UnifiedStringsDictionary();
+	uint64_t USSR_prefix;
 
 	string_t insert(string_t str);
-
-	static void destroy_UnifiedStrings();
 };
 
 } // namespace duckdb

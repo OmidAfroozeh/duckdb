@@ -239,11 +239,11 @@ void PartitionLocalMergeState::Scan() {
 
 	TupleDataScanState local_scan;
 	group_data.InitializeScan(local_scan, merge_state->column_ids);
-	while (group_data.Scan(chunk_state, local_scan, payload_chunk)) {
+	while (group_data.Scan(chunk_state, local_scan, payload_chunk, global_sort.context)) {
 		sort_chunk.Reset();
 		executor.Execute(payload_chunk, sort_chunk);
 
-		local_sort.SinkChunk(sort_chunk, payload_chunk);
+		local_sort.SinkChunk(sort_chunk, payload_chunk, global_sort.context);
 		if (local_sort.SizeInBytes() > merge_state->memory_per_thread) {
 			local_sort.Sort(global_sort, true);
 		}
@@ -300,9 +300,9 @@ void PartitionLocalSinkState::Hash(DataChunk &input_chunk, Vector &hash_vector) 
 	// OVER(PARTITION BY...) (hash grouping)
 	group_chunk.Reset();
 	executor.Execute(input_chunk, group_chunk);
-	VectorOperations::Hash(group_chunk.data[0], hash_vector, count);
+	VectorOperations::Hash(group_chunk.data[0], hash_vector, count, executor.GetContext());
 	for (idx_t prt_idx = 1; prt_idx < group_chunk.ColumnCount(); ++prt_idx) {
-		VectorOperations::CombineHash(hash_vector, group_chunk.data[prt_idx], count);
+		VectorOperations::CombineHash(hash_vector, group_chunk.data[prt_idx], count, executor.GetContext());
 	}
 }
 
@@ -326,7 +326,8 @@ void PartitionLocalSinkState::Sink(DataChunk &input_chunk) {
 		const auto prev_rows_blocks = rows->blocks.size();
 		auto handles = rows->Build(row_count, key_locations, nullptr, row_sel);
 		auto input_data = input_chunk.ToUnifiedFormat();
-		RowOperations::Scatter(input_chunk, input_data.get(), payload_layout, addresses, *strings, *row_sel, row_count);
+		RowOperations::Scatter(input_chunk, input_data.get(), payload_layout, addresses, *strings, *row_sel, row_count,
+		                       gstate.context);
 		// Mark that row blocks contain pointers (heap blocks are pinned)
 		if (!payload_layout.AllConstant()) {
 			D_ASSERT(strings->keep_pinned);
@@ -341,7 +342,7 @@ void PartitionLocalSinkState::Sink(DataChunk &input_chunk) {
 		//	OVER(ORDER BY...)
 		group_chunk.Reset();
 		executor.Execute(input_chunk, group_chunk);
-		local_sort->SinkChunk(group_chunk, input_chunk);
+		local_sort->SinkChunk(group_chunk, input_chunk, gstate.context);
 
 		auto &hash_group = *gstate.hash_groups[0];
 		hash_group.count += input_chunk.size();
@@ -363,7 +364,7 @@ void PartitionLocalSinkState::Sink(DataChunk &input_chunk) {
 	payload_chunk.SetCardinality(input_chunk);
 
 	gstate.UpdateLocalPartition(local_partition, local_append);
-	local_partition->Append(*local_append, payload_chunk);
+	local_partition->Append(*local_append, payload_chunk, gstate.context);
 }
 
 void PartitionLocalSinkState::Combine() {
