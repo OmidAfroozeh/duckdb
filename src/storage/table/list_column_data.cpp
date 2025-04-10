@@ -85,7 +85,7 @@ void ListColumnData::InitializeScanWithOffset(ColumnScanState &state, idx_t row_
 }
 
 idx_t ListColumnData::Scan(TransactionData transaction, idx_t vector_index, ColumnScanState &state, Vector &result,
-                           idx_t scan_count) {
+                           idx_t scan_count, optional_ptr<ClientContext> context) {
 	return ScanCount(state, result, scan_count);
 }
 

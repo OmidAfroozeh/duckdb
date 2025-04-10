@@ -367,7 +367,7 @@ idx_t IEJoinUnion::AppendKey(SortedTable &table, ExpressionExecutor &executor, S
 
 		// Sort on the sort columns (which will no longer be needed)
 		keys.Split(payload, payload_idx);
-		local_sort_state.SinkChunk(keys, payload);
+		local_sort_state.SinkChunk(keys, payload, executor.GetContext());
 		inserted += scan_count;
 		keys.Fuse(payload);
 
