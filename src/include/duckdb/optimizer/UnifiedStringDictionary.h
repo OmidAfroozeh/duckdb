@@ -15,6 +15,7 @@ namespace duckdb {
 class UnifiedStringsDictionary {
 public:
 	static constexpr uint64_t ATTEMPT_THRESHOLD = 100000;
+	static constexpr uint64_t MAX_STRING_LENGTH = 256;
 
 	    static constexpr uint64_t BUFFER_SIZE = static_cast<uint64_t>(1024 * 1024);
 

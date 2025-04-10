@@ -45,7 +45,7 @@ UnifiedStringsDictionary::UnifiedStringsDictionary() {
 
 string_t UnifiedStringsDictionary::insert(string_t str) {
 	// no support for short strings now
-	if (str.IsInlined()) {
+	if (str.IsInlined() || str.GetSize() > MAX_STRING_LENGTH) {
 		return str;
 	}
 
@@ -58,12 +58,8 @@ string_t UnifiedStringsDictionary::insertInternal(duckdb::string_t str, hash_t h
 		return str;
 	}
 
-	hash_t h = HashString(const_data_ptr_cast(str.GetData()), str.GetSize());
-	//	if(!hash){
-	//		h = Hash(str);
-	//	} else{
-	//		h = hash;
-	//	}
+	hash_t h = Hash(str);
+
 	uint32_t hashPrefix = Load<uint32_t>(const_data_ptr_cast(&h));
 
 	candidates++;
@@ -87,13 +83,9 @@ string_t UnifiedStringsDictionary::insertInternal(duckdb::string_t str, hash_t h
 		if (bucket_hashExtract == hashExtract) {
 			// wrong already_in, do this after checking if equal
 			already_in++;
-			auto slot_ptr = DataRegion + (bucket & 0x0000FFFF);
+			auto slot_ptr = data_ptr_cast(DataRegion + (bucket & 0x0000FFFF));
 			// double checking that the string found is equal to the original string
-			auto len = strlen(const_char_ptr_cast(slot_ptr));
-			if (len != str.GetSize()) {
-				return str;
-			}
-			auto res_str = string_t(const_char_ptr_cast(slot_ptr), UnsafeNumericCast<uint32_t>(str.GetSize()));
+			auto res_str = string_t(const_char_ptr_cast(slot_ptr+1), UnsafeNumericCast<uint32_t>(str.GetSize()));
 			return (res_str == str) ? res_str : str;
 		}
 
@@ -126,13 +118,9 @@ string_t UnifiedStringsDictionary::insertInternal(duckdb::string_t str, hash_t h
 				auto slot_hashExtract = HT[slot + i] >> 16;
 				if (slot_hashExtract == hashExtract) {
 					already_in++;
-					auto slot_ptr = DataRegion + (HT[slot + i] & 0x0000FFFF);
+					auto slot_ptr = data_ptr_cast(DataRegion + (HT[slot + i] & 0x0000FFFF));
 					// double checking that the string found is equal to the original string
-					auto len = strlen(const_char_ptr_cast(slot_ptr));
-					if (len != str.GetSize()) {
-						return str;
-					}
-					auto res_str = string_t(const_char_ptr_cast(slot_ptr), UnsafeNumericCast<uint32_t>(str.GetSize()));
+					auto res_str = string_t(const_char_ptr_cast(slot_ptr+1), UnsafeNumericCast<uint32_t>(str.GetSize()));
 					if (res_str == str) {
 						return res_str;
 					} else {
@@ -148,16 +136,14 @@ string_t UnifiedStringsDictionary::insertInternal(duckdb::string_t str, hash_t h
 			// 1 slot for the pre-computed hash,
 			currentEmptySlot += increasedSlot;
 			D_ASSERT(ret < currentEmptySlot);
-			auto slot_ptr = DataRegion + ret;
+			auto slot_ptr = data_ptr_cast(DataRegion + ret);
 
 			D_ASSERT(cast_pointer_to_uint64(slot_ptr) > cast_pointer_to_uint64(DataRegion));
 			D_ASSERT(cast_pointer_to_uint64(slot_ptr) <
 			         cast_pointer_to_uint64(DataRegion + USSR_SIZE * USSR_SLOT_SIZE));
-
-			memcpy(slot_ptr, str.GetData(), str.GetSize());
-			auto actual_hash = Hash(str);
-			memcpy(slot_ptr - 1, &actual_hash, 8);
-			memset(slot_ptr + str.GetSize(), '\0', 1);
+			memset(slot_ptr, UnsafeNumericCast<uint8_t>(str.GetSize()), 1);
+			memcpy(slot_ptr + 1, str.GetData(), str.GetSize());
+			memcpy(slot_ptr - 8, &h, 8);
 			(reinterpret_cast<atomic<uint32_t> *>(HT + slot + i))->store(newBucket, std::memory_order_release);
 
 			return string_t(const_char_ptr_cast(slot_ptr), UnsafeNumericCast<uint32_t>(str.GetSize()));
