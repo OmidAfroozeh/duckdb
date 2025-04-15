@@ -50,18 +50,15 @@ string_t UnifiedStringsDictionary::insert(string_t str) {
 
 	return insertInternal(str);
 }
-string_t UnifiedStringsDictionary::insertInternal(duckdb::string_t str, hash_t hash) {
 
-	if (nRejections_Probing.load() + nRejections_SizeFull.load() > ATTEMPT_THRESHOLD / 10) {
+string_t UnifiedStringsDictionary::insertInternal(string_t str) {
+
+	if (nRejections_Probing.load(std::memory_order_relaxed) + nRejections_SizeFull.load(std::memory_order_relaxed) > ATTEMPT_THRESHOLD / 10) {
 		return str;
 	}
 
 	hash_t h = Hash(str);
-	//	if(!hash){
-	//		h = Hash(str);
-	//	} else{
-	//		h = hash;
-	//	}
+
 	uint32_t hashPrefix = Load<uint32_t>(const_data_ptr_cast(&h));
 
 	candidates++;
@@ -108,12 +105,7 @@ string_t UnifiedStringsDictionary::insertInternal(duckdb::string_t str, hash_t h
 			uint32_t newBucket = UnsafeNumericCast<uint32_t>(hashExtract);
 			newBucket = newBucket << 16;
 			newBucket |= UnsafeNumericCast<uint32_t>(currentEmptySlot);
-			//	Printer::Print(to_string(currentEmptySlot));
 
-			//			if((newBucket & 0x0000FFFF) != currentEmptySlot){
-			//				Printer::Print(to_string(currentEmptySlot));
-			//				//		Printer::Print("fuck");
-			//			}
 			D_ASSERT((newBucket & 0x0000FFFF) == currentEmptySlot);
 
 			// another thread inserted
@@ -121,7 +113,6 @@ string_t UnifiedStringsDictionary::insertInternal(duckdb::string_t str, hash_t h
 				auto slot_hashExtract = HT[slot + i] >> 16;
 				if (slot_hashExtract == hashExtract) {
 					already_in++;
-					Printer::Print("eheh1");
 					auto slot_ptr = data_ptr_cast(DataRegion + (HT[slot + i] & 0x0000FFFF));
 
 					auto res_str = string_t(const_char_ptr_cast(slot_ptr +  1), UnsafeNumericCast<uint32_t>(*slot_ptr));
@@ -131,7 +122,6 @@ string_t UnifiedStringsDictionary::insertInternal(duckdb::string_t str, hash_t h
 						continue;
 					}
 				} else {
-					Printer::Print("eheh2");
 					continue;
 				}
 			}
