@@ -53,7 +53,7 @@ string_t UnifiedStringsDictionary::insert(string_t str) {
 
 string_t UnifiedStringsDictionary::insertInternal(string_t str) {
 
-	if (nRejections_SizeFull.load(std::memory_order_relaxed) > ATTEMPT_THRESHOLD) {
+	if (nRejections_Probing.load(std::memory_order_relaxed) + nRejections_SizeFull.load(std::memory_order_relaxed) > ATTEMPT_THRESHOLD) {
 		return str;
 	}
 
