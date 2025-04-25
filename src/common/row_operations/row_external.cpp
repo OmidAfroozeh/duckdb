@@ -166,10 +166,10 @@ void RowOperations::UnswizzlePointers(const RowLayout &layout, const data_ptr_t 
 								Store<data_ptr_t>(heap_row_ptrs[i] + Load<idx_t>(string_ptr), string_ptr);
 							} else {
 								//							Printer::Print(to_string(reinterpret_cast<uint64_t>(str.GetPointer())));
-								//							Printer::Print(to_string(reinterpret_cast<uint64_t>(string_ptr) +
-								//reinterpret_cast<uint64_t>(heap_row_ptrs[i]) ));
-								//							Printer::Print(to_string(reinterpret_cast<uint64_t>(string_ptr +
-								//4)));
+								//							Printer::Print(to_string(reinterpret_cast<uint64_t>(string_ptr)
+								//+ reinterpret_cast<uint64_t>(heap_row_ptrs[i]) ));
+								//							Printer::Print(to_string(reinterpret_cast<uint64_t>(string_ptr
+								//+ 4)));
 								//
 								//							Printer::Print(to_string(context->GetCurrentQueryUssr().USSR_prefix));
 								//							Printer::Print(str.GetString());
