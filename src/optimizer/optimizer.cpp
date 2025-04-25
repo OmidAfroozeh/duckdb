@@ -36,6 +36,8 @@
 #include "duckdb/planner/binder.hpp"
 #include "duckdb/planner/planner.hpp"
 
+#include "duckdb/optimizer/UnifiedStringDictionary_Optimizer.h"
+
 namespace duckdb {
 
 Optimizer::Optimizer(Binder &binder, ClientContext &context) : context(context), binder(binder), rewriter(context) {
@@ -120,6 +122,9 @@ void Optimizer::RunBuiltInOptimizers() {
 
 	// Rewrites SUM(x + C) into SUM(x) + C * COUNT(x)
 	RunOptimizer(OptimizerType::SUM_REWRITER, [&]() {
+		USSR_optimizer ussrOptimizer(this, plan);
+		plan = ussrOptimizer.CheckUnifiedDictionary(std::move(plan));
+
 		SumRewriterOptimizer optimizer(*this);
 		optimizer.Optimize(plan);
 	});
