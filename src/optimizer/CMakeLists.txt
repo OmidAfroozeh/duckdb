@@ -36,7 +36,8 @@ add_library_unity(
   unnest_rewriter.cpp
   sampling_pushdown.cpp
   sum_rewriter.cpp
-  UnifiedStringDictionary.cpp)
+  UnifiedStringDictionary.cpp
+  UnifiedStringDictionary_Optimizer.cpp)
 set(ALL_OBJECT_FILES
     ${ALL_OBJECT_FILES} $<TARGET_OBJECTS:duckdb_optimizer>
     PARENT_SCOPE)
