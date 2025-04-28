@@ -118,7 +118,7 @@ enum class PhysicalOperatorType : uint8_t {
 	EXTENSION,
 	VERIFY_VECTOR,
 	UPDATE_EXTENSIONS,
-	UnifiedStrings,
+	UNIFIED_STRINGS,
 	// -----------------------------
 	// Secret
 	// -----------------------------
