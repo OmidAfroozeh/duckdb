@@ -1,12 +1,6 @@
 #pragma once
 
-#include "duckdb/common/unordered_set.hpp"
 #include "duckdb/planner/logical_operator.hpp"
-#include "duckdb/planner/operator/logical_filter.hpp"
-#include "duckdb/common/vector.hpp"
-#include "duckdb/planner/logical_operator_visitor.hpp"
-#include "duckdb/planner/column_binding_map.hpp"
-#include "duckdb/common/vector.hpp"
 
 namespace duckdb {
 
