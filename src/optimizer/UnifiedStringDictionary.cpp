@@ -77,12 +77,12 @@ string_t UnifiedStringsDictionary::insertInternal(string_t str) {
 
 		uint32_t bucket = reinterpret_cast<atomic<uint32_t> *>(HT + ((slot + i)))->load(std::memory_order_acquire);
 
-		uint16_t bucket_hashExtract = bucket >> 17;
+		uint16_t bucket_hashExtract = bucket >> 16;
 
 		if (bucket_hashExtract == hashExtract) {
 			// wrong already_in, do this after checking if equal
 			already_in++;
-			auto slot_ptr = data_ptr_cast(DataRegion + (bucket & 0x0001FFFF));
+			auto slot_ptr = data_ptr_cast(DataRegion + (bucket & 0x0000FFFF));
 			// double checking that the string found is equal to the original string
 
 			auto res_str = string_t(const_char_ptr_cast(slot_ptr + 1), UnsafeNumericCast<uint32_t>(*slot_ptr));
@@ -103,17 +103,17 @@ string_t UnifiedStringsDictionary::insertInternal(string_t str) {
 			auto increasedSlot = (str_len % 8 == 0) ? 1 + (str_len / 8) : 2 + (str_len / 8);
 
 			uint32_t newBucket = UnsafeNumericCast<uint32_t>(hashExtract);
-			newBucket = newBucket << 17;
+			newBucket = newBucket << 16;
 			newBucket |= UnsafeNumericCast<uint32_t>(currentEmptySlot);
 
-			D_ASSERT((newBucket & 0x0001FFFF) == currentEmptySlot);
+			D_ASSERT((newBucket & 0x0000FFFF) == currentEmptySlot);
 
 			// another thread inserted
 			if (HT[slot + i] != 0) {
 				auto slot_hashExtract = HT[slot + i] >> 16;
 				if (slot_hashExtract == hashExtract) {
 					already_in++;
-					auto slot_ptr = data_ptr_cast(DataRegion + (HT[slot + i] & 0x0001FFFF));
+					auto slot_ptr = data_ptr_cast(DataRegion + (HT[slot + i] & 0x0000FFFF));
 
 					auto res_str = string_t(const_char_ptr_cast(slot_ptr + 1), UnsafeNumericCast<uint32_t>(*slot_ptr));
 					if (res_str == str) {
@@ -273,7 +273,7 @@ string_t UnifiedStringsDictionary::insertInternal(string_t str) {
 UnifiedStringsDictionary::~UnifiedStringsDictionary() {
 	this->buffer.reset();
 	//	this->LinearProbingHT.reset();
-	//			this->getStatistics();
+//				this->getStatistics();
 }
 
 void UnifiedStringsDictionary::getStatistics() {
@@ -312,7 +312,9 @@ void UnifiedStringsDictionary::getStatistics() {
 	statsStr += padRight(std::to_string(nRejections_Probing), w4);
 	//
 	//
-	//	Printer::Print(statsStr);
+		Printer::Print(statsStr);
+
+
 	//	    	Printer::PrintF("faster hash path triggered: %d, equal pointers for strings: %d",
 	//		                string_t::StringComparisonOperators::faster_hash.load(),
 	//		                string_t::StringComparisonOperators::faster_equality.load());

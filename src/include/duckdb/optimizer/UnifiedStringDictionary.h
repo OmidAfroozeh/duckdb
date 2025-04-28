@@ -18,19 +18,19 @@ public:
 
 	static constexpr const uint64_t MAX_STRING_LENGTH = 255;
 
-	static constexpr const uint64_t BUFFER_SIZE = static_cast<uint64_t>(2 * 1024 * 1024);
+	static constexpr const uint64_t BUFFER_SIZE = static_cast<uint64_t>(1024 * 1024);
 
-	static constexpr const uint64_t USSR_MASK = 0xFFFFFFFFFFF00000;
+	static constexpr const uint64_t USSR_MASK = 0xFFFFFFFFFFF80000;
 
 	static constexpr const uint64_t USSR_SLOT_SIZE = 8;
-	static constexpr const uint64_t USSR_SIZE = 0x1FFFF;
+	static constexpr const uint64_t USSR_SIZE = 0xFFFF;
 
 	// first two bytes are the slot number into the data region
 	// and the second two bytes are the hash extract (a part of the original string's hash)
 	static constexpr const uint64_t HT_BUCKET_SIZE = 4;
-	static constexpr const uint64_t HT_SIZE = 0x1FFFF;
+	static constexpr const uint64_t HT_SIZE = 0xFFFF;
 
-	static constexpr const idx_t PROBING_LIMIT = 3;
+	static constexpr const idx_t PROBING_LIMIT = 16;
 
 private:
 	// Overarching USSR buffer, contains DataRegion + HT + extra, 1MB size
