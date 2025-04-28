@@ -1,6 +1,7 @@
 #include "duckdb/optimizer/UnifiedStringDictionary_Optimizer.h"
 #include "duckdb/common/helper.hpp"
 #include "duckdb/common/printer.hpp"
+#include "duckdb/planner/operator/logical_ussr_insertion.h"
 
 namespace duckdb {
 
@@ -51,59 +52,75 @@ namespace duckdb {
 //    }
 
     void USSR_optimizer::Insert_USSR_Operator(optional_ptr<LogicalOperator> op) {
-
-
-	    auto bindings_before = op->children[0]->GetColumnBindings();
-		vector<unique_ptr<Expression>> projections;
-	    projections.reserve(op->types.size());
-	    auto bindings = op->children[0]->GetColumnBindings();
-
-	    vector<unique_ptr<Expression>> old_expressions;
-	    old_expressions.reserve(bindings.size());
-	    for (idx_t i = 0; i < op->types.size(); ++i) {
-		    old_expressions.emplace_back(make_uniq<BoundColumnRefExpression>(op->types[i], bindings[i]));
-	    }
-
-
-	    for (auto& expression: old_expressions) {
-		    if (expression->return_type == LogicalType::VARCHAR) {
-			    auto &child_colref_expr = expression->Cast<BoundColumnRefExpression>();
-			    auto colref_expr =
-			        make_uniq<BoundColumnRefExpression>(LogicalType::VARCHAR, child_colref_expr.binding);
-			    projections.emplace_back(std::move(colref_expr));
-		    } else {
-			    projections.emplace_back(std::move(expression));
+		vector<bool> ussr_insert_vec;
+	    D_ASSERT(op->children[0]->type == LogicalOperatorType::LOGICAL_GET);
+	    for(auto& type : op->children[0]->types){
+		    if(type == LogicalType::VARCHAR){
+			    ussr_insert_vec.push_back(true);
+		    } else{
+			    ussr_insert_vec.push_back(false);
 		    }
 	    }
-	    const auto table_index = optimizer->binder.GenerateTableIndex();
-	    auto ussr_projection = make_uniq<LogicalProjection>(table_index, std::move(projections));
-	    if(op->has_estimated_cardinality){
-		    ussr_projection->SetEstimatedCardinality(op->estimated_cardinality);
-	    }
 
+	    auto new_operator = make_uniq<LogicalUSSRInsertion>(std::move(ussr_insert_vec));
+	    new_operator->children.push_back(std::move(op->children[0]));
+	    op->children[0] = std::move(new_operator);
 
-	    ussr_projection->ResolveOperatorTypes();
+	    op->ResolveOperatorTypes();
 
-	    ussr_projection->children.emplace_back(std::move(op->children[0]));
-	    op->children[0] = std::move(ussr_projection);
-//	    op = std::move(ussr_projection);
+//	        auto ussr_projection = make_uniq<LogicalProjection>(table_index, std::move(projections));
 
-	    auto bindings_after = op->children[0]->GetColumnBindings();
-
-	    auto types = op->types;
-
-
-	    auto &replacement_bindings = replacer->replacement_bindings;
-	    for (idx_t col_idx = 0; col_idx < bindings_before.size(); col_idx++) {
-		    const auto &old_binding = bindings_before[col_idx];
-		    const auto &new_binding = bindings_after[col_idx];
-		    const auto &new_type = types[col_idx];
-		    replacement_bindings.emplace_back(old_binding, new_binding);
-	    }
-
-	    // Make sure we stop at the compress operator when replacing bindings
-	    replacer->stop_operator = op->children[0].get();
-	    replacer->VisitOperator(*root);
+//	    auto bindings_before = op->children[0]->GetColumnBindings();
+//		vector<unique_ptr<Expression>> projections;
+//	    projections.reserve(op->types.size());
+//	    auto bindings = op->children[0]->GetColumnBindings();
+//
+//	    vector<unique_ptr<Expression>> old_expressions;
+//	    old_expressions.reserve(bindings.size());
+//	    for (idx_t i = 0; i < op->types.size(); ++i) {
+//		    old_expressions.emplace_back(make_uniq<BoundColumnRefExpression>(op->types[i], bindings[i]));
+//	    }
+//
+//
+//	    for (auto& expression: old_expressions) {
+//		    if (expression->return_type == LogicalType::VARCHAR) {
+//			    auto &child_colref_expr = expression->Cast<BoundColumnRefExpression>();
+//			    auto colref_expr =
+//			        make_uniq<BoundColumnRefExpression>(LogicalType::VARCHAR, child_colref_expr.binding);
+//			    projections.emplace_back(std::move(colref_expr));
+//		    } else {
+//			    projections.emplace_back(std::move(expression));
+//		    }
+//	    }
+//	    const auto table_index = optimizer->binder.GenerateTableIndex();
+//	    auto ussr_projection = make_uniq<LogicalProjection>(table_index, std::move(projections));
+//	    if(op->has_estimated_cardinality){
+//		    ussr_projection->SetEstimatedCardinality(op->estimated_cardinality);
+//	    }
+//
+//
+//	    ussr_projection->ResolveOperatorTypes();
+//
+//	    ussr_projection->children.emplace_back(std::move(op->children[0]));
+//	    op->children[0] = std::move(ussr_projection);
+////	    op = std::move(ussr_projection);
+//
+//	    auto bindings_after = op->children[0]->GetColumnBindings();
+//
+//	    auto types = op->types;
+//
+//
+//	    auto &replacement_bindings = replacer->replacement_bindings;
+//	    for (idx_t col_idx = 0; col_idx < bindings_before.size(); col_idx++) {
+//		    const auto &old_binding = bindings_before[col_idx];
+//		    const auto &new_binding = bindings_after[col_idx];
+//		    const auto &new_type = types[col_idx];
+//		    replacement_bindings.emplace_back(old_binding, new_binding);
+//	    }
+//
+//	    // Make sure we stop at the compress operator when replacing bindings
+//	    replacer->stop_operator = op->children[0].get();
+//	    replacer->VisitOperator(*root);
 
 
 
