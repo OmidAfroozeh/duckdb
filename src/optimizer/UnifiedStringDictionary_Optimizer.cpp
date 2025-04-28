@@ -8,7 +8,9 @@ namespace duckdb {
 
 	unique_ptr<LogicalOperator> USSR_optimizer::CheckUnifiedDictionary(unique_ptr<LogicalOperator> op) {
     	op = Rewrite(std::move(op));
-	    Insert_USSR_Operator(data_sources[0]);
+	    for (auto &ds : data_sources) {
+		    Insert_USSR_Operator(ds);
+	    }
 	    return op;
     }
 
@@ -152,7 +154,6 @@ namespace duckdb {
 
 
     unique_ptr<LogicalOperator> USSR_optimizer::Rewrite(unique_ptr<LogicalOperator> op){
-	    op->PrintColumnBindings();
 	    op->ResolveOperatorTypes();
 	    // Depth-first-search post-order
 	    for (idx_t i = 0; i < op->children.size(); ++i) {

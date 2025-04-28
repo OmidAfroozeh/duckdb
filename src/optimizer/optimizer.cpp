@@ -122,9 +122,6 @@ void Optimizer::RunBuiltInOptimizers() {
 
 	// Rewrites SUM(x + C) into SUM(x) + C * COUNT(x)
 	RunOptimizer(OptimizerType::SUM_REWRITER, [&]() {
-		USSR_optimizer ussrOptimizer(this, plan);
-		plan = ussrOptimizer.CheckUnifiedDictionary(std::move(plan));
-
 		SumRewriterOptimizer optimizer(*this);
 		optimizer.Optimize(plan);
 	});
@@ -269,6 +266,9 @@ void Optimizer::RunBuiltInOptimizers() {
 	RunOptimizer(OptimizerType::JOIN_FILTER_PUSHDOWN, [&]() {
 		JoinFilterPushdownOptimizer join_filter_pushdown(*this);
 		join_filter_pushdown.VisitOperator(*plan);
+
+		USSR_optimizer ussrOptimizer(this, plan);
+		plan = ussrOptimizer.CheckUnifiedDictionary(std::move(plan));
 	});
 }
 

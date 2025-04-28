@@ -26,8 +26,8 @@ public:
 
 public:
 
-//	void Serialize(Serializer &serializer) const override;
-//	static unique_ptr<LogicalOperator> Deserialize(Deserializer &deserializer);
+	void Serialize(Serializer &serializer) const override;
+	static unique_ptr<LogicalOperator> Deserialize(Deserializer &deserializer);
 
 	vector<ColumnBinding> GetColumnBindings() override {
 		return children[0]->GetColumnBindings();
