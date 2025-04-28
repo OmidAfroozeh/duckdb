@@ -8,7 +8,7 @@ namespace duckdb {
 
 class PhysicalUnifiedString : public PhysicalOperator {
 public:
-	static constexpr const PhysicalOperatorType TYPE = PhysicalOperatorType::UnifiedStrings;
+	static constexpr const PhysicalOperatorType TYPE = PhysicalOperatorType::UNIFIED_STRINGS;
 
 public:
 	PhysicalUnifiedString(vector<LogicalType> types, vector<bool> insert_to_ussr, idx_t estimated_cardinality) : PhysicalOperator(TYPE, std::move(types), estimated_cardinality){
@@ -31,6 +31,12 @@ public:
 	                           GlobalOperatorState &gstate, OperatorState &state) const override;
 
 	unique_ptr<OperatorState> GetOperatorState(ExecutionContext &context) const override;
+	unique_ptr<GlobalOperatorState> GetGlobalOperatorState(ClientContext &context) const override;
+
+
+	vector<DataChunk> cached;
+
+	static constexpr const idx_t USSR_CACHING_THRESHOLD = 10;
 
 public:
 
