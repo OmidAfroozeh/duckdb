@@ -19,7 +19,9 @@ class USSRInsertionGState : public GlobalOperatorState {
 public:
 	explicit USSRInsertionGState(ClientContext &context, idx_t cols){
 //		analyze_row_group.emplace_back(false);
-
+		for (idx_t i = 0; i < cols; ++i) {
+			evaluate_col.push_back(false);
+		}
 	}
 
 	std::mutex cached_lock;
@@ -27,14 +29,14 @@ public:
 	deque<unique_ptr<DataChunk>> cached;
 	atomic<bool> done_caching;
 	std::mutex evaluation_lock;
-	vector<atomic<bool>> evaluate_col;
+	vector<bool> evaluate_col;
 };
 
-void PhysicalUnifiedString::evaluate_strings_colseg(string& segment_str, vector<bool>& result) const{
+vector<idx_t> PhysicalUnifiedString::evaluate_strings_colseg(const string& segment_str) const{
 	// returns a vector of idx of which string to insert
 	auto segment_ptr_value = std::strtoull(segment_str.c_str(), nullptr, 10);
 	if(!segment_ptr_value){
-		return;
+		return {};
 	}
 	auto segment = reinterpret_cast<ColumnSegment *>(segment_ptr_value);
 	data_ptr_t block_ptr;
@@ -42,29 +44,35 @@ void PhysicalUnifiedString::evaluate_strings_colseg(string& segment_str, vector<
 	if(!segment->block->IsUnloaded()){
 		block_ptr = segment->block.get()->Load().Ptr();
 	} else{
-		return;
+		return {};
 	}
 
 	auto baseptr = block_ptr + segment->GetBlockOffset();
 	auto dict_header = reinterpret_cast<dictionary_compression_header_t *>(baseptr);
 	data_ptr_t base_data = data_ptr_cast(baseptr + DictionaryCompression::DICTIONARY_HEADER_SIZE);
 
-	auto sel_vec = make_buffer<SelectionVector>(BitpackingPrimitives::RoundUpToAlgorithmGroupSize(100000ull));
+	auto sel_vec_size = MinValue(100000ull, segment->count.load());
 
-	BitpackingPrimitives::UnPackBuffer<sel_t>(data_ptr_cast(sel_vec->data()), base_data, BitpackingPrimitives::RoundUpToAlgorithmGroupSize(100000ull), dict_header->bitpacking_width);
-	std::vector<uint32_t> count(dict_header->dict_size);
-	count.reserve(dict_header->dict_size);
-	for (idx_t i = 0; i < 100000; ++i) {
+
+	auto sel_vec = make_buffer<SelectionVector>(BitpackingPrimitives::RoundUpToAlgorithmGroupSize(sel_vec_size));
+
+	BitpackingPrimitives::UnPackBuffer<sel_t>(data_ptr_cast(sel_vec->data()), base_data, BitpackingPrimitives::RoundUpToAlgorithmGroupSize(sel_vec_size), dict_header->bitpacking_width);
+	std::vector<uint32_t> count(dict_header->index_buffer_count);
+	count.reserve(dict_header->index_buffer_count + 1);
+	for (idx_t i = 0; i < sel_vec_size; ++i) {
+//		if(sel_vec->data()[i] > dict_header->index_buffer_count){
+//			Printer::Print("Something");
+//		}
+		D_ASSERT(sel_vec->data()[i] > dict_header->index_buffer_count);
 		count[sel_vec->data()[i]]++;
 	}
-	std::vector<bool> insertion_priority(dict_header->dict_size);
-	for (idx_t i = 0; i < 100000; ++i) {
-		insertion_priority[i] = (count[i] > (100000 / dict_header->dict_size)) ? true: false;
+	std::vector<idx_t> insertion_priority;
+	for (idx_t i = 0; i < dict_header->index_buffer_count; ++i) {
+		if(count[i] > (sel_vec_size / dict_header->index_buffer_count)){
+			insertion_priority.push_back(i);
+		}
 	}
-	result = std::move(insertion_priority);
-	    //	for (auto x : count) {
-//		Printer::Print(to_string(x));
-//	}
+	return insertion_priority;
 }
 
 OperatorResultType PhysicalUnifiedString::Execute(ExecutionContext &context, DataChunk &input, DataChunk &chunk,
@@ -78,12 +86,19 @@ OperatorResultType PhysicalUnifiedString::Execute(ExecutionContext &context, Dat
 			continue;
 		}
 		if(insert_to_ussr[col_idx] && DictionaryVector::DictionaryId(input.data[col_idx]) != state.current_dict_ids[col_idx]){
-			gstateussr.evaluate_col[col_idx].compare_exchange_strong()
-			gstateussr.evaluate_col[col_idx]
-			 evaluate_strings_colseg();
 
-
-
+			vector<idx_t > priority;
+			bool eval_flag = false;
+			{
+				std::lock_guard<std::mutex> lock(gstateussr.evaluation_lock);
+				if(!gstateussr.evaluate_col[col_idx]){
+					gstateussr.evaluate_col[col_idx] = true;
+					eval_flag = true;
+				}
+			}
+			if (eval_flag){
+				priority = evaluate_strings_colseg(DictionaryVector::DictionaryId(input.data[col_idx]));
+			}
 
 			auto &dict = DictionaryVector::Child(input.data[col_idx]);
 			auto size = DictionaryVector::DictionarySize(input.data[col_idx]);
@@ -93,12 +108,7 @@ OperatorResultType PhysicalUnifiedString::Execute(ExecutionContext &context, Dat
 
 			state.current_dict_ids[col_idx] = DictionaryVector::DictionaryId(input.data[col_idx]);
 
-			auto start = reinterpret_cast<string_t *>(dict.GetData());
-
-			for (idx_t i = 1; i < size.GetIndex() - 1; ++i) {
-
-				start[i] = context.client.GetCurrentQueryUssr().insert(start[i]);
-			}
+			USSR_insertion_loop(dict.GetData(), size.GetIndex(), context.client, priority);
 		}
 	}
 
@@ -110,7 +120,7 @@ unique_ptr<OperatorState> PhysicalUnifiedString::GetOperatorState(ExecutionConte
 	return make_uniq<USSRInsertionState>(context, insert_to_ussr.size());
 }
 
-void PhysicalUnifiedString::USSR_insertion_loop(data_ptr_t dict_strings, idx_t count, ClientContext &context, const vector<idx_t > &priority_insertion){
+void PhysicalUnifiedString::USSR_insertion_loop(data_ptr_t dict_strings, idx_t count, ClientContext &context, const vector<idx_t > &priority_insertion) const{
 	auto start = reinterpret_cast<string_t *>(dict_strings);
 
 	if(priority_insertion.empty()){
