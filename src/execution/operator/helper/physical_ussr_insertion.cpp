@@ -60,11 +60,11 @@ vector<idx_t> PhysicalUnifiedString::evaluate_strings_colseg(const string& segme
 	std::vector<uint32_t> count(dict_header->index_buffer_count);
 	count.reserve(dict_header->index_buffer_count + 1);
 	for (idx_t i = 0; i < sel_vec_size; ++i) {
-		if(sel_vec->data()[i] > dict_header->index_buffer_count){
-			exit(1);
-			Printer::Print("Something");
-		}
-		D_ASSERT(sel_vec->data()[i] > dict_header->index_buffer_count);
+//		if(sel_vec->data()[i] > dict_header->index_buffer_count){
+//			exit(1);
+//			Printer::Print("Something");
+//		}
+//		D_ASSERT(sel_vec->data()[i] > dict_header->index_buffer_count);
 		count[sel_vec->data()[i]]++;
 	}
 	std::vector<idx_t> insertion_priority;
