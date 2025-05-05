@@ -26,9 +26,15 @@ public:
 	bool IsSink() const override{
 		return false;
 	}
+	bool RequiresFinalExecute() const override{
+		return true;
+	}
 
 	OperatorResultType Execute(ExecutionContext &context, DataChunk &input, DataChunk &chunk,
 	                           GlobalOperatorState &gstate, OperatorState &state) const override;
+
+	OperatorFinalizeResultType FinalExecute(ExecutionContext &context, DataChunk &chunk,
+	                                        GlobalOperatorState &gstate, OperatorState &state) const override;
 
 	unique_ptr<OperatorState> GetOperatorState(ExecutionContext &context) const override;
 	unique_ptr<GlobalOperatorState> GetGlobalOperatorState(ClientContext &context) const override;
@@ -36,12 +42,16 @@ public:
 
 	vector<DataChunk> cached;
 
-	static constexpr const idx_t USSR_CACHING_THRESHOLD = 10;
+	static constexpr const idx_t USSR_CACHING_THRESHOLD = 50;
 
 public:
 
 private:
 	vector<bool> insert_to_ussr;
+//	void evaluate_strings(ColumnSegment col_seg, BlockHandle &handle);
+	void evaluate_strings_colseg(string& segment_str, vector<bool>& result) const;
+	void USSR_insertion_loop(data_ptr_t dict_strings, idx_t count, ClientContext &context,
+	                         const vector<idx_t> &priority_insertion) const;
 };
 
 } // namespace duckdb
