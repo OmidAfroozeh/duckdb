@@ -50,8 +50,8 @@ vector<idx_t> PhysicalUnifiedString::evaluate_strings_colseg(const string& segme
 	auto baseptr = block_ptr + segment->GetBlockOffset();
 	auto dict_header = reinterpret_cast<dictionary_compression_header_t *>(baseptr);
 	data_ptr_t base_data = data_ptr_cast(baseptr + DictionaryCompression::DICTIONARY_HEADER_SIZE);
-
-	auto sel_vec_size = MinValue(100000ull, segment->count.load());
+	idx_t max_index_scan = 100000;
+	auto sel_vec_size = MinValue<idx_t >(max_index_scan, segment->count.load());
 
 
 	auto sel_vec = make_buffer<SelectionVector>(BitpackingPrimitives::RoundUpToAlgorithmGroupSize(sel_vec_size));
@@ -60,9 +60,10 @@ vector<idx_t> PhysicalUnifiedString::evaluate_strings_colseg(const string& segme
 	std::vector<uint32_t> count(dict_header->index_buffer_count);
 	count.reserve(dict_header->index_buffer_count + 1);
 	for (idx_t i = 0; i < sel_vec_size; ++i) {
-//		if(sel_vec->data()[i] > dict_header->index_buffer_count){
-//			Printer::Print("Something");
-//		}
+		if(sel_vec->data()[i] > dict_header->index_buffer_count){
+			exit(1);
+			Printer::Print("Something");
+		}
 		D_ASSERT(sel_vec->data()[i] > dict_header->index_buffer_count);
 		count[sel_vec->data()[i]]++;
 	}
