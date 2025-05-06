@@ -54,21 +54,23 @@ namespace duckdb {
 //    }
 
     void USSR_optimizer::Insert_USSR_Operator(optional_ptr<LogicalOperator> op) {
-		vector<bool> ussr_insert_vec;
-	    D_ASSERT(op->children[0]->type == LogicalOperatorType::LOGICAL_GET);
-	    for(auto& type : op->children[0]->types){
-		    if(type == LogicalType::VARCHAR){
-			    ussr_insert_vec.push_back(true);
-		    } else{
-			    ussr_insert_vec.push_back(false);
+	    for (idx_t i = 0; i < op->children.size(); ++i) {
+		    vector<bool> ussr_insert_vec;
+		    D_ASSERT(op->children[i]->type == LogicalOperatorType::LOGICAL_GET);
+		    for (auto &type : op->children[i]->types) {
+			    if (type == LogicalType::VARCHAR) {
+				    ussr_insert_vec.push_back(true);
+			    } else {
+				    ussr_insert_vec.push_back(false);
+			    }
 		    }
+
+		    auto new_operator = make_uniq<LogicalUSSRInsertion>(std::move(ussr_insert_vec));
+		    new_operator->children.push_back(std::move(op->children[i]));
+		    op->children[i] = std::move(new_operator);
+
+		    op->ResolveOperatorTypes();
 	    }
-
-	    auto new_operator = make_uniq<LogicalUSSRInsertion>(std::move(ussr_insert_vec));
-	    new_operator->children.push_back(std::move(op->children[0]));
-	    op->children[0] = std::move(new_operator);
-
-	    op->ResolveOperatorTypes();
 
 //	        auto ussr_projection = make_uniq<LogicalProjection>(table_index, std::move(projections));
 
