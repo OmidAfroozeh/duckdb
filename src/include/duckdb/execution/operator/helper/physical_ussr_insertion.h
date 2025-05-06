@@ -49,7 +49,7 @@ public:
 private:
 	vector<bool> insert_to_ussr;
 //	void evaluate_strings(ColumnSegment col_seg, BlockHandle &handle);
-	void evaluate_strings_colseg(string& segment_str, vector<bool>& result) const;
+	vector<idx_t> evaluate_strings_cached_flat(optional_ptr<uint32_t> cached_sel, idx_t size) const;
 	void USSR_insertion_loop(data_ptr_t dict_strings, idx_t count, ClientContext &context,
 	                         const vector<idx_t> &priority_insertion) const;
 };
