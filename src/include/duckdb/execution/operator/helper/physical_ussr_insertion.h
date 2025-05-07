@@ -42,6 +42,8 @@ public:
 
 private:
 	vector<bool> insert_to_ussr;
+	void USSR_insertion_loop(data_ptr_t dict_strings, idx_t count, ClientContext &context,
+	                         const vector<idx_t>& priority_insertion) const;
 };
 
 } // namespace duckdb
