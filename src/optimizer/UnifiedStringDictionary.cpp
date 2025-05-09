@@ -53,7 +53,7 @@ string_t UnifiedStringsDictionary::insert(string_t str) {
 
 string_t UnifiedStringsDictionary::insertInternal(string_t str) {
 
-	if (nRejections_SizeFull.load(std::memory_order_relaxed) > ATTEMPT_THRESHOLD) {
+	if (nRejections_SizeFull.load(std::memory_order_relaxed) > ATTEMPT_THRESHOLD + 1000000) {
 		return str;
 	}
 
@@ -273,7 +273,7 @@ string_t UnifiedStringsDictionary::insertInternal(string_t str) {
 UnifiedStringsDictionary::~UnifiedStringsDictionary() {
 	this->buffer.reset();
 	//	this->LinearProbingHT.reset();
-//				this->getStatistics();
+//	this->getStatistics();
 }
 
 void UnifiedStringsDictionary::getStatistics() {
@@ -315,11 +315,11 @@ void UnifiedStringsDictionary::getStatistics() {
 		Printer::Print(statsStr);
 
 
-	//	    	Printer::PrintF("faster hash path triggered: %d, equal pointers for strings: %d",
-	//		                string_t::StringComparisonOperators::faster_hash.load(),
-	//		                string_t::StringComparisonOperators::faster_equality.load());
-	//		string_t::StringComparisonOperators::faster_equality = 0;
-	//		string_t::StringComparisonOperators::faster_hash = 0;
+//		    	Printer::PrintF("faster hash path triggered: %d, equal pointers for strings: %d",
+//			                string_t::StringComparisonOperators::faster_hash.load(),
+//			                string_t::StringComparisonOperators::faster_equality.load());
+//			string_t::StringComparisonOperators::faster_equality = 0;
+//			string_t::StringComparisonOperators::faster_hash = 0;
 }
 
 } // namespace duckdb
