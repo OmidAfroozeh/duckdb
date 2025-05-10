@@ -64,13 +64,13 @@ private:
 	uint64_t *DataRegion;
 
 	unique_ptr<LinearProbingHashTable> LinearProbingHT;
-//	LinearProbingHashTable *LinearProbingHT;
+	//	LinearProbingHashTable *LinearProbingHT;
 	// private constructor
 	UnifiedStringsDictionary();
 
 	// for thread-safe creation of Singleton
-//	static std::mutex singletonLock;
-//	static std::mutex destroyLock;
+	//	static std::mutex singletonLock;
+	//	static std::mutex destroyLock;
 	// temporary solution for concurrency
 	std::mutex insertLock;
 
