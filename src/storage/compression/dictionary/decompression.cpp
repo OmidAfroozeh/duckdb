@@ -24,8 +24,7 @@ string_t CompressedStringScanState::FetchStringFromDict(int32_t dict_offset, uin
 	return string_t(str_ptr, string_len);
 }
 
-void CompressedStringScanState::Initialize(ColumnSegment &segment, bool initialize_dictionary,
-                                           optional_ptr<ClientContext> context) {
+void CompressedStringScanState::Initialize(ColumnSegment &segment, bool initialize_dictionary) {
 
 	baseptr = handle->Ptr() + segment.GetBlockOffset();
 
