@@ -303,7 +303,7 @@ struct RLEScanState : public SegmentScanState {
 };
 
 template <class T>
-unique_ptr<SegmentScanState> RLEInitScan(ColumnSegment &segment, optional_ptr<ClientContext> context = nullptr) {
+unique_ptr<SegmentScanState> RLEInitScan(ColumnSegment &segment) {
 	auto result = make_uniq<RLEScanState<T>>(segment);
 	return std::move(result);
 }
