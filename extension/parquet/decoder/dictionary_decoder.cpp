@@ -35,7 +35,24 @@ void DictionaryDecoder::InitializeDictionary(idx_t new_dictionary_size, optional
 	}
 	reader.Plain(reader.block, nullptr, dictionary_size, 0, *dictionary);
 
+<<<<<<< HEAD
 	if (filter && CanFilter(*filter, *filter_state)) {
+=======
+	// Adding the initialized dictionary to USSR if the logical type is VARCHAR
+	if (dictionary.get()->GetType() == LogicalType::VARCHAR) {
+		auto USSR = UnifiedStringsDictionary::getInstance();
+		if (!USSR) {
+			Printer::Print("FUCK FUCK FUCK");
+		}
+		for (idx_t i = 0; i < dictionary_size; i++) {
+			auto str = reinterpret_cast<string_t *>(dictionary->GetData())[i];
+			//			auto s = USSR->insert(str);
+			reinterpret_cast<string_t *>(dictionary->GetData())[i] = USSR->insert(str);
+		}
+	}
+
+	if (filter && CanFilter(*filter)) {
+>>>>>>> 8cc858934b (another attempt)
 		// no filter result yet - apply filter to the dictionary
 		// initialize the filter result - setting everything to false
 		filter_result = make_unsafe_uniq_array<bool>(dictionary_size);
