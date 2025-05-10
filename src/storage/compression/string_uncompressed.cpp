@@ -77,8 +77,7 @@ void UncompressedStringInitPrefetch(ColumnSegment &segment, PrefetchState &prefe
 	}
 }
 
-unique_ptr<SegmentScanState> UncompressedStringStorage::StringInitScan(ColumnSegment &segment,
-                                                                       optional_ptr<ClientContext> context) {
+unique_ptr<SegmentScanState> UncompressedStringStorage::StringInitScan(ColumnSegment &segment) {
 	auto result = make_uniq<StringScanState>();
 	auto &buffer_manager = BufferManager::GetBufferManager(segment.db);
 	result->handle = buffer_manager.Pin(segment.block);

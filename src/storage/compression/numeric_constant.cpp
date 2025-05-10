@@ -11,7 +11,7 @@ namespace duckdb {
 //===--------------------------------------------------------------------===//
 // Scan
 //===--------------------------------------------------------------------===//
-unique_ptr<SegmentScanState> ConstantInitScan(ColumnSegment &segment, optional_ptr<ClientContext> context = nullptr) {
+unique_ptr<SegmentScanState> ConstantInitScan(ColumnSegment &segment) {
 	return nullptr;
 }
 
