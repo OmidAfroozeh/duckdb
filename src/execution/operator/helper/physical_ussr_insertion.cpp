@@ -12,7 +12,7 @@ public:
 	}
 	unordered_set<string> strs;
 	vector<bool> inserted;
-	vector<uint16_t > count;
+	vector<idx_t > count;
 	vector<string> current_dict_ids;
 	idx_t analysis_budget;
 	idx_t current_analysis_count;
@@ -34,7 +34,6 @@ OperatorResultType PhysicalUnifiedString::Execute(ExecutionContext &context, Dat
                                                   GlobalOperatorState &gstate, OperatorState &state_p) const {
 	auto &state = state_p.Cast<USSRInsertionState>();
 	auto &gstateussr = gstate.Cast<USSRInsertionGState>();
-
 	for (idx_t col_idx = 0; col_idx < input.data.size(); ++col_idx) {
 		if(input.data[col_idx].GetVectorType() != VectorType::DICTIONARY_VECTOR || input.data[col_idx].GetType() != LogicalType::VARCHAR){
 			continue;
@@ -71,16 +70,17 @@ OperatorResultType PhysicalUnifiedString::Execute(ExecutionContext &context, Dat
 
 				vector<idx_t > priority_selection;
 				for (idx_t i = 1; i < state.count.size(); i++) {
-					if(state.count[i] > (10 * state.current_analysis_count)){
+					if(state.count[i] > (50 * state.current_analysis_count)){
 						priority_selection.push_back(i);
 						state.inserted[i] = true;
 					}
 				}
 
 				state.current_dict_ids[col_idx] = DictionaryVector::DictionaryId(input.data[col_idx]);
-				USSR_insertion_loop(dict.GetData(), size.GetIndex(), context.client, priority_selection);
+				USSR_insertion_loop(dict.GetData(), size.GetIndex(), context.client, priority_selection, true);
 			}else if (insert_to_ussr[col_idx] && DictionaryVector::DictionaryId(input.data[col_idx]) == state.current_dict_ids[col_idx] && state.current_analysis_count <= state.analysis_budget) {
 				state.current_analysis_count++;
+//				Printer::Print(to_string(++vec_counter));
 
 				auto &sel = DictionaryVector::SelVector(input.data[col_idx]);
 				for (idx_t i = 0; i < input.size(); i++) {
@@ -89,12 +89,11 @@ OperatorResultType PhysicalUnifiedString::Execute(ExecutionContext &context, Dat
 
 				vector<idx_t > priority_selection;
 				for (idx_t i = 1; i < state.count.size(); ++i) {
-					if(state.count[i] > (10 * state.current_analysis_count) && !state.inserted[i]){
+					if(state.count[i] > (50 * state.current_analysis_count) && !state.inserted[i]){
 						priority_selection.push_back(i);
 						state.inserted[i] = true;
 					}
 				}
-
 				USSR_insertion_loop(dict.GetData(), size.GetIndex(), context.client, priority_selection, true);
 			}
 
@@ -171,7 +170,7 @@ void PhysicalUnifiedString::USSR_insertion_loop(data_ptr_t dict_strings, idx_t c
 	auto start = reinterpret_cast<string_t *>(dict_strings);
 
 	if(priority_insertion.empty() && !exists_prio){
-		for (idx_t i = 0; i < count; ++i) {
+		for (idx_t i = 1; i < count; ++i) {
 			start[i] = context.GetCurrentQueryUssr().insert(start[i]);
 		}
 	} else{
