@@ -45,7 +45,7 @@ OperatorResultType PhysicalUnifiedString::Execute(ExecutionContext &context, Dat
 			continue;
 		}
 
-		if(size.GetIndex() < 1000){
+		if(size.GetIndex() < 500){
 			if(insert_to_ussr[col_idx] && DictionaryVector::DictionaryId(input.data[col_idx]) != state.current_dict_ids[col_idx]){
 				state.current_dict_ids[col_idx] = DictionaryVector::DictionaryId(input.data[col_idx]);
 				USSR_insertion_loop(dict.GetData(), size.GetIndex(), context.client, {});
@@ -61,7 +61,7 @@ OperatorResultType PhysicalUnifiedString::Execute(ExecutionContext &context, Dat
 					state.inserted.push_back(false);
 					state.count.push_back(0);
 				}
-				state.analysis_budget = 5;
+				state.analysis_budget = 10;
 				state.current_analysis_count = 1;
 				auto &sel = DictionaryVector::SelVector(input.data[col_idx]);
 				for (idx_t i = 0; i < input.size(); i++) {
@@ -89,7 +89,7 @@ OperatorResultType PhysicalUnifiedString::Execute(ExecutionContext &context, Dat
 
 				vector<idx_t > priority_selection;
 				for (idx_t i = 1; i < state.count.size(); ++i) {
-					if(state.count[i] > (50 * state.current_analysis_count) && !state.inserted[i]){
+					if(state.count[i] > (10 * state.current_analysis_count) && !state.inserted[i]){
 						priority_selection.push_back(i);
 						state.inserted[i] = true;
 					}
