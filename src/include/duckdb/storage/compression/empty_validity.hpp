@@ -77,7 +77,8 @@ public:
 		auto &checkpoint_state = checkpoint_data.GetCheckpointState();
 		checkpoint_state.FlushSegment(std::move(compressed_segment), std::move(handle), 0);
 	}
-	static unique_ptr<SegmentScanState> InitScan(ColumnSegment &segment) {
+	static unique_ptr<SegmentScanState> InitScan(ColumnSegment &segment,
+	                                             optional_ptr<ClientContext> context = nullptr) {
 		return make_uniq<EmptyValiditySegmentScanState>();
 	}
 	static void ScanPartial(ColumnSegment &segment, ColumnScanState &state, idx_t scan_count, Vector &result,
