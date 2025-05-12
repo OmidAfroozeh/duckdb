@@ -252,7 +252,7 @@ public:
 };
 
 template <class T>
-unique_ptr<SegmentScanState> ChimpInitScan(ColumnSegment &segment) {
+unique_ptr<SegmentScanState> ChimpInitScan(ColumnSegment &segment, optional_ptr<ClientContext> context = nullptr) {
 	auto result = make_uniq_base<SegmentScanState, ChimpScanState<T>>(segment);
 	return result;
 }
