@@ -18,7 +18,8 @@ public:
 	}
 
 public:
-	void Initialize(ColumnSegment &segment, bool initialize_dictionary = true);
+	void Initialize(ColumnSegment &segment, bool initialize_dictionary = true,
+	                optional_ptr<ClientContext> context = nullptr);
 	void ScanToFlatVector(Vector &result, idx_t result_offset, idx_t start, idx_t scan_count);
 	void ScanToDictionaryVector(ColumnSegment &segment, Vector &result, idx_t result_offset, idx_t start,
 	                            idx_t scan_count);
