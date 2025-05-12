@@ -45,7 +45,7 @@ OperatorResultType PhysicalUnifiedString::Execute(ExecutionContext &context, Dat
 			continue;
 		}
 
-		if(size.GetIndex() <= 1000){
+		if(size.GetIndex() <= 500){
 			if(insert_to_ussr[col_idx] && DictionaryVector::DictionaryId(input.data[col_idx]) != state.current_dict_ids[col_idx]){
 				state.current_dict_ids[col_idx] = DictionaryVector::DictionaryId(input.data[col_idx]);
 				USSR_insertion_loop(dict.GetData(), size.GetIndex(), context.client, {});
