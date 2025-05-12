@@ -779,7 +779,7 @@ public:
 };
 
 template <class T>
-unique_ptr<SegmentScanState> BitpackingInitScan(ColumnSegment &segment) {
+unique_ptr<SegmentScanState> BitpackingInitScan(ColumnSegment &segment, optional_ptr<ClientContext> context = nullptr) {
 	auto result = make_uniq<BitpackingScanState<T>>(segment);
 	return std::move(result);
 }
