@@ -98,10 +98,10 @@ OperatorResultType PhysicalUnifiedString::Execute(ExecutionContext &context, Dat
 			}
 
 		}
-
-
-		chunk.Reference(input);
-		return OperatorResultType::NEED_MORE_INPUT;
+//
+//
+//		chunk.Reference(input);
+//		return OperatorResultType::NEED_MORE_INPUT;
 		//	context.client.GetCurrentQueryUssr().insert();
 	}
 
