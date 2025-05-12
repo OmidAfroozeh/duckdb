@@ -147,6 +147,9 @@ public:
 	void VerifyNull() const;
 
 	struct StringComparisonOperators {
+		static std::atomic<uint64_t> faster_hash;
+		static std::atomic<uint64_t> faster_equality;
+
 		static inline bool Equals(const string_t &a, const string_t &b) {
 #ifdef DUCKDB_DEBUG_NO_INLINE
 			if (a.GetSize() != b.GetSize()) {
@@ -158,6 +161,7 @@ public:
 			uint64_t b_bulk_comp = Load<uint64_t>(const_data_ptr_cast(&b));
 			if (a_bulk_comp != b_bulk_comp) {
 				// Either length or prefix are different -> not equal
+//				faster_equality++;
 				return false;
 			}
 			// they have the same length and same prefix!

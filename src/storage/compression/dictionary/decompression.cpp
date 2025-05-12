@@ -54,15 +54,48 @@ void CompressedStringScanState::Initialize(ColumnSegment &segment, bool initiali
 	dictionary_size = index_buffer_count;
 	auto dict_child_data = FlatVector::GetData<string_t>(*(dictionary));
 	FlatVector::SetNull(*dictionary, 0, true);
+
+
+
+
+
+
+
 	for (uint32_t i = 1; i < index_buffer_count; i++) {
 		// NOTE: the passing of dict_child_vector, will not be used, its for big strings
 		uint16_t str_len = GetStringLength(i);
 				dict_child_data[i] = FetchStringFromDict(UnsafeNumericCast<int32_t>(index_buffer_ptr[i]), str_len);
-//		auto str = FetchStringFromDict(UnsafeNumericCast<int32_t>(index_buffer_ptr[i]), str_len);
-		// right now the context support is limited, next step is to find all the ways that context can be provided to
-		// this function and not only specific use cases
-//		dict_child_data[i] = (context) ? context->GetCurrentQueryUssr().insert(str) : str;
 	}
+
+	if(dictionary_size > 100){
+		auto scan_sel_vec_size = BitpackingPrimitives::RoundUpToAlgorithmGroupSize( MinValue<idx_t>(6096, segment.count));
+		auto scan_sel_vec = make_buffer<SelectionVector>(scan_sel_vec_size);
+		BitpackingPrimitives::UnPackBuffer<sel_t>(data_ptr_cast(scan_sel_vec->data()), base_data, scan_sel_vec_size, header_ptr->bitpacking_width);
+		std::vector<uint32_t> count(dictionary_size);
+		count.reserve(dictionary_size);
+		for (idx_t i = 0; i < scan_sel_vec_size; ++i) {
+			//		if(sel_vec->data()[i] > dict_header->index_buffer_count){
+			//			Printer::Print("Something");
+			//		}
+			count[scan_sel_vec->data()[i]]++;
+		}
+		std::vector<idx_t> insertion_priority;
+		for (idx_t i = 1; i < dictionary_size; ++i) {
+			if(count[i] > 70){
+				insertion_priority.push_back(i);
+			}
+		}
+		for (auto index : insertion_priority) {
+			if(index != 0){
+				dict_child_data[index] = (context) ? context->GetCurrentQueryUssr().insert(dict_child_data[index]) : dict_child_data[index];
+			}
+		}
+	} else{
+		for (uint32_t i = 1; i < index_buffer_count; i++) {
+			dict_child_data[i] = (context) ? context->GetCurrentQueryUssr().insert(dict_child_data[i]) : dict_child_data[i];
+		}
+	}
+
 }
 
 void CompressedStringScanState::ScanToFlatVector(Vector &result, idx_t result_offset, idx_t start, idx_t scan_count) {
@@ -85,12 +118,21 @@ void CompressedStringScanState::ScanToFlatVector(Vector &result, idx_t result_of
 
 	BitpackingPrimitives::UnPackBuffer<sel_t>(data_ptr_cast(sel_vec_ptr), src, decompress_count, current_width);
 
-	for (idx_t i = 0; i < scan_count; i++) {
-		// Lookup dict offset in index buffer
-		auto string_number = sel_vec->get_index(i + start_offset);
-		auto dict_offset = index_buffer_ptr[string_number];
-		auto str_len = GetStringLength(UnsafeNumericCast<sel_t>(string_number));
-		result_data[result_offset + i] = FetchStringFromDict(UnsafeNumericCast<int32_t>(dict_offset), str_len);
+	if(dictionary){
+		auto dict_child_data = FlatVector::GetData<string_t>(*(dictionary));
+		for (idx_t i = 0; i < scan_count; i++) {
+			// Lookup dict offset in index buffer
+			auto string_number = sel_vec->get_index(i + start_offset);
+			result_data[result_offset + i] = dict_child_data[string_number];
+		}
+	} else {
+		for (idx_t i = 0; i < scan_count; i++) {
+			// Lookup dict offset in index buffer
+			auto string_number = sel_vec->get_index(i + start_offset);
+			auto dict_offset = index_buffer_ptr[string_number];
+			auto str_len = GetStringLength(UnsafeNumericCast<sel_t>(string_number));
+			result_data[result_offset + i] = FetchStringFromDict(UnsafeNumericCast<int32_t>(dict_offset), str_len);
+		}
 	}
 }
 
