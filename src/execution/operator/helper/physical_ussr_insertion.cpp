@@ -61,7 +61,7 @@ OperatorResultType PhysicalUnifiedString::Execute(ExecutionContext &context, Dat
 					state.inserted.push_back(false);
 					state.count.push_back(0);
 				}
-				state.analysis_budget = 10;
+				state.analysis_budget = 0;
 				state.current_analysis_count = 1;
 				auto &sel = DictionaryVector::SelVector(input.data[col_idx]);
 				for (idx_t i = 0; i < input.size(); i++) {
@@ -72,7 +72,7 @@ OperatorResultType PhysicalUnifiedString::Execute(ExecutionContext &context, Dat
 				for (idx_t i = 1; i < state.count.size(); i++) {
 					if(state.count[i] > (40 * state.current_analysis_count)){
 						priority_selection.push_back(i);
-						state.inserted[i] = true;
+//						state.inserted[i] = true;
 					}
 				}
 
