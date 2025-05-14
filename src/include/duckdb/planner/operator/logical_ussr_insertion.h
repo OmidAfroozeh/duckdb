@@ -14,7 +14,6 @@ namespace duckdb {
 
 class LogicalUSSRInsertion : public LogicalOperator {
 
-
 public:
 	static constexpr const LogicalOperatorType TYPE = LogicalOperatorType::LOGICAL_USSR_INSERTION;
 
@@ -25,7 +24,6 @@ public:
 	vector<bool> insert_to_ussr;
 
 public:
-
 	void Serialize(Serializer &serializer) const override;
 	static unique_ptr<LogicalOperator> Deserialize(Deserializer &deserializer);
 
@@ -35,7 +33,5 @@ public:
 
 protected:
 	void ResolveTypes() override;
-
-
 };
 } // namespace duckdb

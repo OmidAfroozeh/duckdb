@@ -49,7 +49,8 @@ DataTable::DataTable(AttachedDatabase &db, shared_ptr<TableIOManager> table_io_m
                      const string &table, vector<ColumnDefinition> column_definitions_p,
                      optional_ptr<ClientContext> context, unique_ptr<PersistentTableData> data)
     : db(db), info(make_shared_ptr<DataTableInfo>(db, std::move(table_io_manager_p), schema, table, context)),
-      column_definitions(std::move(column_definitions_p)), version(DataTableVersion::MAIN_TABLE), clientContext(context) {
+      column_definitions(std::move(column_definitions_p)), version(DataTableVersion::MAIN_TABLE),
+      clientContext(context) {
 	// initialize the table with the existing data from disk, if any
 	auto types = GetTypes();
 	auto &io_manager = TableIOManager::Get(*this);
@@ -137,7 +138,8 @@ DataTable::DataTable(ClientContext &context, DataTable &parent, idx_t removed_co
 }
 
 DataTable::DataTable(ClientContext &context, DataTable &parent, BoundConstraint &constraint)
-    : db(parent.db), info(parent.info), row_groups(parent.row_groups), version(DataTableVersion::MAIN_TABLE), clientContext(context) {
+    : db(parent.db), info(parent.info), row_groups(parent.row_groups), version(DataTableVersion::MAIN_TABLE),
+      clientContext(context) {
 
 	// ALTER COLUMN to add a new constraint.
 

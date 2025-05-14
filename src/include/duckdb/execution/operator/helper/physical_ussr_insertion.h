@@ -11,7 +11,8 @@ public:
 	static constexpr const PhysicalOperatorType TYPE = PhysicalOperatorType::UNIFIED_STRINGS;
 
 public:
-	PhysicalUnifiedString(vector<LogicalType> types, vector<bool> insert_to_ussr, idx_t estimated_cardinality) : PhysicalOperator(TYPE, std::move(types), estimated_cardinality){
+	PhysicalUnifiedString(vector<LogicalType> types, vector<bool> insert_to_ussr, idx_t estimated_cardinality)
+	    : PhysicalOperator(TYPE, std::move(types), estimated_cardinality) {
 		this->insert_to_ussr = std::move(insert_to_ussr);
 	};
 
@@ -19,11 +20,11 @@ public:
 		return true;
 	}
 
-	bool IsSource() const override{
+	bool IsSource() const override {
 		return false;
 	}
 
-	bool IsSink() const override{
+	bool IsSink() const override {
 		return false;
 	}
 
@@ -33,17 +34,15 @@ public:
 	unique_ptr<OperatorState> GetOperatorState(ExecutionContext &context) const override;
 	unique_ptr<GlobalOperatorState> GetGlobalOperatorState(ClientContext &context) const override;
 
-
 	vector<DataChunk> cached;
 
 	static constexpr const idx_t USSR_CACHING_THRESHOLD = 10;
 
 public:
-
 private:
 	vector<bool> insert_to_ussr;
 	void USSR_insertion_loop(data_ptr_t dict_strings, idx_t count, ClientContext &context,
-	                         const vector<idx_t>& priority_insertion, bool exists_prio = false) const;
+	                         const vector<idx_t> &priority_insertion, bool exists_prio = false) const;
 };
 
 } // namespace duckdb

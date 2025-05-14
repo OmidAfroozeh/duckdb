@@ -53,15 +53,15 @@ string_t UnifiedStringsDictionary::insert(string_t str) {
 
 string_t UnifiedStringsDictionary::insertInternal(string_t str) {
 
-//	if (nRejections_SizeFull.load(std::memory_order_relaxed) > ATTEMPT_THRESHOLD + 1000000) {
-//		return str;
-//	}
+	//	if (nRejections_SizeFull.load(std::memory_order_relaxed) > ATTEMPT_THRESHOLD + 1000000) {
+	//		return str;
+	//	}
 
 	hash_t h = Hash(str);
 
 	uint32_t hashPrefix = Load<uint32_t>(const_data_ptr_cast(&h));
 
-//	candidates++;
+	//	candidates++;
 
 	uint16_t slot;
 	memcpy(&slot, &hashPrefix, 2U);
@@ -71,7 +71,7 @@ string_t UnifiedStringsDictionary::insertInternal(string_t str) {
 	for (idx_t i = 0; i < PROBING_LIMIT; i++) {
 		// currently no looping around
 		if (slot + i > USSR_SIZE) {
-//			nRejections_Probing++;
+			//			nRejections_Probing++;
 			return str;
 		}
 
@@ -81,7 +81,7 @@ string_t UnifiedStringsDictionary::insertInternal(string_t str) {
 
 		if (bucket_hashExtract == hashExtract) {
 			// wrong already_in, do this after checking if equal
-//			already_in++;
+			//			already_in++;
 			auto slot_ptr = data_ptr_cast(DataRegion + (bucket & 0x0000FFFF));
 			// double checking that the string found is equal to the original string
 
@@ -96,7 +96,7 @@ string_t UnifiedStringsDictionary::insertInternal(string_t str) {
 			// reject if not enough space left
 			auto remaining = (USSR_SIZE - currentEmptySlot) * 8;
 			if (str_len > remaining || currentEmptySlot > USSR_SIZE) {
-//				nRejections_SizeFull++;
+				//				nRejections_SizeFull++;
 				return str;
 			}
 
@@ -112,7 +112,7 @@ string_t UnifiedStringsDictionary::insertInternal(string_t str) {
 			if (HT[slot + i] != 0) {
 				auto slot_hashExtract = HT[slot + i] >> 16;
 				if (slot_hashExtract == hashExtract) {
-//					already_in++;
+					//					already_in++;
 					auto slot_ptr = data_ptr_cast(DataRegion + (HT[slot + i] & 0x0000FFFF));
 
 					auto res_str = string_t(const_char_ptr_cast(slot_ptr + 1), UnsafeNumericCast<uint32_t>(*slot_ptr));
@@ -126,7 +126,7 @@ string_t UnifiedStringsDictionary::insertInternal(string_t str) {
 				}
 			}
 
-//			accepted++;
+			//			accepted++;
 			auto ret = currentEmptySlot;
 			// 1 slot for the pre-computed hash,
 			currentEmptySlot += increasedSlot;
@@ -146,7 +146,7 @@ string_t UnifiedStringsDictionary::insertInternal(string_t str) {
 			return res_str;
 		}
 	}
-//	nRejections_Probing++;
+	//	nRejections_Probing++;
 	return str;
 }
 // string_t UnifiedStringsDictionary::insertInternal(duckdb::string_t str, hash_t hash) {
@@ -273,7 +273,7 @@ string_t UnifiedStringsDictionary::insertInternal(string_t str) {
 UnifiedStringsDictionary::~UnifiedStringsDictionary() {
 	this->buffer.reset();
 	//	this->LinearProbingHT.reset();
-//	this->getStatistics();
+	//	this->getStatistics();
 }
 
 void UnifiedStringsDictionary::getStatistics() {
@@ -312,14 +312,13 @@ void UnifiedStringsDictionary::getStatistics() {
 	statsStr += padRight(std::to_string(nRejections_Probing), w4);
 	//
 	//
-		Printer::Print(statsStr);
+	Printer::Print(statsStr);
 
-
-//		    	Printer::PrintF("faster hash path triggered: %d, equal pointers for strings: %d",
-//			                string_t::StringComparisonOperators::faster_hash.load(),
-//			                string_t::StringComparisonOperators::faster_equality.load());
-//			string_t::StringComparisonOperators::faster_equality = 0;
-//			string_t::StringComparisonOperators::faster_hash = 0;
+	//		    	Printer::PrintF("faster hash path triggered: %d, equal pointers for strings: %d",
+	//			                string_t::StringComparisonOperators::faster_hash.load(),
+	//			                string_t::StringComparisonOperators::faster_equality.load());
+	//			string_t::StringComparisonOperators::faster_equality = 0;
+	//			string_t::StringComparisonOperators::faster_hash = 0;
 }
 
 } // namespace duckdb

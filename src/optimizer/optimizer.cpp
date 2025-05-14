@@ -266,9 +266,9 @@ void Optimizer::RunBuiltInOptimizers() {
 	RunOptimizer(OptimizerType::JOIN_FILTER_PUSHDOWN, [&]() {
 		JoinFilterPushdownOptimizer join_filter_pushdown(*this);
 		join_filter_pushdown.VisitOperator(*plan);
-//
-		USSR_optimizer ussrOptimizer(this, plan);
-		plan = ussrOptimizer.CheckUnifiedDictionary(std::move(plan));
+		//
+		//		USSR_optimizer ussrOptimizer(this, plan);
+		//		plan = ussrOptimizer.CheckUnifiedDictionary(std::move(plan));
 	});
 }
 
