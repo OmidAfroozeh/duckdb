@@ -33,7 +33,7 @@ public:
 OperatorResultType PhysicalUnifiedString::Execute(ExecutionContext &context, DataChunk &input, DataChunk &chunk,
                                                   GlobalOperatorState &gstate, OperatorState &state_p) const {
 	auto &state = state_p.Cast<USSRInsertionState>();
-	auto &gstateussr = gstate.Cast<USSRInsertionGState>();
+//	auto &gstateussr = gstate.Cast<USSRInsertionGState>();
 	for (idx_t col_idx = 0; col_idx < input.data.size(); ++col_idx) {
 		if(input.data[col_idx].GetVectorType() != VectorType::DICTIONARY_VECTOR || input.data[col_idx].GetType() != LogicalType::VARCHAR){
 			continue;
@@ -170,7 +170,8 @@ void PhysicalUnifiedString::USSR_insertion_loop(data_ptr_t dict_strings, idx_t c
 	auto start = reinterpret_cast<string_t *>(dict_strings);
 
 	if(priority_insertion.empty() && !exists_prio){
-		for (idx_t i = 1; i < count; ++i) {
+		// FIXME: this count - 1 is only to satisfy some parquet files readings, need to investigate!
+		for (idx_t i = 1; i < count-1; i++) {
 			start[i] = context.GetCurrentQueryUssr().insert(start[i]);
 		}
 	} else{

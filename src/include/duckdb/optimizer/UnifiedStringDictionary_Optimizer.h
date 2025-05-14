@@ -10,7 +10,6 @@ class BoundColumnRefExpression;
 class USSR_optimizer{
 public:
 	explicit USSR_optimizer(Optimizer* optimizer, optional_ptr<LogicalOperator> r){
-		replacer = make_uniq<ColumnBindingReplacer>();
 		this->optimizer = optimizer;
 		root = r;
 		requires_ussr = false;
