@@ -161,7 +161,6 @@ public:
 			uint64_t b_bulk_comp = Load<uint64_t>(const_data_ptr_cast(&b));
 			if (a_bulk_comp != b_bulk_comp) {
 				// Either length or prefix are different -> not equal
-//				faster_equality++;
 				return false;
 			}
 			// they have the same length and same prefix!
@@ -169,6 +168,7 @@ public:
 			b_bulk_comp = Load<uint64_t>(const_data_ptr_cast(&b) + 8u);
 			if (a_bulk_comp == b_bulk_comp) {
 				// either they are both inlined (so compare equal) or point to the same string (so compare equal)
+//				faster_equality++;
 				return true;
 			}
 			if (!a.IsInlined()) {
