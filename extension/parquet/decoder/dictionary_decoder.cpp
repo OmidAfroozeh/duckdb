@@ -35,7 +35,6 @@ void DictionaryDecoder::InitializeDictionary(idx_t new_dictionary_size, optional
 	}
 	reader.Plain(reader.block, nullptr, dictionary_size, 0, *dictionary);
 
-
 	if (filter && CanFilter(*filter, *filter_state)) {
 		// no filter result yet - apply filter to the dictionary
 		// initialize the filter result - setting everything to false
