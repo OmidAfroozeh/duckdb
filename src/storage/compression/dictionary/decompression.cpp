@@ -67,34 +67,34 @@ void CompressedStringScanState::Initialize(ColumnSegment &segment, bool initiali
 				dict_child_data[i] = FetchStringFromDict(UnsafeNumericCast<int32_t>(index_buffer_ptr[i]), str_len);
 	}
 
-	if(dictionary_size > 100){
-		auto scan_sel_vec_size = BitpackingPrimitives::RoundUpToAlgorithmGroupSize( MinValue<idx_t>(6096, segment.count));
-		auto scan_sel_vec = make_buffer<SelectionVector>(scan_sel_vec_size);
-		BitpackingPrimitives::UnPackBuffer<sel_t>(data_ptr_cast(scan_sel_vec->data()), base_data, scan_sel_vec_size, header_ptr->bitpacking_width);
-		std::vector<uint32_t> count(dictionary_size);
-		count.reserve(dictionary_size);
-		for (idx_t i = 0; i < scan_sel_vec_size; ++i) {
-			//		if(sel_vec->data()[i] > dict_header->index_buffer_count){
-			//			Printer::Print("Something");
-			//		}
-			count[scan_sel_vec->data()[i]]++;
-		}
-		std::vector<idx_t> insertion_priority;
-		for (idx_t i = 1; i < dictionary_size; ++i) {
-			if(count[i] > 70){
-				insertion_priority.push_back(i);
-			}
-		}
-		for (auto index : insertion_priority) {
-			if(index != 0){
-				dict_child_data[index] = (context) ? context->GetCurrentQueryUssr().insert(dict_child_data[index]) : dict_child_data[index];
-			}
-		}
-	} else{
-		for (uint32_t i = 1; i < index_buffer_count; i++) {
-			dict_child_data[i] = (context) ? context->GetCurrentQueryUssr().insert(dict_child_data[i]) : dict_child_data[i];
-		}
-	}
+//	if(dictionary_size > 100){
+//		auto scan_sel_vec_size = BitpackingPrimitives::RoundUpToAlgorithmGroupSize( MinValue<idx_t>(6096, segment.count));
+//		auto scan_sel_vec = make_buffer<SelectionVector>(scan_sel_vec_size);
+//		BitpackingPrimitives::UnPackBuffer<sel_t>(data_ptr_cast(scan_sel_vec->data()), base_data, scan_sel_vec_size, header_ptr->bitpacking_width);
+//		std::vector<uint32_t> count(dictionary_size);
+//		count.reserve(dictionary_size);
+//		for (idx_t i = 0; i < scan_sel_vec_size; ++i) {
+//			//		if(sel_vec->data()[i] > dict_header->index_buffer_count){
+//			//			Printer::Print("Something");
+//			//		}
+//			count[scan_sel_vec->data()[i]]++;
+//		}
+//		std::vector<idx_t> insertion_priority;
+//		for (idx_t i = 1; i < dictionary_size; ++i) {
+//			if(count[i] > 70){
+//				insertion_priority.push_back(i);
+//			}
+//		}
+//		for (auto index : insertion_priority) {
+//			if(index != 0){
+//				dict_child_data[index] = (context) ? context->GetCurrentQueryUssr().insert(dict_child_data[index]) : dict_child_data[index];
+//			}
+//		}
+//	} else{
+//		for (uint32_t i = 1; i < index_buffer_count; i++) {
+//			dict_child_data[i] = (context) ? context->GetCurrentQueryUssr().insert(dict_child_data[i]) : dict_child_data[i];
+//		}
+//	}
 
 }
 
@@ -138,11 +138,11 @@ void CompressedStringScanState::ScanToFlatVector(Vector &result, idx_t result_of
 
 void CompressedStringScanState::ScanToDictionaryVector(ColumnSegment &segment, Vector &result, idx_t result_offset,
                                                        idx_t start, idx_t scan_count) {
-	D_ASSERT(start % BitpackingPrimitives::BITPACKING_ALGORITHM_GROUP_SIZE == 0);
 	D_ASSERT(scan_count == STANDARD_VECTOR_SIZE);
 	D_ASSERT(result_offset == 0);
 
-	idx_t decompress_count = BitpackingPrimitives::RoundUpToAlgorithmGroupSize(scan_count);
+	idx_t start_offset = start % BitpackingPrimitives::BITPACKING_ALGORITHM_GROUP_SIZE;
+	idx_t decompress_count = BitpackingPrimitives::RoundUpToAlgorithmGroupSize(scan_count + start_offset);
 
 	// Create a selection vector of sufficient size if we don't already have one.
 	if (!sel_vec || sel_vec_size < decompress_count) {
@@ -152,9 +152,15 @@ void CompressedStringScanState::ScanToDictionaryVector(ColumnSegment &segment, V
 
 	// Scanning 2048 values, emitting a dict vector
 	data_ptr_t dst = data_ptr_cast(sel_vec->data());
-	data_ptr_t src = data_ptr_cast(&base_data[(start * current_width) / 8]);
+	data_ptr_t src = data_ptr_cast(&base_data[((start - start_offset) * current_width) / 8]);
 
-	BitpackingPrimitives::UnPackBuffer<sel_t>(dst, src, scan_count, current_width);
+	BitpackingPrimitives::UnPackBuffer<sel_t>(dst, src, decompress_count, current_width);
+
+	if (start_offset != 0) {
+		for (idx_t i = 0; i < scan_count; i++) {
+			sel_vec->set_index(i, sel_vec->get_index(i + start_offset));
+		}
+	}
 
 	result.Dictionary(*(dictionary), dictionary_size, *sel_vec, scan_count);
 	DictionaryVector::SetDictionaryId(result, to_string(CastPointerToValue(&segment)));
