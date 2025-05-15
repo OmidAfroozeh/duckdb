@@ -20,17 +20,23 @@ public:
 
 	static constexpr const uint64_t BUFFER_SIZE = static_cast<uint64_t>(1024 * 1024);
 
-	static constexpr const uint64_t USSR_MASK = 0xFFFFFFFFFFF80000;
+	static uint64_t USSR_MASK;
 
 	static constexpr const uint64_t USSR_SLOT_SIZE = 8;
-	static constexpr const uint64_t USSR_SIZE = 0xFFFF;
+	idx_t USSR_SIZE;
+
+	uint64_t slot_mask;
 
 	// first two bytes are the slot number into the data region
 	// and the second two bytes are the hash extract (a part of the original string's hash)
-	static constexpr const uint64_t HT_BUCKET_SIZE = 4;
-	static constexpr const uint64_t HT_SIZE = 0xFFFF;
+	static constexpr const uint64_t HT_BUCKET_SIZE = 8;
+	idx_t HT_SIZE;
 
 	static constexpr const idx_t PROBING_LIMIT = 16;
+
+	static constexpr const idx_t slot_size = 6;
+
+	idx_t required_bits = 19;
 
 private:
 	// Overarching USSR buffer, contains DataRegion + HT + extra, 1MB size
@@ -43,7 +49,7 @@ private:
 
 	uint64_t currentEmptySlot;
 
-	uint32_t *HT;
+	uint64_t *HT;
 
 	// every attempt on inserting a string
 	atomic<uint64_t> candidates;
@@ -57,6 +63,8 @@ private:
 
 public:
 	UnifiedStringsDictionary();
+	UnifiedStringsDictionary(idx_t size);
+
 	~UnifiedStringsDictionary();
 	uint64_t USSR_prefix;
 

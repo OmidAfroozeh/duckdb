@@ -22,7 +22,7 @@ public:
 	void Insert_USSR_Operator(unique_ptr<LogicalOperator> op);
 
 private:
-	unique_ptr<ColumnBindingReplacer> replacer;
+//	unique_ptr<ColumnBindingReplacer> replacer;
 
 	optional_ptr<LogicalOperator> root;
 
