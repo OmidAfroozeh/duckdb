@@ -112,7 +112,7 @@ string_t UnifiedStringsDictionary::insertInternal(string_t str) {
 
 //	uint32_t hashPrefix = Load<uint32_t>(const_data_ptr_cast(&h));
 
-		candidates++;
+//		candidates++;
 
 	uint64_t slot;
 	memcpy(&slot, &h, slot_size);
@@ -136,7 +136,7 @@ string_t UnifiedStringsDictionary::insertInternal(string_t str) {
 
 		if (bucket_hashExtract == hashExtract) {
 			// wrong already_in, do this after checking if equal
-						already_in++;
+//						already_in++;
 			auto slot_ptr = data_ptr_cast(DataRegion + (bucket & slot_mask));
 			// double checking that the string found is equal to the original string
 
@@ -151,7 +151,7 @@ string_t UnifiedStringsDictionary::insertInternal(string_t str) {
 			// reject if not enough space left
 			auto remaining = (USSR_SIZE - currentEmptySlot) * 8;
 			if (str_len > remaining || currentEmptySlot > USSR_SIZE) {
-								nRejections_SizeFull++;
+//								nRejections_SizeFull++;
 				return str;
 			}
 
@@ -167,7 +167,7 @@ string_t UnifiedStringsDictionary::insertInternal(string_t str) {
 			if (HT[slot + prob_index] != 0) {
 				auto slot_hashExtract = HT[slot + prob_index] >> (slot_size * 8);
 				if (slot_hashExtract == hashExtract) {
-										already_in++;
+//										already_in++;
 					auto slot_ptr = data_ptr_cast(DataRegion + (HT[slot + prob_index] & slot_mask));
 
 					auto res_str = string_t(const_char_ptr_cast(slot_ptr + 1), UnsafeNumericCast<uint32_t>(*slot_ptr));
@@ -181,7 +181,7 @@ string_t UnifiedStringsDictionary::insertInternal(string_t str) {
 				}
 			}
 
-						accepted++;
+//						accepted++;
 			auto ret = currentEmptySlot;
 			// 1 slot for the pre-computed hash,
 			currentEmptySlot += increasedSlot;
@@ -201,7 +201,7 @@ string_t UnifiedStringsDictionary::insertInternal(string_t str) {
 			return res_str;
 		}
 	}
-		nRejections_Probing++;
+//		nRejections_Probing++;
 	return str;
 }
 // string_t UnifiedStringsDictionary::insertInternal(duckdb::string_t str, hash_t hash) {
@@ -328,7 +328,7 @@ string_t UnifiedStringsDictionary::insertInternal(string_t str) {
 UnifiedStringsDictionary::~UnifiedStringsDictionary() {
 	this->buffer.reset();
 	//	this->LinearProbingHT.reset();
-		this->getStatistics();
+//		this->getStatistics();
 }
 
 void UnifiedStringsDictionary::getStatistics() {
