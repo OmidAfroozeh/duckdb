@@ -40,7 +40,7 @@ void RowOperations::SwizzleColumns(const RowLayout &layout, const data_ptr_t bas
 					if (Load<uint32_t>(col_ptr) > string_t::INLINE_LENGTH) {
 						auto str = string_t(Load<char *>(string_ptr), Load<uint32_t>(col_ptr));
 						//						str.Verify();
-						if ((UnifiedStringsDictionary::USSR_MASK & cast_pointer_to_uint64(str.GetPointer())) !=
+						if ((UnifiedStringsDictionary::USSR_MASK & reinterpret_cast<uint64_t>(str.GetPointer())) !=
 						    context->GetCurrentQueryUssr().USSR_prefix) {
 							// Overwrite the string pointer with the within-row offset (if not inlined)
 							Store<idx_t>(UnsafeNumericCast<idx_t>(Load<data_ptr_t>(string_ptr) - heap_row_ptrs[i]),
@@ -108,6 +108,7 @@ void RowOperations::UnswizzleHeapPointer(const RowLayout &layout, const data_ptr
 }
 
 static inline void VerifyUnswizzledString(const RowLayout &layout, const idx_t &col_idx, const data_ptr_t &row_ptr) {
+#ifdef DEBUG
 	if (layout.GetTypes()[col_idx].id() != LogicalTypeId::VARCHAR) {
 		return;
 	}
@@ -120,6 +121,7 @@ static inline void VerifyUnswizzledString(const RowLayout &layout, const idx_t &
 		auto str = Load<string_t>(row_ptr + layout.GetOffsets()[col_idx]);
 		str.Verify();
 	}
+#endif
 }
 
 void RowOperations::UnswizzlePointers(const RowLayout &layout, const data_ptr_t base_row_ptr,

@@ -137,9 +137,6 @@ void TupleDataAllocator::Build(TupleDataSegment &segment, TupleDataPinState &pin
 	for (const auto &indices : chunk_part_indices) {
 		chunk_parts.emplace_back(segment.chunk_parts[indices.second]);
 	}
-	if (!context) {
-		//		Printer::Print("no context at build");
-	}
 	InitializeChunkStateInternal(pin_state, chunk_state, append_offset, false, true, false, chunk_parts, context);
 
 	// To reduce metadata, we try to merge chunk parts where possible

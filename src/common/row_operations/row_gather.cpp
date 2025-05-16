@@ -82,9 +82,6 @@ static void GatherVarchar(Vector &rows, const SelectionVector &row_sel, Vector &
 				auto heap_row_ptr = base_heap_ptr + Load<idx_t>(heap_ptr_ptr);
 				auto string_ptr = data_ptr_t(data + col_idx) + string_t::HEADER_SIZE;
 				Store<data_ptr_t>(heap_row_ptr + Load<idx_t>(string_ptr), string_ptr);
-			} else {
-				auto str = data[col_idx];
-				str.GetSize();
 			}
 
 #ifdef DEBUG
