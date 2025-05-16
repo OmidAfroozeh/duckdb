@@ -63,7 +63,7 @@ OperatorResultType PhysicalUnifiedString::Execute(ExecutionContext &context, Dat
 					state.inserted.push_back(false);
 					state.count.push_back(0);
 				}
-				state.analysis_budget = 0;
+				state.analysis_budget = 1000000;
 				state.current_analysis_count = 1;
 				auto &sel = DictionaryVector::SelVector(input.data[col_idx]);
 				for (idx_t i = 0; i < input.size(); i++) {
@@ -72,7 +72,7 @@ OperatorResultType PhysicalUnifiedString::Execute(ExecutionContext &context, Dat
 
 				vector<idx_t> priority_selection;
 				for (idx_t i = 1; i < state.count.size(); i++) {
-					if (state.count[i] > (2 * state.current_analysis_count)) {
+					if (state.count[i] > (0 * state.current_analysis_count)) {
 						priority_selection.push_back(i);
 												state.inserted[i] = true;
 					}
@@ -93,7 +93,7 @@ OperatorResultType PhysicalUnifiedString::Execute(ExecutionContext &context, Dat
 
 				vector<idx_t> priority_selection;
 				for (idx_t i = 1; i < state.count.size(); ++i) {
-					if (state.count[i] > (10) && !state.inserted[i]) {
+					if (state.count[i] > (0) && !state.inserted[i]) {
 						priority_selection.push_back(i);
 						state.inserted[i] = true;
 					}
@@ -176,7 +176,7 @@ void PhysicalUnifiedString::USSR_insertion_loop(data_ptr_t dict_strings, idx_t c
 
 	if (priority_insertion.empty() && !exists_prio) {
 		// FIXME: this count - 1 is only to satisfy some parquet files readings, need to investigate!
-		for (idx_t i = 1; i < count -1 ; i++) {
+		for (idx_t i = 1; i < count ; i++) {
 			start[i] = context.GetCurrentQueryUssr().insert(start[i]);
 		}
 	} else {
