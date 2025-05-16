@@ -35,7 +35,7 @@ inline void TupleDataValueStore(const string_t &source, const data_ptr_t &row_lo
 		Store<string_t>(source, row_location + offset_in_row);
 	} else {
 		if (context) {
-			if (((0xFFFFFFFFFFF80000 & cast_pointer_to_uint64(source.GetPointer())) ==
+			if (((UnifiedStringsDictionary::USSR_MASK & reinterpret_cast<uint64_t>(source.GetPointer())) ==
 			     context->GetCurrentQueryUssr().USSR_prefix)) {
 				Store<string_t>(source, row_location + offset_in_row);
 				return;
@@ -118,12 +118,10 @@ void TupleDataCollection::ComputeHeapSizes(TupleDataChunkState &chunk_state, con
 }
 
 static idx_t StringHeapSize(const string_t &val, optional_ptr<ClientContext> context) {
-	if (context) {
-		if (!val.IsInlined() && (0xFFFFFFFFFFF80000 & cast_pointer_to_uint64(val.GetPointer())) ==
+		if (!val.IsInlined() && (UnifiedStringsDictionary::USSR_MASK & reinterpret_cast<uint64_t >(val.GetPointer())) ==
 		                            context->GetCurrentQueryUssr().USSR_prefix) {
 			return 0;
-		}
-	}
+	    }
 
 	return val.IsInlined() ? 0 : val.GetSize();
 }
@@ -164,7 +162,7 @@ void TupleDataCollection::ComputeHeapSizes(Vector &heap_sizes_v, const Vector &s
 		for (idx_t struct_col_idx = 0; struct_col_idx < struct_sources.size(); struct_col_idx++) {
 			const auto &struct_source = struct_sources[struct_col_idx];
 			auto &struct_format = source_format.children[struct_col_idx];
-			ComputeHeapSizes(heap_sizes_v, *struct_source, struct_format, append_sel, append_count);
+			ComputeHeapSizes(heap_sizes_v, *struct_source, struct_format, append_sel, append_count, context);
 		}
 		break;
 	}

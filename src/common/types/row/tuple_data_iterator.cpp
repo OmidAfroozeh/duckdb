@@ -37,11 +37,6 @@ TupleDataChunkIterator::TupleDataChunkIterator(TupleDataCollection &collection_p
 }
 
 void TupleDataChunkIterator::InitializeCurrentChunk(optional_ptr<ClientContext> context) {
-	if (!context) {
-		//		Printer::Print(StackTrace::GetStackTrace());
-		//		Printer::Print("InitializeCurrentChunk has no context");
-		//		exit(1);
-	}
 	auto &segment = collection.segments[current_segment_idx];
 	segment.allocator->InitializeChunkState(segment, state.pin_state, state.chunk_state, current_chunk_idx, init_heap,
 	                                        context);
@@ -52,10 +47,6 @@ bool TupleDataChunkIterator::Done() const {
 }
 
 bool TupleDataChunkIterator::Next(optional_ptr<ClientContext> context) {
-	//	if(!context){
-	//		Printer::Print("Next No context");
-	//		exit(1);
-	//	}
 	D_ASSERT(!Done()); // Check if called after already done
 
 	// Set the next indices and checks if we're at the end of the collection
