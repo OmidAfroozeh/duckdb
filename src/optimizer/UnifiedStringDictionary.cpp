@@ -95,7 +95,7 @@ UnifiedStringsDictionary::UnifiedStringsDictionary(idx_t size) {
 
 string_t UnifiedStringsDictionary::insert(string_t str) {
 	// no support for short strings now
-	if (str.IsInlined() || str.GetSize() > 0xFFFF) {
+	if (str.IsInlined() || str.GetSize() > MAX_STRING_LENGTH) {
 		return str;
 	}
 
@@ -140,18 +140,18 @@ string_t UnifiedStringsDictionary::insertInternal(string_t str) {
 			auto slot_ptr = data_ptr_cast(DataRegion + (bucket & slot_mask));
 			// double checking that the string found is equal to the original string
 
-			auto res_str = string_t(const_char_ptr_cast(slot_ptr + 2), UnsafeNumericCast<uint32_t>(* reinterpret_cast<uint16_t *>(slot_ptr)));
+			auto res_str = string_t(const_char_ptr_cast(slot_ptr + 1), UnsafeNumericCast<uint32_t>(*slot_ptr));
 			return (res_str == str) ? res_str : str;
 		}
 
 		if (bucket == 0) {
-			auto str_len = str.GetSize() + 2;
+			auto str_len = str.GetSize() + 1;
 			std::lock_guard<std::mutex> guard(insertLock);
 
 			// reject if not enough space left
 			auto remaining = (USSR_SIZE - currentEmptySlot) * 8;
 			if (str_len > remaining || currentEmptySlot > USSR_SIZE) {
-								nRejections_SizeFull++;
+//								nRejections_SizeFull++;
 				return str;
 			}
 
@@ -170,7 +170,7 @@ string_t UnifiedStringsDictionary::insertInternal(string_t str) {
 //										already_in++;
 					auto slot_ptr = data_ptr_cast(DataRegion + (HT[slot + prob_index] & slot_mask));
 
-					auto res_str = string_t(const_char_ptr_cast(slot_ptr + 2), UnsafeNumericCast<uint32_t>(* reinterpret_cast<uint16_t *>(slot_ptr)));
+					auto res_str = string_t(const_char_ptr_cast(slot_ptr + 1), UnsafeNumericCast<uint32_t>(*slot_ptr));
 					if (res_str == str) {
 						return res_str;
 					} else {
@@ -192,13 +192,12 @@ string_t UnifiedStringsDictionary::insertInternal(string_t str) {
 			D_ASSERT(cast_pointer_to_uint64(slot_ptr) <
 			         cast_pointer_to_uint64(DataRegion + USSR_SIZE * USSR_SLOT_SIZE));
 
-			*reinterpret_cast<uint16_t *>(slot_ptr) =
-			    UnsafeNumericCast<uint16_t>(str.GetSize());
-			memcpy(slot_ptr + 2, str.GetData(), str.GetSize());
+			memset(slot_ptr, UnsafeNumericCast<uint8_t>(str.GetSize()), 1);
+			memcpy(slot_ptr + 1, str.GetData(), str.GetSize());
 			memcpy(slot_ptr - 8, &h, 8);
 
 			(reinterpret_cast<atomic<uint64_t > *>(HT + slot + prob_index))->store(newBucket, std::memory_order_release);
-			auto res_str = string_t(const_char_ptr_cast(slot_ptr + 2), UnsafeNumericCast<uint32_t>(* reinterpret_cast<uint16_t *>(slot_ptr)));
+			auto res_str = string_t(const_char_ptr_cast(slot_ptr + 1), UnsafeNumericCast<uint32_t>(*slot_ptr));
 			return res_str;
 		}
 	}
