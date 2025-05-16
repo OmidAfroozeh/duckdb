@@ -75,7 +75,7 @@ static void GatherVarchar(Vector &rows, const SelectionVector &row_sel, Vector &
 			}
 			col_mask.SetInvalid(col_idx);
 		} else if (base_heap_ptr && Load<uint32_t>(col_ptr) > string_t::INLINE_LENGTH) {
-			if ((context->GetCurrentQueryUssr().USSR_MASK & cast_pointer_to_uint64(data[col_idx].GetPointer())) !=
+			if ((context->GetCurrentQueryUssr().USSR_MASK & reinterpret_cast<uint64_t>(data[col_idx].GetPointer())) !=
 			    context->GetCurrentQueryUssr().USSR_prefix) {
 				//	Not inline, so unswizzle the copied pointer the pointer
 				auto heap_ptr_ptr = row + heap_offset;
