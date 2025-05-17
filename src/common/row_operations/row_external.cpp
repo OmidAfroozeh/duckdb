@@ -45,8 +45,6 @@ void RowOperations::SwizzleColumns(const RowLayout &layout, const data_ptr_t bas
 							// Overwrite the string pointer with the within-row offset (if not inlined)
 							Store<idx_t>(UnsafeNumericCast<idx_t>(Load<data_ptr_t>(string_ptr) - heap_row_ptrs[i]),
 							             string_ptr);
-						} else {
-							//							Printer::Print("GOTCHAAAAA");
 						}
 					}
 					col_ptr += row_width;
