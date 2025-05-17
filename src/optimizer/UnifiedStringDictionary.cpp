@@ -43,7 +43,6 @@ namespace duckdb {
 //	already_in = 0;
 //}
 
-uint64_t UnifiedStringsDictionary::USSR_MASK{0};
 
 UnifiedStringsDictionary::UnifiedStringsDictionary(idx_t size) {
 	required_bits += static_cast<idx_t > (std::log(size) / std::log(2));

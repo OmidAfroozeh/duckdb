@@ -291,8 +291,6 @@ PayloadScanner::PayloadScanner(SortedData &sorted_data, GlobalSortState &global_
 	auto &layout = sorted_data.layout;
 	const auto block_size = global_sort_state.buffer_manager.GetBlockSize();
 
-	context = global_sort_state.context;
-
 	// Create collections to put the data into so we can use RowDataCollectionScanner
 	rows = make_uniq<RowDataCollection>(global_sort_state.buffer_manager, block_size, 1U);
 	rows->count = count;
@@ -333,7 +331,6 @@ PayloadScanner::PayloadScanner(GlobalSortState &global_sort_state, idx_t block_i
 	auto &layout = sorted_data.layout;
 	const auto block_size = global_sort_state.buffer_manager.GetBlockSize();
 
-	context = global_sort_state.context;
 
 	// Create collections to put the data into so we can use RowDataCollectionScanner
 	rows = make_uniq<RowDataCollection>(global_sort_state.buffer_manager, block_size, 1U);
