@@ -35,7 +35,7 @@ inline void TupleDataValueStore(const string_t &source, const data_ptr_t &row_lo
 		Store<string_t>(source, row_location + offset_in_row);
 	} else {
 		if (context) {
-			if (((UnifiedStringsDictionary::USSR_MASK & reinterpret_cast<uint64_t>(source.GetPointer())) ==
+			if (((context->GetCurrentQueryUssr().USSR_MASK & reinterpret_cast<uint64_t>(source.GetPointer())) ==
 			     context->GetCurrentQueryUssr().USSR_prefix)) {
 				Store<string_t>(source, row_location + offset_in_row);
 				return;
@@ -118,7 +118,7 @@ void TupleDataCollection::ComputeHeapSizes(TupleDataChunkState &chunk_state, con
 }
 
 static idx_t StringHeapSize(const string_t &val, optional_ptr<ClientContext> context) {
-		if (!val.IsInlined() && (UnifiedStringsDictionary::USSR_MASK & reinterpret_cast<uint64_t >(val.GetPointer())) ==
+		if (!val.IsInlined() && (context->GetCurrentQueryUssr().USSR_MASK & reinterpret_cast<uint64_t >(val.GetPointer())) ==
 		                            context->GetCurrentQueryUssr().USSR_prefix) {
 			return 0;
 	    }

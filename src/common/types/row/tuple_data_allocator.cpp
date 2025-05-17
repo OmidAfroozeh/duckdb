@@ -7,8 +7,6 @@
 #include "duckdb/storage/buffer/block_handle.hpp"
 #include "duckdb/storage/buffer_manager.hpp"
 
-#include "duckdb/common/stacktrace.hpp"
-
 namespace duckdb {
 
 using ValidityBytes = TupleDataLayout::ValidityBytes;
@@ -245,9 +243,7 @@ void TupleDataAllocator::InitializeChunkState(TupleDataSegment &segment, TupleDa
 	for (auto part_id = chunk.part_ids.Start(); part_id < chunk.part_ids.End(); part_id++) {
 		chunk_state.parts.emplace_back(segment.chunk_parts[part_id]);
 	}
-	if (!context) {
-		//		Printer::Print("No context at intiializechunkstate");
-	}
+
 	InitializeChunkStateInternal(pin_state, chunk_state, 0, true, init_heap, init_heap, chunk_state.parts, context);
 }
 
@@ -398,7 +394,7 @@ void TupleDataAllocator::RecomputeHeapPointers(Vector &old_heap_ptrs, const Sele
 				if (Load<uint32_t>(string_location) > string_t::INLINE_LENGTH) {
 					const auto string_ptr_location = string_location + string_t::HEADER_SIZE;
 					auto str = string_t(Load<char *>(string_ptr_location), Load<uint32_t>(string_location));
-						if ((UnifiedStringsDictionary::USSR_MASK & reinterpret_cast<uint64_t>(str.GetPointer())) !=
+						if ((context->GetCurrentQueryUssr().USSR_MASK & reinterpret_cast<uint64_t>(str.GetPointer())) !=
 						    context->GetCurrentQueryUssr().USSR_prefix) {
 							const auto string_ptr = Load<data_ptr_t>(string_ptr_location);
 							const auto diff = string_ptr - old_heap_ptr;

@@ -39,8 +39,7 @@ void RowOperations::SwizzleColumns(const RowLayout &layout, const data_ptr_t bas
 				for (idx_t i = 0; i < next; i++) {
 					if (Load<uint32_t>(col_ptr) > string_t::INLINE_LENGTH) {
 						auto str = string_t(Load<char *>(string_ptr), Load<uint32_t>(col_ptr));
-						//						str.Verify();
-						if ((UnifiedStringsDictionary::USSR_MASK & reinterpret_cast<uint64_t>(str.GetPointer())) !=
+						if ((context->GetCurrentQueryUssr().USSR_MASK & reinterpret_cast<uint64_t>(str.GetPointer())) !=
 						    context->GetCurrentQueryUssr().USSR_prefix) {
 							// Overwrite the string pointer with the within-row offset (if not inlined)
 							Store<idx_t>(UnsafeNumericCast<idx_t>(Load<data_ptr_t>(string_ptr) - heap_row_ptrs[i]),
@@ -155,7 +154,7 @@ void RowOperations::UnswizzlePointers(const RowLayout &layout, const data_ptr_t 
 							Store<data_ptr_t>(heap_row_ptrs[i] + Load<idx_t>(string_ptr), string_ptr);
 						} else {
 
-							if ((UnifiedStringsDictionary::USSR_MASK &
+							if ((context->GetCurrentQueryUssr().USSR_MASK &
 							     reinterpret_cast<uint64_t>(str.GetDataUnsafe())) !=
 							    context->GetCurrentQueryUssr().USSR_prefix) {
 								// Overwrite the string offset with the pointer (if not inlined)

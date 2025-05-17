@@ -20,7 +20,8 @@ public:
 
 	static constexpr const uint64_t BUFFER_SIZE = static_cast<uint64_t>(1024 * 1024);
 
-	static uint64_t USSR_MASK;
+	uint64_t USSR_MASK;
+	uint64_t USSR_prefix;
 
 	static constexpr const uint64_t USSR_SLOT_SIZE = 8;
 	idx_t USSR_SIZE;
@@ -66,7 +67,6 @@ public:
 	UnifiedStringsDictionary(idx_t size);
 
 	~UnifiedStringsDictionary();
-	uint64_t USSR_prefix;
 
 	string_t insert(string_t str);
 
