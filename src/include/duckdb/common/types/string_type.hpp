@@ -168,7 +168,7 @@ public:
 			b_bulk_comp = Load<uint64_t>(const_data_ptr_cast(&b) + 8u);
 			if (a_bulk_comp == b_bulk_comp) {
 				// either they are both inlined (so compare equal) or point to the same string (so compare equal)
-//								faster_equality++;
+				//								faster_equality++;
 				return true;
 			}
 			if (!a.IsInlined()) {

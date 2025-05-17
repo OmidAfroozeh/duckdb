@@ -8,7 +8,7 @@
 
 namespace duckdb {
 
-//UnifiedStringsDictionary::UnifiedStringsDictionary() {
+// UnifiedStringsDictionary::UnifiedStringsDictionary() {
 //
 //	buffer = make_unsafe_uniq_array_uninitialized<data_t>(BUFFER_SIZE);
 //	USSR_prefix = cast_pointer_to_uint64(buffer.get() + USSR_SIZE * USSR_SLOT_SIZE) & USSR_MASK;
@@ -43,9 +43,8 @@ namespace duckdb {
 //	already_in = 0;
 //}
 
-
 UnifiedStringsDictionary::UnifiedStringsDictionary(idx_t size) {
-	required_bits += static_cast<idx_t > (std::log(size) / std::log(2));
+	required_bits += static_cast<idx_t>(std::log(size) / std::log(2));
 	// base size is 512kB, I need to calculate how many bits do I need to given the size,
 	// size 1 = 512kb -> 16bits (to slot into a  64k 8 bytes)
 	// size 2 = 1024kB -> 17 bits (
@@ -55,10 +54,9 @@ UnifiedStringsDictionary::UnifiedStringsDictionary(idx_t size) {
 	USSR_SIZE = size * 0xFFFF;
 	HT_SIZE = USSR_SIZE;
 
+	slot_mask = (1ULL << (required_bits - 3)) - 1ULL;
 
-	slot_mask = (1ULL << (required_bits-3)) - 1ULL;
-
-	buffer = make_unsafe_uniq_array_uninitialized<data_t>( (size * 2) * BUFFER_SIZE);
+	buffer = make_unsafe_uniq_array_uninitialized<data_t>((size * 2) * BUFFER_SIZE);
 	USSR_prefix = cast_pointer_to_uint64(buffer.get() + USSR_SIZE * USSR_SLOT_SIZE) & USSR_MASK;
 
 	DataRegion = reinterpret_cast<uint64_t *>(USSR_prefix);
@@ -91,7 +89,6 @@ UnifiedStringsDictionary::UnifiedStringsDictionary(idx_t size) {
 	already_in = 0;
 }
 
-
 string_t UnifiedStringsDictionary::insert(string_t str) {
 	// no support for short strings now
 	if (str.IsInlined() || str.GetSize() > MAX_STRING_LENGTH) {
@@ -109,9 +106,9 @@ string_t UnifiedStringsDictionary::insertInternal(string_t str) {
 
 	hash_t h = Hash(str);
 
-//	uint32_t hashPrefix = Load<uint32_t>(const_data_ptr_cast(&h));
+	//	uint32_t hashPrefix = Load<uint32_t>(const_data_ptr_cast(&h));
 
-//		candidates++;
+	//		candidates++;
 
 	uint64_t slot;
 	memcpy(&slot, &h, slot_size);
@@ -125,17 +122,18 @@ string_t UnifiedStringsDictionary::insertInternal(string_t str) {
 		// currently no looping around
 		if (slot + i > USSR_SIZE) {
 			prob_index = (slot + i) % USSR_SIZE;
-//						nRejections_Probing++;
-//			return str;
+			//						nRejections_Probing++;
+			//			return str;
 		}
 
-		uint64_t bucket = reinterpret_cast<atomic<uint64_t > *>(HT + ((slot + prob_index)))->load(std::memory_order_acquire);
+		uint64_t bucket =
+		    reinterpret_cast<atomic<uint64_t> *>(HT + ((slot + prob_index)))->load(std::memory_order_acquire);
 
 		uint16_t bucket_hashExtract = bucket >> (slot_size * 8);
 
 		if (bucket_hashExtract == hashExtract) {
 			// wrong already_in, do this after checking if equal
-//						already_in++;
+			//						already_in++;
 			auto slot_ptr = data_ptr_cast(DataRegion + (bucket & slot_mask));
 			// double checking that the string found is equal to the original string
 
@@ -150,13 +148,13 @@ string_t UnifiedStringsDictionary::insertInternal(string_t str) {
 			// reject if not enough space left
 			auto remaining = (USSR_SIZE - currentEmptySlot) * 8;
 			if (str_len > remaining || currentEmptySlot > USSR_SIZE) {
-//								nRejections_SizeFull++;
+				//								nRejections_SizeFull++;
 				return str;
 			}
 
 			auto increasedSlot = (str_len % 8 == 0) ? 1 + (str_len / 8) : 2 + (str_len / 8);
 
-			uint64_t newBucket = UnsafeNumericCast<uint64_t >(hashExtract);
+			uint64_t newBucket = UnsafeNumericCast<uint64_t>(hashExtract);
 			newBucket = newBucket << (slot_size * 8);
 			newBucket |= currentEmptySlot;
 
@@ -166,7 +164,7 @@ string_t UnifiedStringsDictionary::insertInternal(string_t str) {
 			if (HT[slot + prob_index] != 0) {
 				auto slot_hashExtract = HT[slot + prob_index] >> (slot_size * 8);
 				if (slot_hashExtract == hashExtract) {
-//										already_in++;
+					//										already_in++;
 					auto slot_ptr = data_ptr_cast(DataRegion + (HT[slot + prob_index] & slot_mask));
 
 					auto res_str = string_t(const_char_ptr_cast(slot_ptr + 1), UnsafeNumericCast<uint32_t>(*slot_ptr));
@@ -180,7 +178,7 @@ string_t UnifiedStringsDictionary::insertInternal(string_t str) {
 				}
 			}
 
-//						accepted++;
+			//						accepted++;
 			auto ret = currentEmptySlot;
 			// 1 slot for the pre-computed hash,
 			currentEmptySlot += increasedSlot;
@@ -195,19 +193,19 @@ string_t UnifiedStringsDictionary::insertInternal(string_t str) {
 			memcpy(slot_ptr + 1, str.GetData(), str.GetSize());
 			memcpy(slot_ptr - 8, &h, 8);
 
-			(reinterpret_cast<atomic<uint64_t > *>(HT + slot + prob_index))->store(newBucket, std::memory_order_release);
+			(reinterpret_cast<atomic<uint64_t> *>(HT + slot + prob_index))->store(newBucket, std::memory_order_release);
 			auto res_str = string_t(const_char_ptr_cast(slot_ptr + 1), UnsafeNumericCast<uint32_t>(*slot_ptr));
 			return res_str;
 		}
 	}
-//		nRejections_Probing++;
+	//		nRejections_Probing++;
 	return str;
 }
 
 UnifiedStringsDictionary::~UnifiedStringsDictionary() {
 	this->buffer.reset();
 	//	this->LinearProbingHT.reset();
-//		this->getStatistics();
+	//		this->getStatistics();
 }
 
 void UnifiedStringsDictionary::getStatistics() {
@@ -248,11 +246,11 @@ void UnifiedStringsDictionary::getStatistics() {
 	//
 	Printer::Print(statsStr);
 
-			    	Printer::PrintF("faster hash path triggered: %d, equal pointers for strings: %d",
-				                string_t::StringComparisonOperators::faster_hash.load(),
-				                string_t::StringComparisonOperators::faster_equality.load());
-				string_t::StringComparisonOperators::faster_equality = 0;
-				string_t::StringComparisonOperators::faster_hash = 0;
+	Printer::PrintF("faster hash path triggered: %d, equal pointers for strings: %d",
+	                string_t::StringComparisonOperators::faster_hash.load(),
+	                string_t::StringComparisonOperators::faster_equality.load());
+	string_t::StringComparisonOperators::faster_equality = 0;
+	string_t::StringComparisonOperators::faster_hash = 0;
 }
 
 } // namespace duckdb
