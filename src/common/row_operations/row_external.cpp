@@ -38,8 +38,7 @@ void RowOperations::SwizzleColumns(const RowLayout &layout, const data_ptr_t bas
 				data_ptr_t string_ptr = col_ptr + string_t::HEADER_SIZE;
 				for (idx_t i = 0; i < next; i++) {
 					if (Load<uint32_t>(col_ptr) > string_t::INLINE_LENGTH) {
-						auto str = string_t(Load<char *>(string_ptr), Load<uint32_t>(col_ptr));
-						if ((context->GetCurrentQueryUssr().USSR_MASK & reinterpret_cast<uint64_t>(string_ptr)) !=
+						if ((context->GetCurrentQueryUssr().USSR_MASK & reinterpret_cast<uint64_t>(Load<data_ptr_t>(string_ptr))) !=
 						    context->GetCurrentQueryUssr().USSR_prefix) {
 							// Overwrite the string pointer with the within-row offset (if not inlined)
 							Store<idx_t>(UnsafeNumericCast<idx_t>(Load<data_ptr_t>(string_ptr) - heap_row_ptrs[i]),
