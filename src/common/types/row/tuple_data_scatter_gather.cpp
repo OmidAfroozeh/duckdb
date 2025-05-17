@@ -118,10 +118,10 @@ void TupleDataCollection::ComputeHeapSizes(TupleDataChunkState &chunk_state, con
 }
 
 static idx_t StringHeapSize(const string_t &val, optional_ptr<ClientContext> context) {
-		if (!val.IsInlined() && (context->GetCurrentQueryUssr().USSR_MASK & reinterpret_cast<uint64_t >(val.GetPointer())) ==
-		                            context->GetCurrentQueryUssr().USSR_prefix) {
-			return 0;
-	    }
+	if (!val.IsInlined() && (context->GetCurrentQueryUssr().USSR_MASK & reinterpret_cast<uint64_t>(val.GetPointer())) ==
+	                            context->GetCurrentQueryUssr().USSR_prefix) {
+		return 0;
+	}
 
 	return val.IsInlined() ? 0 : val.GetSize();
 }

@@ -82,7 +82,8 @@ static void ScatterStringVector(UnifiedVectorFormat &col, Vector &rows, data_ptr
 			Store<string_t>(null, row + col_offset);
 		} else if (string_data[col_idx].IsInlined()) {
 			Store<string_t>(string_data[col_idx], row + col_offset);
-		} else if ((context->GetCurrentQueryUssr().USSR_MASK & cast_pointer_to_uint64(string_data[col_idx].GetPointer())) ==
+		} else if ((context->GetCurrentQueryUssr().USSR_MASK &
+		            cast_pointer_to_uint64(string_data[col_idx].GetPointer())) ==
 		           context->GetCurrentQueryUssr().USSR_prefix) {
 			Store<string_t>(string_data[col_idx], row + col_offset);
 		} else {

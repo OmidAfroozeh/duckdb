@@ -23,10 +23,7 @@ struct HashOp {
 
 template <>
 inline hash_t HashOp::Operation<string_t>(string_t input, bool is_null, optional_ptr<ClientContext> context) {
-	auto ussr_prefix = (context) ? context->GetCurrentQueryUssr().USSR_prefix : 0;
-	auto ussr_mask = (context) ? context->GetCurrentQueryUssr().USSR_MASK : 0;
-
-	return is_null ? HashOp::NULL_HASH : duckdb::string_hash(input, ussr_prefix, ussr_mask);
+	return is_null ? HashOp::NULL_HASH : duckdb::string_hash(input, context);
 }
 
 static inline hash_t CombineHashScalar(hash_t a, hash_t b) {

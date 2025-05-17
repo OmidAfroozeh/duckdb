@@ -77,9 +77,9 @@ OperatorResultType PhysicalUnifiedString::Execute(ExecutionContext &context, Dat
 
 				vector<idx_t> priority_selection;
 				for (idx_t i = 1; i < state.count[col_idx].size(); i++) {
-					if (state.count[col_idx][i] > (2 * state.current_analysis_count[col_idx])) {
+					if (state.count[col_idx][i] > (20 * state.current_analysis_count[col_idx])) {
 						priority_selection.push_back(i);
-												state.inserted[col_idx][i] = true;
+						state.inserted[col_idx][i] = true;
 					}
 				}
 
@@ -98,7 +98,8 @@ OperatorResultType PhysicalUnifiedString::Execute(ExecutionContext &context, Dat
 
 				vector<idx_t> priority_selection;
 				for (idx_t i = 1; i < state.count[col_idx].size(); ++i) {
-					if (state.count[col_idx][i] > (2 * state.current_analysis_count[col_idx]) && !state.inserted[col_idx][i]) {
+					if (state.count[col_idx][i] > (20 * state.current_analysis_count[col_idx]) &&
+					    !state.inserted[col_idx][i]) {
 						priority_selection.push_back(i);
 						state.inserted[col_idx][i] = true;
 					}
@@ -125,7 +126,7 @@ void PhysicalUnifiedString::USSR_insertion_loop(data_ptr_t dict_strings, idx_t c
 
 	if (priority_insertion.empty() && !exists_prio) {
 		// FIXME: this count - 1 is only to satisfy some parquet files readings, need to investigate!
-		for (idx_t i = 1; i < count -1 ; i++) {
+		for (idx_t i = 1; i < count - 1; i++) {
 			start[i] = context.GetCurrentQueryUssr().insert(start[i]);
 		}
 	} else {
