@@ -18,6 +18,8 @@ void RowOperations::SwizzleColumns(const RowLayout &layout, const data_ptr_t bas
 	const idx_t row_width = layout.GetRowWidth();
 	data_ptr_t heap_row_ptrs[STANDARD_VECTOR_SIZE];
 	idx_t done = 0;
+	const uint64_t ussr_mask = context->GetCurrentQueryUssr().USSR_MASK;
+	const uint64_t ussr_prefix = context->GetCurrentQueryUssr().USSR_prefix;
 	while (done != count) {
 		const idx_t next = MinValue<idx_t>(count - done, STANDARD_VECTOR_SIZE);
 		const data_ptr_t row_ptr = base_row_ptr + done * row_width;
@@ -38,8 +40,8 @@ void RowOperations::SwizzleColumns(const RowLayout &layout, const data_ptr_t bas
 				data_ptr_t string_ptr = col_ptr + string_t::HEADER_SIZE;
 				for (idx_t i = 0; i < next; i++) {
 					if (Load<uint32_t>(col_ptr) > string_t::INLINE_LENGTH) {
-						if ((context->GetCurrentQueryUssr().USSR_MASK & reinterpret_cast<uint64_t>(Load<data_ptr_t>(string_ptr))) !=
-						    context->GetCurrentQueryUssr().USSR_prefix) {
+						if ((ussr_mask & reinterpret_cast<uint64_t>(Load<data_ptr_t>(string_ptr))) !=
+						    ussr_prefix) {
 							// Overwrite the string pointer with the within-row offset (if not inlined)
 							Store<idx_t>(UnsafeNumericCast<idx_t>(Load<data_ptr_t>(string_ptr) - heap_row_ptrs[i]),
 							             string_ptr);
@@ -126,6 +128,9 @@ void RowOperations::UnswizzlePointers(const RowLayout &layout, const data_ptr_t 
 	const idx_t row_width = layout.GetRowWidth();
 	data_ptr_t heap_row_ptrs[STANDARD_VECTOR_SIZE];
 	idx_t done = 0;
+	const uint64_t ussr_mask = context->GetCurrentQueryUssr().USSR_MASK;
+	const uint64_t ussr_prefix = context->GetCurrentQueryUssr().USSR_prefix;
+
 	while (done != count) {
 		const idx_t next = MinValue<idx_t>(count - done, STANDARD_VECTOR_SIZE);
 		const data_ptr_t row_ptr = base_row_ptr + done * row_width;
@@ -153,9 +158,9 @@ void RowOperations::UnswizzlePointers(const RowLayout &layout, const data_ptr_t 
 							Store<data_ptr_t>(heap_row_ptrs[i] + Load<idx_t>(string_ptr), string_ptr);
 						} else {
 
-							if ((context->GetCurrentQueryUssr().USSR_MASK &
+							if ((ussr_mask &
 							     reinterpret_cast<uint64_t>(str.GetDataUnsafe())) !=
-							    context->GetCurrentQueryUssr().USSR_prefix) {
+							    ussr_prefix) {
 								// Overwrite the string offset with the pointer (if not inlined)
 								Store<data_ptr_t>(heap_row_ptrs[i] + Load<idx_t>(string_ptr), string_ptr);
 							}
