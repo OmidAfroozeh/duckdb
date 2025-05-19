@@ -60,6 +60,8 @@ static void GatherVarchar(Vector &rows, const SelectionVector &row_sel, Vector &
 	auto ptrs = FlatVector::GetData<data_ptr_t>(rows);
 	auto data = FlatVector::GetData<string_t>(col);
 	auto &col_mask = FlatVector::Validity(col);
+	const uint64_t ussr_mask = context->GetCurrentQueryUssr().USSR_MASK;
+	const uint64_t ussr_prefix = context->GetCurrentQueryUssr().USSR_prefix;
 
 	for (idx_t i = 0; i < count; i++) {
 		auto row_idx = row_sel.get_index(i);
@@ -75,8 +77,8 @@ static void GatherVarchar(Vector &rows, const SelectionVector &row_sel, Vector &
 			}
 			col_mask.SetInvalid(col_idx);
 		} else if (base_heap_ptr && Load<uint32_t>(col_ptr) > string_t::INLINE_LENGTH) {
-			if ((context->GetCurrentQueryUssr().USSR_MASK & reinterpret_cast<uint64_t>(data[col_idx].GetPointer())) !=
-			    context->GetCurrentQueryUssr().USSR_prefix) {
+			if ((ussr_mask & reinterpret_cast<uint64_t>(data[col_idx].GetPointer())) !=
+			    ussr_prefix) {
 				//	Not inline, so unswizzle the copied pointer the pointer
 				auto heap_ptr_ptr = row + heap_offset;
 				auto heap_row_ptr = base_heap_ptr + Load<idx_t>(heap_ptr_ptr);
