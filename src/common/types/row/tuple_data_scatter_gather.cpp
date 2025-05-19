@@ -117,13 +117,13 @@ void TupleDataCollection::ComputeHeapSizes(TupleDataChunkState &chunk_state, con
 	}
 }
 
-static idx_t StringHeapSize(const string_t &val, optional_ptr<ClientContext> context) {
-	if (!val.IsInlined() && (context->GetCurrentQueryUssr().USSR_MASK & reinterpret_cast<uint64_t>(val.GetPointer())) ==
-	                            context->GetCurrentQueryUssr().USSR_prefix) {
+static idx_t StringHeapSize(const string_t &val, uint64_t ussr_prefix, uint64_t ussr_mask) {
+	if (val.IsInlined() || (ussr_mask & reinterpret_cast<uint64_t>(val.GetPointer())) ==
+	                            ussr_prefix) {
 		return 0;
 	}
 
-	return val.IsInlined() ? 0 : val.GetSize();
+	return val.GetSize();
 }
 
 void TupleDataCollection::ComputeHeapSizes(Vector &heap_sizes_v, const Vector &source_v,
@@ -145,13 +145,16 @@ void TupleDataCollection::ComputeHeapSizes(Vector &heap_sizes_v, const Vector &s
 	switch (type) {
 	case PhysicalType::VARCHAR: {
 		// Only non-inlined strings are stored in the heap
+		const uint64_t ussr_mask = context->GetCurrentQueryUssr().USSR_MASK;
+		const uint64_t ussr_prefix = context->GetCurrentQueryUssr().USSR_prefix;
+
 		const auto source_data = UnifiedVectorFormat::GetData<string_t>(source_vector_data);
 		for (idx_t i = 0; i < append_count; i++) {
 			const auto source_idx = source_sel.get_index(append_sel.get_index(i));
 			if (source_validity.RowIsValid(source_idx)) {
-				heap_sizes[i] += StringHeapSize(source_data[source_idx], context);
+				heap_sizes[i] += StringHeapSize(source_data[source_idx], ussr_prefix, ussr_mask);
 			} else {
-				heap_sizes[i] += StringHeapSize(NullValue<string_t>(), context);
+				heap_sizes[i] += StringHeapSize(NullValue<string_t>(), ussr_prefix, ussr_mask);
 			}
 		}
 		break;

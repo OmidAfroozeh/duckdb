@@ -68,7 +68,7 @@ OperatorResultType PhysicalUnifiedString::Execute(ExecutionContext &context, Dat
 					state.inserted[col_idx].push_back(false);
 					state.count[col_idx].push_back(0);
 				}
-				state.analysis_budget[col_idx] = 1000000;
+				state.analysis_budget[col_idx] = 0;
 				state.current_analysis_count[col_idx] = 1;
 				auto &sel = DictionaryVector::SelVector(input.data[col_idx]);
 				for (idx_t i = 0; i < input.size(); i++) {
@@ -77,9 +77,9 @@ OperatorResultType PhysicalUnifiedString::Execute(ExecutionContext &context, Dat
 
 				vector<idx_t> priority_selection;
 				for (idx_t i = 1; i < state.count[col_idx].size(); i++) {
-					if (state.count[col_idx][i] > (20 * state.current_analysis_count[col_idx])) {
+					if (state.count[col_idx][i] > (27 * state.current_analysis_count[col_idx])) {
 						priority_selection.push_back(i);
-						state.inserted[col_idx][i] = true;
+//						state.inserted[col_idx][i] = true;
 					}
 				}
 
@@ -98,7 +98,7 @@ OperatorResultType PhysicalUnifiedString::Execute(ExecutionContext &context, Dat
 
 				vector<idx_t> priority_selection;
 				for (idx_t i = 1; i < state.count[col_idx].size(); ++i) {
-					if (state.count[col_idx][i] > (20 * state.current_analysis_count[col_idx]) &&
+					if (state.count[col_idx][i] > (27 * state.current_analysis_count[col_idx]) &&
 					    !state.inserted[col_idx][i]) {
 						priority_selection.push_back(i);
 						state.inserted[col_idx][i] = true;

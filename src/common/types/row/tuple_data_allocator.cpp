@@ -379,6 +379,8 @@ void TupleDataAllocator::RecomputeHeapPointers(Vector &old_heap_ptrs, const Sele
 		const auto &type = layout.GetTypes()[col_idx];
 		switch (type.InternalType()) {
 		case PhysicalType::VARCHAR: {
+			const uint64_t ussr_mask = context->GetCurrentQueryUssr().USSR_MASK;
+			const uint64_t ussr_prefix = context->GetCurrentQueryUssr().USSR_prefix;
 			for (idx_t i = 0; i < count; i++) {
 				const auto idx = offset + i;
 				const auto &row_location = row_locations[idx] + base_col_offset;
@@ -393,8 +395,8 @@ void TupleDataAllocator::RecomputeHeapPointers(Vector &old_heap_ptrs, const Sele
 				const auto string_location = row_location + col_offset;
 				if (Load<uint32_t>(string_location) > string_t::INLINE_LENGTH) {
 					const auto string_ptr_location = string_location + string_t::HEADER_SIZE;
-					if ((context->GetCurrentQueryUssr().USSR_MASK & reinterpret_cast<uint64_t>(Load<data_ptr_t>(string_ptr_location))) !=
-					    context->GetCurrentQueryUssr().USSR_prefix) {
+					if ((ussr_mask & reinterpret_cast<uint64_t>(Load<data_ptr_t>(string_ptr_location))) !=
+					    ussr_prefix) {
 						const auto string_ptr = Load<data_ptr_t>(string_ptr_location);
 						const auto diff = string_ptr - old_heap_ptr;
 						D_ASSERT(diff >= 0);
