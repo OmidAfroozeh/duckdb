@@ -114,13 +114,19 @@ hash_t HashBytes(const_data_ptr_t ptr, const idx_t len) noexcept {
 
 template <>
 hash_t Hash(string_t val) {
+	auto x = 0;
+	for (int i = 0; i < val.GetSize(); ++i) {
+		x += i;
+	}
+
 	// If the string is inlined, we can do a branchless hash
 	if (val.IsInlined()) {
 		// This seed slightly improves bit distribution, taken from here:
 		// https://github.com/martinus/robin-hood-hashing/blob/3.11.5/LICENSE
 		// MIT License Copyright (c) 2018-2021 Martin Ankerl
 		hash_t h = 0xe17a1465U ^ (val.GetSize() * 0xc6a4a7935bd1e995U);
-
+		h = h +x;
+		h = h - x;
 		// Hash/combine the first 8-byte block
 		if (!val.Empty()) {
 			h ^= Load<hash_t>(const_data_ptr_cast(val.GetPrefix()));
