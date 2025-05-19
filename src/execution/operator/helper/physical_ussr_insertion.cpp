@@ -77,7 +77,7 @@ OperatorResultType PhysicalUnifiedString::Execute(ExecutionContext &context, Dat
 
 				vector<idx_t> priority_selection;
 				for (idx_t i = 1; i < state.count[col_idx].size(); i++) {
-					if (state.count[col_idx][i] > (25 * state.current_analysis_count[col_idx])) {
+					if (state.count[col_idx][i] > (5 * state.current_analysis_count[col_idx])) {
 						priority_selection.push_back(i);
 //						state.inserted[col_idx][i] = true;
 					}
