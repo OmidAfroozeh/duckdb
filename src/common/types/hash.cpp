@@ -114,7 +114,7 @@ hash_t HashBytes(const_data_ptr_t ptr, const idx_t len) noexcept {
 
 template <>
 hash_t Hash(string_t val) {
-	auto x = 0;
+	volatile int  x = 0;
 	for (int i = 0; i < val.GetSize(); ++i) {
 		x += i;
 	}
