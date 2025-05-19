@@ -12,18 +12,23 @@
 
 namespace duckdb {
 
+struct hash_context{
+	uint64_t ussr_mask;
+	uint64_t ussr_prefix;
+};
+
 struct HashOp {
 	static const hash_t NULL_HASH = 0xbf58476d1ce4e5b9;
 
 	template <class T>
-	static inline hash_t Operation(T input, bool is_null, optional_ptr<ClientContext> context = nullptr) {
+	static inline hash_t Operation(T input, bool is_null, hash_context* hc = nullptr) {
 		return is_null ? NULL_HASH : duckdb::Hash<T>(input);
 	}
 };
 
 template <>
-inline hash_t HashOp::Operation<string_t>(string_t input, bool is_null, optional_ptr<ClientContext> context) {
-	return is_null ? HashOp::NULL_HASH : duckdb::string_hash(input, context);
+inline hash_t HashOp::Operation<string_t>(string_t input, bool is_null, hash_context* hc) {
+	return is_null ? HashOp::NULL_HASH : duckdb::string_hash(input, hc->ussr_prefix, hc->ussr_mask);
 }
 
 static inline hash_t CombineHashScalar(hash_t a, hash_t b) {
@@ -36,17 +41,26 @@ template <bool HAS_RSEL, class T>
 static inline void TightLoopHash(const T *__restrict ldata, hash_t *__restrict result_data, const SelectionVector *rsel,
                                  idx_t count, const SelectionVector *__restrict sel_vector, ValidityMask &mask,
                                  optional_ptr<ClientContext> context) {
+	hash_context hc;
+	if(context){
+		hc.ussr_prefix = context->GetCurrentQueryUssr().USSR_prefix;
+		hc.ussr_mask = context->GetCurrentQueryUssr().USSR_MASK;
+	}else{
+		hc.ussr_prefix = 0xFFFFFFFFFF;
+		hc.ussr_mask = 0;
+	}
+
 	if (!mask.AllValid()) {
 		for (idx_t i = 0; i < count; i++) {
 			auto ridx = HAS_RSEL ? rsel->get_index(i) : i;
 			auto idx = sel_vector->get_index(ridx);
-			result_data[ridx] = HashOp::Operation(ldata[idx], !mask.RowIsValid(idx), context);
+			result_data[ridx] = HashOp::Operation(ldata[idx], !mask.RowIsValid(idx), &hc);
 		}
 	} else {
 		for (idx_t i = 0; i < count; i++) {
 			auto ridx = HAS_RSEL ? rsel->get_index(i) : i;
 			auto idx = sel_vector->get_index(ridx);
-			result_data[ridx] = HashOp::Operation(ldata[idx], false, context);
+			result_data[ridx] = HashOp::Operation(ldata[idx], false, &hc);
 		}
 	}
 }
@@ -54,12 +68,22 @@ static inline void TightLoopHash(const T *__restrict ldata, hash_t *__restrict r
 template <bool HAS_RSEL, class T>
 static inline void TemplatedLoopHash(Vector &input, Vector &result, const SelectionVector *rsel, idx_t count,
                                      optional_ptr<ClientContext> context = nullptr) {
+	hash_context hc;
+	if(context){
+		hc.ussr_prefix = context->GetCurrentQueryUssr().USSR_prefix;
+		hc.ussr_mask = context->GetCurrentQueryUssr().USSR_MASK;
+	}else{
+		hc.ussr_prefix = 0xFFFFFFFFFF;
+		hc.ussr_mask = 0;
+	}
+
+
 	if (input.GetVectorType() == VectorType::CONSTANT_VECTOR) {
 		result.SetVectorType(VectorType::CONSTANT_VECTOR);
 
 		auto ldata = ConstantVector::GetData<T>(input);
 		auto result_data = ConstantVector::GetData<hash_t>(result);
-		*result_data = HashOp::Operation(*ldata, ConstantVector::IsNull(input), context);
+		*result_data = HashOp::Operation(*ldata, ConstantVector::IsNull(input), &hc);
 	} else {
 		result.SetVectorType(VectorType::FLAT_VECTOR);
 
@@ -338,18 +362,27 @@ static inline void TightLoopCombineHashConstant(const T *__restrict ldata, hash_
                                                 hash_t *__restrict hash_data, const SelectionVector *rsel, idx_t count,
                                                 const SelectionVector *__restrict sel_vector, ValidityMask &mask,
                                                 optional_ptr<ClientContext> context = nullptr) {
+	hash_context hc;
+	if(context){
+		hc.ussr_prefix = context->GetCurrentQueryUssr().USSR_prefix;
+		hc.ussr_mask = context->GetCurrentQueryUssr().USSR_MASK;
+	}else{
+		hc.ussr_prefix = 0xFFFFFFFFFF;
+		hc.ussr_mask = 0;
+	}
+
 	if (!mask.AllValid()) {
 		for (idx_t i = 0; i < count; i++) {
 			auto ridx = HAS_RSEL ? rsel->get_index(i) : i;
 			auto idx = sel_vector->get_index(ridx);
-			auto other_hash = HashOp::Operation(ldata[idx], !mask.RowIsValid(idx), context);
+			auto other_hash = HashOp::Operation(ldata[idx], !mask.RowIsValid(idx), &hc);
 			hash_data[ridx] = CombineHashScalar(constant_hash, other_hash);
 		}
 	} else {
 		for (idx_t i = 0; i < count; i++) {
 			auto ridx = HAS_RSEL ? rsel->get_index(i) : i;
 			auto idx = sel_vector->get_index(ridx);
-			auto other_hash = HashOp::Operation(ldata[idx], false, context);
+			auto other_hash = HashOp::Operation(ldata[idx], false, &hc);
 			hash_data[ridx] = CombineHashScalar(constant_hash, other_hash);
 		}
 	}
@@ -360,18 +393,27 @@ static inline void TightLoopCombineHash(const T *__restrict ldata, hash_t *__res
                                         const SelectionVector *rsel, idx_t count,
                                         const SelectionVector *__restrict sel_vector, ValidityMask &mask,
                                         optional_ptr<ClientContext> context = nullptr) {
+	hash_context hc;
+	if(context){
+		hc.ussr_prefix = context->GetCurrentQueryUssr().USSR_prefix;
+		hc.ussr_mask = context->GetCurrentQueryUssr().USSR_MASK;
+	}else{
+		hc.ussr_prefix = 0xFFFFFFFFFF;
+		hc.ussr_mask = 0;
+	}
+
 	if (!mask.AllValid()) {
 		for (idx_t i = 0; i < count; i++) {
 			auto ridx = HAS_RSEL ? rsel->get_index(i) : i;
 			auto idx = sel_vector->get_index(ridx);
-			auto other_hash = HashOp::Operation(ldata[idx], !mask.RowIsValid(idx), context);
+			auto other_hash = HashOp::Operation(ldata[idx], !mask.RowIsValid(idx), &hc);
 			hash_data[ridx] = CombineHashScalar(hash_data[ridx], other_hash);
 		}
 	} else {
 		for (idx_t i = 0; i < count; i++) {
 			auto ridx = HAS_RSEL ? rsel->get_index(i) : i;
 			auto idx = sel_vector->get_index(ridx);
-			auto other_hash = HashOp::Operation(ldata[idx], false, context);
+			auto other_hash = HashOp::Operation(ldata[idx], false, &hc);
 			hash_data[ridx] = CombineHashScalar(hash_data[ridx], other_hash);
 		}
 	}
@@ -380,11 +422,19 @@ static inline void TightLoopCombineHash(const T *__restrict ldata, hash_t *__res
 template <bool HAS_RSEL, class T>
 void TemplatedLoopCombineHash(Vector &input, Vector &hashes, const SelectionVector *rsel, idx_t count,
                               optional_ptr<ClientContext> context = nullptr) {
+	hash_context hc;
+	if(context){
+		hc.ussr_prefix = context->GetCurrentQueryUssr().USSR_prefix;
+		hc.ussr_mask = context->GetCurrentQueryUssr().USSR_MASK;
+	}else{
+		hc.ussr_prefix = 0xFFFFFFFFFF;
+		hc.ussr_mask = 0;
+	}
 	if (input.GetVectorType() == VectorType::CONSTANT_VECTOR && hashes.GetVectorType() == VectorType::CONSTANT_VECTOR) {
 		auto ldata = ConstantVector::GetData<T>(input);
 		auto hash_data = ConstantVector::GetData<hash_t>(hashes);
 
-		auto other_hash = HashOp::Operation(*ldata, ConstantVector::IsNull(input), context);
+		auto other_hash = HashOp::Operation(*ldata, ConstantVector::IsNull(input), &hc);
 		*hash_data = CombineHashScalar(*hash_data, other_hash);
 	} else {
 		UnifiedVectorFormat idata;
