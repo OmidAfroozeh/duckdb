@@ -21,26 +21,24 @@ constexpr idx_t TupleDataWithinListFixedSize<string_t>() {
 
 template <class T>
 static void TupleDataValueStore(const T &source, const data_ptr_t &row_location, const idx_t offset_in_row,
-                                data_ptr_t &, optional_ptr<ClientContext> context = nullptr) {
+                                data_ptr_t &, uint64_t ussr_prefix, uint64_t ussr_mask) {
 	Store<T>(source, row_location + offset_in_row);
 }
 
 template <>
 inline void TupleDataValueStore(const string_t &source, const data_ptr_t &row_location, const idx_t offset_in_row,
-                                data_ptr_t &heap_location, optional_ptr<ClientContext> context) {
+                                data_ptr_t &heap_location, uint64_t ussr_prefix, uint64_t ussr_mask) {
 #ifdef DEBUG
 	source.VerifyCharacters();
 #endif
 	if (source.IsInlined()) {
 		Store<string_t>(source, row_location + offset_in_row);
 	} else {
-		if (context) {
-			if (((context->GetCurrentQueryUssr().USSR_MASK & reinterpret_cast<uint64_t>(source.GetPointer())) ==
-			     context->GetCurrentQueryUssr().USSR_prefix)) {
+			if ((ussr_mask & reinterpret_cast<uint64_t>(source.GetPointer())) ==
+			     ussr_prefix) {
 				Store<string_t>(source, row_location + offset_in_row);
 				return;
 			}
-		}
 		FastMemcpy(heap_location, source.GetData(), source.GetSize());
 		Store<string_t>(string_t(const_char_ptr_cast(heap_location), UnsafeNumericCast<uint32_t>(source.GetSize())),
 		                row_location + offset_in_row);
@@ -651,22 +649,33 @@ TupleDataTemplatedScatter(const Vector &, const TupleDataVectorFormat &source_fo
 	idx_t idx_in_entry;
 	ValidityBytes::GetEntryIndex(col_idx, entry_idx, idx_in_entry);
 
+	uint64_t ussr_mask;
+	uint64_t ussr_prefix;
+	if(context){
+		ussr_mask = context->GetCurrentQueryUssr().USSR_MASK;
+		ussr_prefix = context->GetCurrentQueryUssr().USSR_prefix;
+	} else{
+		ussr_mask = 0;
+		ussr_prefix = 0xffffffffffffff;
+	}
+
+
 	const auto offset_in_row = layout.GetOffsets()[col_idx];
 	if (validity.AllValid()) {
 		for (idx_t i = 0; i < append_count; i++) {
 			const auto source_idx = source_sel.get_index(append_sel.get_index(i));
 			TupleDataValueStore<T>(data[source_idx], target_locations[i], offset_in_row, target_heap_locations[i],
-			                       context);
+			                       ussr_prefix, ussr_mask);
 		}
 	} else {
 		for (idx_t i = 0; i < append_count; i++) {
 			const auto source_idx = source_sel.get_index(append_sel.get_index(i));
 			if (validity.RowIsValid(source_idx)) {
 				TupleDataValueStore<T>(data[source_idx], target_locations[i], offset_in_row, target_heap_locations[i],
-				                       context);
+				                       ussr_prefix, ussr_mask);
 			} else {
 				TupleDataValueStore<T>(NullValue<T>(), target_locations[i], offset_in_row, target_heap_locations[i],
-				                       context);
+				                       ussr_prefix, ussr_mask);
 				ValidityBytes(target_locations[i], layout.ColumnCount()).SetInvalidUnsafe(entry_idx, idx_in_entry);
 			}
 		}
