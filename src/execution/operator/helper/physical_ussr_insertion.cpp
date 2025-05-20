@@ -15,8 +15,8 @@ public:
 		}
 	}
 	unordered_set<string> strs;
-	vector<vector<bool>> inserted;
-	vector<vector<idx_t>> count;
+	vector<vector<uint8_t >> inserted;
+	vector<vector<uint16_t >> count;
 	vector<string> current_dict_ids;
 	vector<idx_t> analysis_budget;
 	vector<idx_t> current_analysis_count;
@@ -79,7 +79,7 @@ OperatorResultType PhysicalUnifiedString::Execute(ExecutionContext &context, Dat
 				for (idx_t i = 1; i < state.count[col_idx].size(); i++) {
 					if (state.count[col_idx][i] > (25 * state.current_analysis_count[col_idx])) {
 						priority_selection.push_back(i);
-//						state.inserted[col_idx][i] = true;
+						state.inserted[col_idx][i] = true;
 					}
 				}
 
