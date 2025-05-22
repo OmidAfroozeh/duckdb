@@ -7,7 +7,7 @@ namespace duckdb {
 
 unique_ptr<LogicalOperator> USSR_optimizer::CheckUnifiedDictionary(unique_ptr<LogicalOperator> op) {
 	op = Rewrite(std::move(op));
-	for (auto &ds : data_sources) {
+	for (auto &ds : chosen_data_sources) {
 		Insert_USSR_Operator(ds);
 	}
 	return op;
@@ -33,6 +33,14 @@ void USSR_optimizer::Insert_USSR_Operator(optional_ptr<LogicalOperator> op) {
 	}
 }
 
+void USSR_optimizer::choose_operator(){
+	for (auto &ds : candidate_data_sources) {
+		chosen_data_sources.push_back(ds);
+	}
+	candidate_data_sources.clear();
+	return;
+}
+
 unique_ptr<LogicalOperator> USSR_optimizer::Rewrite(unique_ptr<LogicalOperator> op) {
 	op->ResolveOperatorTypes();
 	// Depth-first-search post-order
@@ -44,8 +52,7 @@ unique_ptr<LogicalOperator> USSR_optimizer::Rewrite(unique_ptr<LogicalOperator> 
 		if (op->children[i]->type == LogicalOperatorType::LOGICAL_GET) {
 			for (const auto &type : op->types) {
 				if (type.id() == LogicalTypeId::VARCHAR) {
-					data_sources.push_back(op.get());
-					//					    Insert_USSR_Operator(op);
+					candidate_data_sources.push_back(op.get());
 					break;
 				}
 			}
@@ -53,19 +60,88 @@ unique_ptr<LogicalOperator> USSR_optimizer::Rewrite(unique_ptr<LogicalOperator> 
 	}
 
 	switch (op->type) {
-	case LogicalOperatorType::LOGICAL_AGGREGATE_AND_GROUP_BY:
-	case LogicalOperatorType::LOGICAL_DISTINCT:
-	case LogicalOperatorType::LOGICAL_COMPARISON_JOIN:
+//	case LogicalOperatorType::LOGICAL_GET:{
+////		// Table scan that outputs string columns
+////		for (const auto &type : op->types) {
+////			if (type.id() == LogicalTypeId::VARCHAR) {
+////				candidate_data_sources.push_back(op.get());
+////				break;
+////			}
+////		}
+////		break;
+//	}
+
+	case LogicalOperatorType::LOGICAL_AGGREGATE_AND_GROUP_BY:{
+		auto &aggr_op = op->Cast<LogicalAggregate>();
+		for (auto &expr : aggr_op.groups) {
+			if(expr->GetExpressionType() == ExpressionType::BOUND_COLUMN_REF){
+				auto &bound_colref = expr->Cast<BoundColumnRefExpression>();
+				if(bound_colref.return_type == LogicalType::VARCHAR){
+					choose_operator();
+					break;
+				}
+			}
+		}
+
+		break;
+	}
+	case LogicalOperatorType::LOGICAL_DISTINCT:{
+		auto &distinct_op = op->Cast<LogicalDistinct>();
+		for (auto &expr : distinct_op.distinct_targets) {
+			if(expr->GetExpressionType() == ExpressionType::BOUND_COLUMN_REF){
+				auto &bound_colref = expr->Cast<BoundColumnRefExpression>();
+				if(bound_colref.return_type == LogicalType::VARCHAR){
+					choose_operator();
+					break;
+				}
+			}
+		}
+
+		break;
+	}
+
+	case LogicalOperatorType::LOGICAL_COMPARISON_JOIN:{
+		auto &join_op = op->Cast<LogicalComparisonJoin>();
+		// if the join condition contains strings
+		for (auto &condition : join_op.conditions) {
+			if(condition.left->type == ExpressionType::BOUND_COLUMN_REF){
+				auto &bound_colref = condition.left->Cast<BoundColumnRefExpression>();
+				if(bound_colref.return_type == LogicalType::VARCHAR){
+					choose_operator();
+					break;
+				}
+			}
+		}
+		break;
+	}
 	case LogicalOperatorType::LOGICAL_ORDER_BY: {
-		for (const auto &type : op->types) {
-			if (type.id() == LogicalTypeId::VARCHAR) {
-				requires_ussr = true;
+		auto &sort_op = op->Cast<LogicalOrder>();
+
+		for (auto &node : sort_op.orders) {
+			if(node.expression->type == ExpressionType::BOUND_COLUMN_REF) {
+				auto &bound_colref = node.expression->Cast<BoundColumnRefExpression>();
+				if(bound_colref.return_type == LogicalType::VARCHAR){
+					choose_operator();
+					break;
+				}
 			}
 		}
 		break;
 	}
 	default:
 		break;
+	}
+
+	// if you don't output VARCHAR columns, clear the candidates vector
+	bool clear_candidates = true;
+	for (auto &type : op->types) {
+		if(type == LogicalType::VARCHAR){
+			clear_candidates = false;
+			break;
+		}
+	}
+	if(clear_candidates){
+		candidate_data_sources.clear();
 	}
 	return op;
 }

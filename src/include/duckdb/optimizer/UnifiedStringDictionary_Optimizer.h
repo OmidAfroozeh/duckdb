@@ -30,7 +30,11 @@ private:
 
 	bool requires_ussr;
 
-	vector<optional_ptr<LogicalOperator>> data_sources;
+	vector<optional_ptr<LogicalOperator>> candidate_data_sources;
+	vector<optional_ptr<LogicalOperator>> chosen_data_sources;
+
+
+
 
 	bool OutputStrings(LogicalOperator &op);
 
@@ -42,6 +46,7 @@ private:
 	void Insert_USSR_Operator(optional_ptr<LogicalOperator> op);
 	//	std::vector<ColumnBinding, ColumnBinding> MapInputBindingsToOutoutBindings(const vector<ColumnBinding>
 	//inputBindings, 	                                                                           const vector<ColumnBinding> outputBindings, 	                                                                           optional_ptr<LogicalOperator> op);
+	void choose_operator();
 };
 
 } // namespace duckdb
