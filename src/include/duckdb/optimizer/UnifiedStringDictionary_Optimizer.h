@@ -47,6 +47,7 @@ private:
 	//	std::vector<ColumnBinding, ColumnBinding> MapInputBindingsToOutoutBindings(const vector<ColumnBinding>
 	//inputBindings, 	                                                                           const vector<ColumnBinding> outputBindings, 	                                                                           optional_ptr<LogicalOperator> op);
 	void choose_operator();
+	bool useStrings(optional_ptr<LogicalOperator> op);
 };
 
 } // namespace duckdb
