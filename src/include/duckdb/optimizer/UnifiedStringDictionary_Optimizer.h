@@ -40,6 +40,8 @@ private:
 	                                                 vector<unique_ptr<Expression>> &ret_expressions);
 
 	void Insert_USSR_Operator(optional_ptr<LogicalOperator> op);
+	//	std::vector<ColumnBinding, ColumnBinding> MapInputBindingsToOutoutBindings(const vector<ColumnBinding>
+	//inputBindings, 	                                                                           const vector<ColumnBinding> outputBindings, 	                                                                           optional_ptr<LogicalOperator> op);
 };
 
 } // namespace duckdb

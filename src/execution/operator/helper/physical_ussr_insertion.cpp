@@ -68,7 +68,7 @@ OperatorResultType PhysicalUnifiedString::Execute(ExecutionContext &context, Dat
 					state.inserted[col_idx].push_back(false);
 					state.count[col_idx].push_back(0);
 				}
-				state.analysis_budget[col_idx] = 1000000;
+				state.analysis_budget[col_idx] = 5;
 				state.current_analysis_count[col_idx] = 1;
 				auto &sel = DictionaryVector::SelVector(input.data[col_idx]);
 				for (idx_t i = 0; i < input.size(); i++) {
@@ -131,7 +131,7 @@ void PhysicalUnifiedString::USSR_insertion_loop(data_ptr_t dict_strings, idx_t c
 		}
 	} else {
 		for (auto string_idx : priority_insertion) {
-			if (string_idx != 0) {
+			if (string_idx != 0 && string_idx != count - 1) {
 				start[string_idx] = context.GetCurrentQueryUssr().insert(start[string_idx]);
 			}
 		}
