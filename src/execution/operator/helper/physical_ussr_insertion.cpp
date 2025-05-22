@@ -68,7 +68,7 @@ OperatorResultType PhysicalUnifiedString::Execute(ExecutionContext &context, Dat
 					state.inserted[col_idx].push_back(false);
 					state.count[col_idx].push_back(0);
 				}
-				state.analysis_budget[col_idx] = 10000000;
+				state.analysis_budget[col_idx] = 1000000;
 				state.current_analysis_count[col_idx] = 1;
 				auto &sel = DictionaryVector::SelVector(input.data[col_idx]);
 				for (idx_t i = 0; i < input.size(); i++) {

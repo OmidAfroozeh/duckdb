@@ -56,7 +56,7 @@ UnifiedStringsDictionary::UnifiedStringsDictionary(idx_t size) {
 	// size 3 = 2mB -> 18 bits
 
 	USSR_MASK = ~((1ULL << (required_bits)) - 1);
-	USSR_SIZE = size * 0xFFFF;
+	USSR_SIZE = size * 65536;
 	HT_SIZE = USSR_SIZE;
 
 	slot_mask = (1ULL << (required_bits - 3)) - 1ULL;
