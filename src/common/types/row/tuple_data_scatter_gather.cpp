@@ -34,11 +34,10 @@ inline void TupleDataValueStore(const string_t &source, const data_ptr_t &row_lo
 	if (source.IsInlined()) {
 		Store<string_t>(source, row_location + offset_in_row);
 	} else {
-			if ((ussr_mask & reinterpret_cast<uint64_t>(source.GetPointer())) ==
-			     ussr_prefix) {
-				Store<string_t>(source, row_location + offset_in_row);
-				return;
-			}
+		if ((ussr_mask & reinterpret_cast<uint64_t>(source.GetPointer())) == ussr_prefix) {
+			Store<string_t>(source, row_location + offset_in_row);
+			return;
+		}
 		FastMemcpy(heap_location, source.GetData(), source.GetSize());
 		Store<string_t>(string_t(const_char_ptr_cast(heap_location), UnsafeNumericCast<uint32_t>(source.GetSize())),
 		                row_location + offset_in_row);
@@ -116,8 +115,7 @@ void TupleDataCollection::ComputeHeapSizes(TupleDataChunkState &chunk_state, con
 }
 
 static idx_t StringHeapSize(const string_t &val, uint64_t ussr_prefix, uint64_t ussr_mask) {
-	if (val.IsInlined() || (ussr_mask & reinterpret_cast<uint64_t>(val.GetPointer())) ==
-	                            ussr_prefix) {
+	if (val.IsInlined() || (ussr_mask & reinterpret_cast<uint64_t>(val.GetPointer())) == ussr_prefix) {
 		return 0;
 	}
 
@@ -651,14 +649,13 @@ TupleDataTemplatedScatter(const Vector &, const TupleDataVectorFormat &source_fo
 
 	uint64_t ussr_mask;
 	uint64_t ussr_prefix;
-	if(context){
+	if (context) {
 		ussr_mask = context->GetCurrentQueryUssr().USSR_MASK;
 		ussr_prefix = context->GetCurrentQueryUssr().USSR_prefix;
-	} else{
+	} else {
 		ussr_mask = 0;
 		ussr_prefix = 0xffffffffffffff;
 	}
-
 
 	const auto offset_in_row = layout.GetOffsets()[col_idx];
 	if (validity.AllValid()) {

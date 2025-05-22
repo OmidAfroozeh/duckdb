@@ -12,7 +12,7 @@
 
 namespace duckdb {
 
-struct hash_context{
+struct hash_context {
 	uint64_t ussr_mask;
 	uint64_t ussr_prefix;
 };
@@ -21,13 +21,13 @@ struct HashOp {
 	static const hash_t NULL_HASH = 0xbf58476d1ce4e5b9;
 
 	template <class T>
-	static inline hash_t Operation(T input, bool is_null, hash_context* hc = nullptr) {
+	static inline hash_t Operation(T input, bool is_null, hash_context *hc = nullptr) {
 		return is_null ? NULL_HASH : duckdb::Hash<T>(input);
 	}
 };
 
 template <>
-inline hash_t HashOp::Operation<string_t>(string_t input, bool is_null, hash_context* hc) {
+inline hash_t HashOp::Operation<string_t>(string_t input, bool is_null, hash_context *hc) {
 	return is_null ? HashOp::NULL_HASH : duckdb::string_hash(input, hc->ussr_prefix, hc->ussr_mask);
 }
 
@@ -42,10 +42,10 @@ static inline void TightLoopHash(const T *__restrict ldata, hash_t *__restrict r
                                  idx_t count, const SelectionVector *__restrict sel_vector, ValidityMask &mask,
                                  optional_ptr<ClientContext> context) {
 	hash_context hc;
-	if(context){
+	if (context) {
 		hc.ussr_prefix = context->GetCurrentQueryUssr().USSR_prefix;
 		hc.ussr_mask = context->GetCurrentQueryUssr().USSR_MASK;
-	}else{
+	} else {
 		hc.ussr_prefix = 0xFFFFFFFFFF;
 		hc.ussr_mask = 0;
 	}
@@ -69,14 +69,13 @@ template <bool HAS_RSEL, class T>
 static inline void TemplatedLoopHash(Vector &input, Vector &result, const SelectionVector *rsel, idx_t count,
                                      optional_ptr<ClientContext> context = nullptr) {
 	hash_context hc;
-	if(context){
+	if (context) {
 		hc.ussr_prefix = context->GetCurrentQueryUssr().USSR_prefix;
 		hc.ussr_mask = context->GetCurrentQueryUssr().USSR_MASK;
-	}else{
+	} else {
 		hc.ussr_prefix = 0xFFFFFFFFFF;
 		hc.ussr_mask = 0;
 	}
-
 
 	if (input.GetVectorType() == VectorType::CONSTANT_VECTOR) {
 		result.SetVectorType(VectorType::CONSTANT_VECTOR);
@@ -363,10 +362,10 @@ static inline void TightLoopCombineHashConstant(const T *__restrict ldata, hash_
                                                 const SelectionVector *__restrict sel_vector, ValidityMask &mask,
                                                 optional_ptr<ClientContext> context = nullptr) {
 	hash_context hc;
-	if(context){
+	if (context) {
 		hc.ussr_prefix = context->GetCurrentQueryUssr().USSR_prefix;
 		hc.ussr_mask = context->GetCurrentQueryUssr().USSR_MASK;
-	}else{
+	} else {
 		hc.ussr_prefix = 0xFFFFFFFFFF;
 		hc.ussr_mask = 0;
 	}
@@ -394,10 +393,10 @@ static inline void TightLoopCombineHash(const T *__restrict ldata, hash_t *__res
                                         const SelectionVector *__restrict sel_vector, ValidityMask &mask,
                                         optional_ptr<ClientContext> context = nullptr) {
 	hash_context hc;
-	if(context){
+	if (context) {
 		hc.ussr_prefix = context->GetCurrentQueryUssr().USSR_prefix;
 		hc.ussr_mask = context->GetCurrentQueryUssr().USSR_MASK;
-	}else{
+	} else {
 		hc.ussr_prefix = 0xFFFFFFFFFF;
 		hc.ussr_mask = 0;
 	}
@@ -423,10 +422,10 @@ template <bool HAS_RSEL, class T>
 void TemplatedLoopCombineHash(Vector &input, Vector &hashes, const SelectionVector *rsel, idx_t count,
                               optional_ptr<ClientContext> context = nullptr) {
 	hash_context hc;
-	if(context){
+	if (context) {
 		hc.ussr_prefix = context->GetCurrentQueryUssr().USSR_prefix;
 		hc.ussr_mask = context->GetCurrentQueryUssr().USSR_MASK;
-	}else{
+	} else {
 		hc.ussr_prefix = 0xFFFFFFFFFF;
 		hc.ussr_mask = 0;
 	}

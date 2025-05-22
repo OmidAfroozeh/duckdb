@@ -165,10 +165,9 @@ hash_t Hash(uint8_t *val, size_t size) {
 }
 
 hash_t string_hash(string_t val, uint64_t ussr_prefix, uint64_t ussr_mask) {
-	if (!val.IsInlined() && (ussr_mask & reinterpret_cast<uint64_t>(val.GetPointer())) ==
-		    ussr_prefix) {
-//						string_t::StringComparisonOperators::faster_hash++;
-			return *(reinterpret_cast<uint64_t *>(data_ptr_cast(val.GetPointer()) - 9));
+	if (!val.IsInlined() && (ussr_mask & reinterpret_cast<uint64_t>(val.GetPointer())) == ussr_prefix) {
+		//						string_t::StringComparisonOperators::faster_hash++;
+		return *(reinterpret_cast<uint64_t *>(data_ptr_cast(val.GetPointer()) - 9));
 	}
 	return Hash(val);
 }

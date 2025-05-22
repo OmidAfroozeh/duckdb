@@ -15,8 +15,8 @@ public:
 		}
 	}
 	unordered_set<string> strs;
-	vector<vector<uint8_t >> inserted;
-	vector<vector<uint16_t >> count;
+	vector<vector<uint8_t>> inserted;
+	vector<vector<uint16_t>> count;
 	vector<string> current_dict_ids;
 	vector<idx_t> analysis_budget;
 	vector<idx_t> current_analysis_count;
