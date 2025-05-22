@@ -2,6 +2,7 @@
 #include "duckdb/common/helper.hpp"
 #include "duckdb/common/printer.hpp"
 #include "duckdb/planner/operator/logical_ussr_insertion.h"
+#include "duckdb/planner/operator/list.hpp"
 
 namespace duckdb {
 
@@ -109,6 +110,22 @@ unique_ptr<LogicalOperator> USSR_optimizer::Rewrite(unique_ptr<LogicalOperator> 
 				if(bound_colref.return_type == LogicalType::VARCHAR){
 					choose_operator();
 					break;
+				}
+			}
+			if(condition.right->type == ExpressionType::BOUND_COLUMN_REF){
+				auto &bound_colref = condition.right->Cast<BoundColumnRefExpression>();
+				if(bound_colref.return_type == LogicalType::VARCHAR){
+					choose_operator();
+					break;
+				}
+			}
+			for (auto &expr : join_op.expressions) {
+				if(expr->GetExpressionType() == ExpressionType::BOUND_COLUMN_REF){
+					auto &bound_colref = expr->Cast<BoundColumnRefExpression>();
+					if(bound_colref.return_type == LogicalType::VARCHAR){
+						choose_operator();
+						break;
+					}
 				}
 			}
 		}
