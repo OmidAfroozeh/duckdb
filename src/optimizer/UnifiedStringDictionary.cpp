@@ -9,41 +9,6 @@
 
 namespace duckdb {
 
-// UnifiedStringsDictionary::UnifiedStringsDictionary() {
-//
-//	buffer = make_unsafe_uniq_array_uninitialized<data_t>(BUFFER_SIZE);
-//	USSR_prefix = cast_pointer_to_uint64(buffer.get() + USSR_SIZE * USSR_SLOT_SIZE) & USSR_MASK;
-//
-//	DataRegion = reinterpret_cast<uint64_t *>(USSR_prefix);
-//
-//	// Double check that the DataRegion is contained within the buffer
-//	D_ASSERT(cast_pointer_to_uint64(buffer.get()) < cast_pointer_to_uint64(DataRegion));
-//	D_ASSERT(cast_pointer_to_uint64(DataRegion) < cast_pointer_to_uint64(buffer.get()) + BUFFER_SIZE);
-//	D_ASSERT(cast_pointer_to_uint64(DataRegion) + USSR_SIZE * USSR_SLOT_SIZE <=
-//	         cast_pointer_to_uint64(buffer.get()) + BUFFER_SIZE);
-//
-//	data_ptr_t HT_address;
-//	// The hash table can be either before or after the data region
-//	if (USSR_prefix - cast_pointer_to_uint64(buffer.get()) >= HT_SIZE * HT_BUCKET_SIZE) {
-//		HT_address = buffer.get();
-//	} else {
-//		HT_address = cast_uint64_to_pointer(USSR_prefix) + USSR_SIZE * USSR_SLOT_SIZE;
-//	}
-//
-//	// We zero the hashtable, since we need an indicator if a bucket as been filled or not
-//	memset(HT_address, '\0', HT_SIZE * HT_BUCKET_SIZE);
-//
-//	HT = reinterpret_cast<uint32_t *>(HT_address);
-//
-//	currentEmptySlot = 1;
-//
-//	candidates = 0;
-//	accepted = 0;
-//	nRejections_Probing = 0;
-//	nRejections_SizeFull = 0;
-//	already_in = 0;
-//}
-
 UnifiedStringsDictionary::UnifiedStringsDictionary(idx_t size) {
 	if (size == 0) {
 		USSR_MASK = 0;
@@ -81,6 +46,13 @@ UnifiedStringsDictionary::UnifiedStringsDictionary(idx_t size) {
 		HT_address = cast_uint64_to_pointer(USSR_prefix) + USSR_SIZE * USSR_SLOT_SIZE;
 	}
 
+	const auto buffer_start = cast_pointer_to_uint64(buffer.get());
+	const auto buffer_end   = buffer_start + (size * 2) * BUFFER_SIZE;
+	const auto ht_start     = cast_pointer_to_uint64(HT_address);
+	const auto ht_end       = ht_start + HT_SIZE * HT_BUCKET_SIZE;
+
+	D_ASSERT(ht_start >= buffer_start);          // HT begins inside the buffer
+	D_ASSERT(ht_end   <= buffer_end);            // HT ends   inside the buffer
 	// We zero the hashtable, since we need an indicator if a bucket as been filled or not
 	memset(HT_address, '\0', HT_SIZE * HT_BUCKET_SIZE);
 
@@ -112,9 +84,6 @@ string_t UnifiedStringsDictionary::insertInternal(string_t str) {
 	//	}
 
 	hash_t h = Hash(str);
-
-	//	uint32_t hashPrefix = Load<uint32_t>(const_data_ptr_cast(&h));
-
 	//			candidates++;
 
 	uint64_t slot;
