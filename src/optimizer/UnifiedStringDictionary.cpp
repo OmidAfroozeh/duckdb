@@ -97,7 +97,7 @@ UnifiedStringsDictionary::UnifiedStringsDictionary(idx_t size) {
 string_t UnifiedStringsDictionary::insert(string_t str) {
 	//	return str;
 	// no support for short strings now
-	if (str.IsInlined() || str.GetSize() > MAX_STRING_LENGTH) {
+	if (str.GetSize() <= 12 || str.GetSize() > MAX_STRING_LENGTH) {
 		return str;
 	}
 
