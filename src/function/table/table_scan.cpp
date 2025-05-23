@@ -260,10 +260,10 @@ public:
 				                        TableScanType::TABLE_SCAN_COMMITTED_ROWS_OMIT_PERMANENTLY_DELETED);
 			} else if (CanRemoveFilterColumns()) {
 				l_state.all_columns.Reset();
-				storage.Scan(tx, l_state.all_columns, l_state.scan_state, context);
+				storage.Scan(tx, l_state.all_columns, l_state.scan_state);
 				output.ReferenceColumns(l_state.all_columns, projection_ids);
 			} else {
-				storage.Scan(tx, output, l_state.scan_state, context);
+				storage.Scan(tx, output, l_state.scan_state);
 			}
 			if (output.size() > 0) {
 				return;

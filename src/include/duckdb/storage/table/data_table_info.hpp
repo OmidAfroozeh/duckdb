@@ -21,8 +21,7 @@ struct DataTableInfo {
 	friend class DataTable;
 
 public:
-	DataTableInfo(AttachedDatabase &db, shared_ptr<TableIOManager> table_io_manager_p, string schema, string table,
-	              optional_ptr<ClientContext> client_context);
+	DataTableInfo(AttachedDatabase &db, shared_ptr<TableIOManager> table_io_manager_p, string schema, string table);
 
 	//! Initialize any unknown indexes whose types might now be present after an extension load, optionally throwing an
 	//! exception if an index can't be initialized

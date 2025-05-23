@@ -1,8 +1,7 @@
 #pragma once
 
 #include "duckdb/storage/compression/dictionary/common.hpp"
-#include "duckdb/main/client_context.hpp"
-#include "duckdb/common/optional_ptr.hpp"
+
 namespace duckdb {
 
 //===--------------------------------------------------------------------===//
@@ -18,8 +17,7 @@ public:
 	}
 
 public:
-	void Initialize(ColumnSegment &segment, bool initialize_dictionary = true,
-	                optional_ptr<ClientContext> context = nullptr);
+	void Initialize(ColumnSegment &segment, bool initialize_dictionary = true);
 	void ScanToFlatVector(Vector &result, idx_t result_offset, idx_t start, idx_t scan_count);
 	void ScanToDictionaryVector(ColumnSegment &segment, Vector &result, idx_t result_offset, idx_t start,
 	                            idx_t scan_count);
@@ -47,8 +45,6 @@ public:
 	idx_t dictionary_size;
 	StringDictionaryContainer dict;
 	idx_t block_size;
-
-	UnifiedStringsDictionary *USSR;
 };
 
 } // namespace duckdb

@@ -56,13 +56,12 @@ void StandardColumnData::InitializeScanWithOffset(ColumnScanState &state, idx_t 
 }
 
 idx_t StandardColumnData::Scan(TransactionData transaction, idx_t vector_index, ColumnScanState &state, Vector &result,
-                               idx_t target_count, optional_ptr<ClientContext> context) {
+                               idx_t target_count) {
 	D_ASSERT(state.row_index == state.child_states[0].row_index);
 	auto scan_type = GetVectorScanType(state, target_count, result);
 	auto mode = ScanVectorMode::REGULAR_SCAN;
-	auto scan_count = ScanVector(transaction, vector_index, state, result, target_count, scan_type, mode, context);
-	validity.ScanVector(transaction, vector_index, state.child_states[0], result, target_count, scan_type, mode,
-	                    context);
+	auto scan_count = ScanVector(transaction, vector_index, state, result, target_count, scan_type, mode);
+	validity.ScanVector(transaction, vector_index, state.child_states[0], result, target_count, scan_type, mode);
 	return scan_count;
 }
 
@@ -82,7 +81,7 @@ idx_t StandardColumnData::ScanCount(ColumnScanState &state, Vector &result, idx_
 
 void StandardColumnData::Filter(TransactionData transaction, idx_t vector_index, ColumnScanState &state, Vector &result,
                                 SelectionVector &sel, idx_t &count, const TableFilter &filter,
-                                TableFilterState &filter_state, optional_ptr<ClientContext> context) {
+                                TableFilterState &filter_state) {
 	// check if we can do a specialized select
 	// the compression functions need to support this
 	auto compression = GetCompressionFunction();
@@ -95,7 +94,7 @@ void StandardColumnData::Filter(TransactionData transaction, idx_t vector_index,
 	bool verify_fetch_row = state.scan_options && state.scan_options->force_fetch_row;
 	if (!has_filter || !validity_has_filter || !scan_entire_vector || verify_fetch_row) {
 		// we are not scanning an entire vector - this can have several causes (updates, etc)
-		ColumnData::Filter(transaction, vector_index, state, result, sel, count, filter, filter_state, context);
+		ColumnData::Filter(transaction, vector_index, state, result, sel, count, filter, filter_state);
 		return;
 	}
 	FilterVector(state, result, target_count, sel, count, filter, filter_state);
@@ -103,7 +102,7 @@ void StandardColumnData::Filter(TransactionData transaction, idx_t vector_index,
 }
 
 void StandardColumnData::Select(TransactionData transaction, idx_t vector_index, ColumnScanState &state, Vector &result,
-                                SelectionVector &sel, idx_t sel_count, optional_ptr<ClientContext> context) {
+                                SelectionVector &sel, idx_t sel_count) {
 	// check if we can do a specialized select
 	// the compression functions need to support this
 	auto compression = GetCompressionFunction();
@@ -115,7 +114,7 @@ void StandardColumnData::Select(TransactionData transaction, idx_t vector_index,
 	bool scan_entire_vector = scan_type == ScanVectorType::SCAN_ENTIRE_VECTOR;
 	if (!has_select || !validity_has_select || !scan_entire_vector) {
 		// we are not scanning an entire vector - this can have several causes (updates, etc)
-		ColumnData::Select(transaction, vector_index, state, result, sel, sel_count, context);
+		ColumnData::Select(transaction, vector_index, state, result, sel, sel_count);
 		return;
 	}
 	SelectVector(state, result, target_count, sel, sel_count);

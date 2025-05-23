@@ -499,8 +499,7 @@ bool RowGroup::CheckZonemapSegments(CollectionScanState &state) {
 }
 
 template <TableScanType TYPE>
-void RowGroup::TemplatedScan(TransactionData transaction, CollectionScanState &state, DataChunk &result,
-                             optional_ptr<ClientContext> context) {
+void RowGroup::TemplatedScan(TransactionData transaction, CollectionScanState &state, DataChunk &result) {
 	const bool ALLOW_UPDATES = TYPE != TableScanType::TABLE_SCAN_COMMITTED_ROWS_DISALLOW_UPDATES &&
 	                           TYPE != TableScanType::TABLE_SCAN_COMMITTED_ROWS_OMIT_PERMANENTLY_DELETED;
 	const auto &column_ids = state.GetColumnIds();
@@ -580,7 +579,7 @@ void RowGroup::TemplatedScan(TransactionData transaction, CollectionScanState &s
 						col_data.ScanCommitted(state.vector_index, state.column_scans[i], result.data[i],
 						                       ALLOW_UPDATES);
 					} else {
-						col_data.Scan(transaction, state.vector_index, state.column_scans[i], result.data[i], context);
+						col_data.Scan(transaction, state.vector_index, state.column_scans[i], result.data[i]);
 					}
 				}
 			}
@@ -648,7 +647,7 @@ void RowGroup::TemplatedScan(TransactionData transaction, CollectionScanState &s
 					} else {
 						auto &col_data = GetColumn(filter.table_column_index);
 						col_data.Filter(transaction, state.vector_index, state.column_scans[scan_idx], result_vector,
-						                sel, approved_tuple_count, filter.filter, table_filter_state, context);
+						                sel, approved_tuple_count, filter.filter, table_filter_state);
 					}
 				}
 				for (auto &table_filter : filter_list) {
@@ -696,7 +695,7 @@ void RowGroup::TemplatedScan(TransactionData transaction, CollectionScanState &s
 					auto &col_data = GetColumn(column);
 					if (TYPE == TableScanType::TABLE_SCAN_REGULAR) {
 						col_data.Select(transaction, state.vector_index, state.column_scans[i], result.data[i], sel,
-						                approved_tuple_count, context);
+						                approved_tuple_count);
 					} else {
 						col_data.SelectCommitted(state.vector_index, state.column_scans[i], result.data[i], sel,
 						                         approved_tuple_count, ALLOW_UPDATES);
@@ -714,13 +713,11 @@ void RowGroup::TemplatedScan(TransactionData transaction, CollectionScanState &s
 	}
 }
 
-void RowGroup::Scan(TransactionData transaction, CollectionScanState &state, DataChunk &result,
-                    optional_ptr<ClientContext> context) {
-	TemplatedScan<TableScanType::TABLE_SCAN_REGULAR>(transaction, state, result, context);
+void RowGroup::Scan(TransactionData transaction, CollectionScanState &state, DataChunk &result) {
+	TemplatedScan<TableScanType::TABLE_SCAN_REGULAR>(transaction, state, result);
 }
 
-void RowGroup::ScanCommitted(CollectionScanState &state, DataChunk &result, TableScanType type,
-                             optional_ptr<ClientContext> context) {
+void RowGroup::ScanCommitted(CollectionScanState &state, DataChunk &result, TableScanType type) {
 	auto &transaction_manager = DuckTransactionManager::Get(GetCollection().GetAttached());
 
 	transaction_t start_ts;
@@ -735,14 +732,14 @@ void RowGroup::ScanCommitted(CollectionScanState &state, DataChunk &result, Tabl
 	TransactionData data(transaction_id, start_ts);
 	switch (type) {
 	case TableScanType::TABLE_SCAN_COMMITTED_ROWS:
-		TemplatedScan<TableScanType::TABLE_SCAN_COMMITTED_ROWS>(data, state, result, context);
+		TemplatedScan<TableScanType::TABLE_SCAN_COMMITTED_ROWS>(data, state, result);
 		break;
 	case TableScanType::TABLE_SCAN_COMMITTED_ROWS_DISALLOW_UPDATES:
-		TemplatedScan<TableScanType::TABLE_SCAN_COMMITTED_ROWS_DISALLOW_UPDATES>(data, state, result, context);
+		TemplatedScan<TableScanType::TABLE_SCAN_COMMITTED_ROWS_DISALLOW_UPDATES>(data, state, result);
 		break;
 	case TableScanType::TABLE_SCAN_COMMITTED_ROWS_OMIT_PERMANENTLY_DELETED:
 	case TableScanType::TABLE_SCAN_LATEST_COMMITTED_ROWS:
-		TemplatedScan<TableScanType::TABLE_SCAN_COMMITTED_ROWS_OMIT_PERMANENTLY_DELETED>(data, state, result, context);
+		TemplatedScan<TableScanType::TABLE_SCAN_COMMITTED_ROWS_OMIT_PERMANENTLY_DELETED>(data, state, result);
 		break;
 	default:
 		throw InternalException("Unrecognized table scan type");

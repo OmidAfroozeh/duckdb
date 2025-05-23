@@ -112,11 +112,10 @@ public:
 	//! Initialize a scan starting at the specified offset
 	virtual void InitializeScanWithOffset(ColumnScanState &state, idx_t row_idx);
 	//! Scan the next vector from the column
-	idx_t Scan(TransactionData transaction, idx_t vector_index, ColumnScanState &state, Vector &result,
-	           optional_ptr<ClientContext> context = nullptr);
+	idx_t Scan(TransactionData transaction, idx_t vector_index, ColumnScanState &state, Vector &result);
 	idx_t ScanCommitted(idx_t vector_index, ColumnScanState &state, Vector &result, bool allow_updates);
 	virtual idx_t Scan(TransactionData transaction, idx_t vector_index, ColumnScanState &state, Vector &result,
-	                   idx_t scan_count, optional_ptr<ClientContext> context = nullptr);
+	                   idx_t scan_count);
 	virtual idx_t ScanCommitted(idx_t vector_index, ColumnScanState &state, Vector &result, bool allow_updates,
 	                            idx_t scan_count);
 
@@ -125,10 +124,9 @@ public:
 
 	//! Select
 	virtual void Filter(TransactionData transaction, idx_t vector_index, ColumnScanState &state, Vector &result,
-	                    SelectionVector &sel, idx_t &count, const TableFilter &filter, TableFilterState &filter_state,
-	                    optional_ptr<ClientContext> context);
+	                    SelectionVector &sel, idx_t &count, const TableFilter &filter, TableFilterState &filter_state);
 	virtual void Select(TransactionData transaction, idx_t vector_index, ColumnScanState &state, Vector &result,
-	                    SelectionVector &sel, idx_t count, optional_ptr<ClientContext> context);
+	                    SelectionVector &sel, idx_t count);
 	virtual void SelectCommitted(idx_t vector_index, ColumnScanState &state, Vector &result, SelectionVector &sel,
 	                             idx_t count, bool allow_updates);
 
@@ -196,16 +194,15 @@ protected:
 	void AppendTransientSegment(SegmentLock &l, idx_t start_row);
 	void AppendSegment(SegmentLock &l, unique_ptr<ColumnSegment> segment);
 
-	void BeginScanVectorInternal(ColumnScanState &state, optional_ptr<ClientContext> = nullptr);
+	void BeginScanVectorInternal(ColumnScanState &state);
 	//! Scans a base vector from the column
 	idx_t ScanVector(ColumnScanState &state, Vector &result, idx_t remaining, ScanVectorType scan_type,
-	                 optional_ptr<ClientContext> context = nullptr, idx_t result_offset = 0);
+	                 idx_t result_offset = 0);
 	//! Scans a vector from the column merged with any potential updates
 	idx_t ScanVector(TransactionData transaction, idx_t vector_index, ColumnScanState &state, Vector &result,
-	                 idx_t target_scan, ScanVectorType scan_type, ScanVectorMode mode,
-	                 optional_ptr<ClientContext> context = nullptr);
+	                 idx_t target_scan, ScanVectorType scan_type, ScanVectorMode mode);
 	idx_t ScanVector(TransactionData transaction, idx_t vector_index, ColumnScanState &state, Vector &result,
-	                 idx_t target_scan, ScanVectorMode mode, optional_ptr<ClientContext> context = nullptr);
+	                 idx_t target_scan, ScanVectorMode mode);
 	void SelectVector(ColumnScanState &state, Vector &result, idx_t target_count, const SelectionVector &sel,
 	                  idx_t sel_count);
 	void FilterVector(ColumnScanState &state, Vector &result, idx_t target_count, SelectionVector &sel,

@@ -85,7 +85,7 @@ void StructColumnData::InitializeScanWithOffset(ColumnScanState &state, idx_t ro
 }
 
 idx_t StructColumnData::Scan(TransactionData transaction, idx_t vector_index, ColumnScanState &state, Vector &result,
-                             idx_t target_count, optional_ptr<ClientContext> context) {
+                             idx_t target_count) {
 	auto scan_count = validity.Scan(transaction, vector_index, state.child_states[0], result, target_count);
 	auto &child_entries = StructVector::GetEntries(result);
 	for (idx_t i = 0; i < sub_columns.size(); i++) {

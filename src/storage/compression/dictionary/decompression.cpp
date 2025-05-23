@@ -24,9 +24,7 @@ string_t CompressedStringScanState::FetchStringFromDict(int32_t dict_offset, uin
 	return string_t(str_ptr, string_len);
 }
 
-void CompressedStringScanState::Initialize(ColumnSegment &segment, bool initialize_dictionary,
-                                           optional_ptr<ClientContext> context) {
-
+void CompressedStringScanState::Initialize(ColumnSegment &segment, bool initialize_dictionary) {
 	baseptr = handle->Ptr() + segment.GetBlockOffset();
 
 	// Load header values
@@ -54,13 +52,10 @@ void CompressedStringScanState::Initialize(ColumnSegment &segment, bool initiali
 	dictionary_size = index_buffer_count;
 	auto dict_child_data = FlatVector::GetData<string_t>(*(dictionary));
 	FlatVector::SetNull(*dictionary, 0, true);
-
 	for (uint32_t i = 1; i < index_buffer_count; i++) {
 		// NOTE: the passing of dict_child_vector, will not be used, its for big strings
 		uint16_t str_len = GetStringLength(i);
-		//		auto str = FetchStringFromDict(UnsafeNumericCast<int32_t>(index_buffer_ptr[i]), str_len);
 		dict_child_data[i] = FetchStringFromDict(UnsafeNumericCast<int32_t>(index_buffer_ptr[i]), str_len);
-		//		dict_child_data[i] = context->GetCurrentQueryUssr().insert(str);
 	}
 }
 
@@ -84,21 +79,12 @@ void CompressedStringScanState::ScanToFlatVector(Vector &result, idx_t result_of
 
 	BitpackingPrimitives::UnPackBuffer<sel_t>(data_ptr_cast(sel_vec_ptr), src, decompress_count, current_width);
 
-	if (dictionary) {
-		auto dict_child_data = FlatVector::GetData<string_t>(*(dictionary));
-		for (idx_t i = 0; i < scan_count; i++) {
-			// Lookup dict offset in index buffer
-			auto string_number = sel_vec->get_index(i + start_offset);
-			result_data[result_offset + i] = dict_child_data[string_number];
-		}
-	} else {
-		for (idx_t i = 0; i < scan_count; i++) {
-			// Lookup dict offset in index buffer
-			auto string_number = sel_vec->get_index(i + start_offset);
-			auto dict_offset = index_buffer_ptr[string_number];
-			auto str_len = GetStringLength(UnsafeNumericCast<sel_t>(string_number));
-			result_data[result_offset + i] = FetchStringFromDict(UnsafeNumericCast<int32_t>(dict_offset), str_len);
-		}
+	for (idx_t i = 0; i < scan_count; i++) {
+		// Lookup dict offset in index buffer
+		auto string_number = sel_vec->get_index(i + start_offset);
+		auto dict_offset = index_buffer_ptr[string_number];
+		auto str_len = GetStringLength(UnsafeNumericCast<sel_t>(string_number));
+		result_data[result_offset + i] = FetchStringFromDict(UnsafeNumericCast<int32_t>(dict_offset), str_len);
 	}
 }
 

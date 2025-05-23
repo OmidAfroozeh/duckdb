@@ -76,7 +76,7 @@ void ArrayColumnData::InitializeScanWithOffset(ColumnScanState &state, idx_t row
 }
 
 idx_t ArrayColumnData::Scan(TransactionData transaction, idx_t vector_index, ColumnScanState &state, Vector &result,
-                            idx_t scan_count, optional_ptr<ClientContext> context) {
+                            idx_t scan_count) {
 	return ScanCount(state, result, scan_count);
 }
 
@@ -96,10 +96,10 @@ idx_t ArrayColumnData::ScanCount(ColumnScanState &state, Vector &result, idx_t c
 }
 
 void ArrayColumnData::Select(TransactionData transaction, idx_t vector_index, ColumnScanState &state, Vector &result,
-                             SelectionVector &sel, idx_t sel_count, optional_ptr<ClientContext> context) {
+                             SelectionVector &sel, idx_t sel_count) {
 	bool is_supported = !child_column->type.IsNested();
 	if (!is_supported) {
-		ColumnData::Select(transaction, vector_index, state, result, sel, sel_count, context);
+		ColumnData::Select(transaction, vector_index, state, result, sel, sel_count);
 		return;
 	}
 	// the below specialized Select implementation selects only the required arrays, and skips over non-required data
@@ -134,7 +134,7 @@ void ArrayColumnData::Select(TransactionData transaction, idx_t vector_index, Co
 	auto allowed_ranges = array_size / 2;
 	if (allowed_ranges < consecutive_ranges) {
 		// fallback to select + filter
-		ColumnData::Select(transaction, vector_index, state, result, sel, sel_count, context);
+		ColumnData::Select(transaction, vector_index, state, result, sel, sel_count);
 		return;
 	}
 

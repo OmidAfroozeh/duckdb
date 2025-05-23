@@ -62,7 +62,7 @@ public:
 
 public:
 	void InitializePrefetch(PrefetchState &prefetch_state, ColumnScanState &scan_state);
-	void InitializeScan(ColumnScanState &state, optional_ptr<ClientContext> context = nullptr);
+	void InitializeScan(ColumnScanState &state);
 	//! Scan one vector from this segment
 	void Scan(ColumnScanState &state, idx_t scan_count, Vector &result, idx_t result_offset, ScanVectorType scan_type);
 	//! Scan a subset of a vector (defined by the selection vector)
@@ -75,7 +75,7 @@ public:
 
 	static idx_t FilterSelection(SelectionVector &sel, Vector &vector, UnifiedVectorFormat &vdata,
 	                             const TableFilter &filter, TableFilterState &filter_state, idx_t scan_count,
-	                             idx_t &approved_tuple_count, optional_ptr<ClientContext> context = nullptr);
+	                             idx_t &approved_tuple_count);
 
 	//! Skip a scan forward to the row_index specified in the scan state
 	void Skip(ColumnScanState &state);
