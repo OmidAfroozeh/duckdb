@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <iostream>
 #include <string>
+#include "duckdb/common/helper.hpp"
 #include <cmath>
 
 namespace duckdb {
@@ -132,8 +133,7 @@ string_t UnifiedStringsDictionary::insertInternal(string_t str) {
 			//			return str;
 		}
 
-		uint64_t bucket =
-		    reinterpret_cast<atomic<uint64_t> *>(HT + ((slot + prob_index)))->load(std::memory_order_acquire);
+		uint64_t bucket = Load<uint64_t>(reinterpret_cast<const_data_ptr_t>(HT + ((slot + prob_index))));
 
 		uint16_t bucket_hashExtract = bucket >> (slot_size * 8);
 
@@ -199,7 +199,7 @@ string_t UnifiedStringsDictionary::insertInternal(string_t str) {
 			memcpy(slot_ptr + 1, str.GetData(), str.GetSize());
 			memcpy(slot_ptr - 8, &h, 8);
 
-			(reinterpret_cast<atomic<uint64_t> *>(HT + slot + prob_index))->store(newBucket, std::memory_order_release);
+			Store<uint64_t>(newBucket, reinterpret_cast<data_ptr_t>(HT + slot + prob_index));
 			auto res_str = string_t(const_char_ptr_cast(slot_ptr + 1), UnsafeNumericCast<uint32_t>(*slot_ptr));
 			return res_str;
 		}

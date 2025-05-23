@@ -33,9 +33,6 @@ private:
 	vector<optional_ptr<LogicalOperator>> candidate_data_sources;
 	vector<optional_ptr<LogicalOperator>> chosen_data_sources;
 
-
-
-
 	bool OutputStrings(LogicalOperator &op);
 
 	unique_ptr<LogicalOperator> prev_op;
@@ -45,7 +42,8 @@ private:
 
 	void Insert_USSR_Operator(optional_ptr<LogicalOperator> op);
 	//	std::vector<ColumnBinding, ColumnBinding> MapInputBindingsToOutoutBindings(const vector<ColumnBinding>
-	//inputBindings, 	                                                                           const vector<ColumnBinding> outputBindings, 	                                                                           optional_ptr<LogicalOperator> op);
+	// inputBindings, 	                                                                           const
+	// vector<ColumnBinding> outputBindings, optional_ptr<LogicalOperator> op);
 	void choose_operator();
 	bool useStrings(optional_ptr<LogicalOperator> op);
 };

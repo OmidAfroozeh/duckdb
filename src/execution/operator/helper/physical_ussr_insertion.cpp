@@ -48,7 +48,7 @@ OperatorResultType PhysicalUnifiedString::Execute(ExecutionContext &context, Dat
 		if (!size.IsValid()) {
 			continue;
 		}
-		if (DictionaryVector::DictionaryId(input.data[col_idx]).size() > 64){
+		if (DictionaryVector::DictionaryId(input.data[col_idx]).size() > 64) {
 			continue;
 		}
 		if (size.GetIndex() <= 500) {

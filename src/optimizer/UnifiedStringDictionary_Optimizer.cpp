@@ -34,7 +34,7 @@ void USSR_optimizer::Insert_USSR_Operator(optional_ptr<LogicalOperator> op) {
 	}
 }
 
-void USSR_optimizer::choose_operator(){
+void USSR_optimizer::choose_operator() {
 	for (auto &ds : candidate_data_sources) {
 		chosen_data_sources.push_back(ds);
 	}
@@ -42,31 +42,29 @@ void USSR_optimizer::choose_operator(){
 	return;
 }
 
-bool USSR_optimizer::useStrings(optional_ptr<LogicalOperator> op){
+bool USSR_optimizer::useStrings(optional_ptr<LogicalOperator> op) {
 	switch (op->type) {
 
-	case LogicalOperatorType::LOGICAL_AGGREGATE_AND_GROUP_BY:{
+	case LogicalOperatorType::LOGICAL_AGGREGATE_AND_GROUP_BY: {
 		auto &aggr_op = op->Cast<LogicalAggregate>();
 		for (auto &expr : aggr_op.groups) {
-			if(expr->GetExpressionType() == ExpressionType::BOUND_COLUMN_REF){
+			if (expr->GetExpressionType() == ExpressionType::BOUND_COLUMN_REF) {
 				auto &bound_colref = expr->Cast<BoundColumnRefExpression>();
-				if(bound_colref.return_type == LogicalType::VARCHAR){
+				if (bound_colref.return_type == LogicalType::VARCHAR) {
 					return true;
-
 				}
 			}
 		}
 
 		break;
 	}
-	case LogicalOperatorType::LOGICAL_DISTINCT:{
+	case LogicalOperatorType::LOGICAL_DISTINCT: {
 		auto &distinct_op = op->Cast<LogicalDistinct>();
 		for (auto &expr : distinct_op.distinct_targets) {
-			if(expr->GetExpressionType() == ExpressionType::BOUND_COLUMN_REF){
+			if (expr->GetExpressionType() == ExpressionType::BOUND_COLUMN_REF) {
 				auto &bound_colref = expr->Cast<BoundColumnRefExpression>();
-				if(bound_colref.return_type == LogicalType::VARCHAR){
+				if (bound_colref.return_type == LogicalType::VARCHAR) {
 					return true;
-
 				}
 			}
 		}
@@ -74,29 +72,27 @@ bool USSR_optimizer::useStrings(optional_ptr<LogicalOperator> op){
 		break;
 	}
 
-	case LogicalOperatorType::LOGICAL_COMPARISON_JOIN:{
+	case LogicalOperatorType::LOGICAL_COMPARISON_JOIN: {
 		auto &join_op = op->Cast<LogicalComparisonJoin>();
 		// if the join condition contains strings
 		for (auto &condition : join_op.conditions) {
-			if(condition.left->type == ExpressionType::BOUND_COLUMN_REF){
+			if (condition.left->type == ExpressionType::BOUND_COLUMN_REF) {
 				auto &bound_colref = condition.left->Cast<BoundColumnRefExpression>();
-				if(bound_colref.return_type == LogicalType::VARCHAR){
+				if (bound_colref.return_type == LogicalType::VARCHAR) {
 					return true;
 				}
 			}
-			if(condition.right->type == ExpressionType::BOUND_COLUMN_REF){
+			if (condition.right->type == ExpressionType::BOUND_COLUMN_REF) {
 				auto &bound_colref = condition.right->Cast<BoundColumnRefExpression>();
-				if(bound_colref.return_type == LogicalType::VARCHAR){
+				if (bound_colref.return_type == LogicalType::VARCHAR) {
 					return true;
-
 				}
 			}
 			for (auto &expr : join_op.expressions) {
-				if(expr->GetExpressionType() == ExpressionType::BOUND_COLUMN_REF){
+				if (expr->GetExpressionType() == ExpressionType::BOUND_COLUMN_REF) {
 					auto &bound_colref = expr->Cast<BoundColumnRefExpression>();
-					if(bound_colref.return_type == LogicalType::VARCHAR){
+					if (bound_colref.return_type == LogicalType::VARCHAR) {
 						return true;
-
 					}
 				}
 			}
@@ -107,11 +103,10 @@ bool USSR_optimizer::useStrings(optional_ptr<LogicalOperator> op){
 		auto &sort_op = op->Cast<LogicalOrder>();
 
 		for (auto &node : sort_op.orders) {
-			if(node.expression->type == ExpressionType::BOUND_COLUMN_REF) {
+			if (node.expression->type == ExpressionType::BOUND_COLUMN_REF) {
 				auto &bound_colref = node.expression->Cast<BoundColumnRefExpression>();
-				if(bound_colref.return_type == LogicalType::VARCHAR){
+				if (bound_colref.return_type == LogicalType::VARCHAR) {
 					return true;
-
 				}
 			}
 		}
@@ -137,30 +132,26 @@ unique_ptr<LogicalOperator> USSR_optimizer::Rewrite(unique_ptr<LogicalOperator> 
 		}
 	}
 
-
 	auto string_usage = useStrings(op.get());
 	// Depth-first-search post-order
 	for (idx_t i = 0; i < op->children.size(); ++i) {
 		op->children[i] = Rewrite(std::move(op->children[i]));
-		if(string_usage){
+		if (string_usage) {
 			choose_operator();
 		}
 	}
 
-
-
-
 	// if you don't output VARCHAR columns, clear the candidates vector
-//	bool clear_candidates = true;
-//	for (auto &type : op->types) {
-//		if(type == LogicalType::VARCHAR){
-//			clear_candidates = false;
-//			break;
-//		}
-//	}
-//	if(clear_candidates){
-//		candidate_data_sources.clear();
-//	}
+	//	bool clear_candidates = true;
+	//	for (auto &type : op->types) {
+	//		if(type == LogicalType::VARCHAR){
+	//			clear_candidates = false;
+	//			break;
+	//		}
+	//	}
+	//	if(clear_candidates){
+	//		candidate_data_sources.clear();
+	//	}
 	return op;
 }
 
