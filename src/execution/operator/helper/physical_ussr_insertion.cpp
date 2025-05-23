@@ -48,7 +48,9 @@ OperatorResultType PhysicalUnifiedString::Execute(ExecutionContext &context, Dat
 		if (!size.IsValid()) {
 			continue;
 		}
-
+		if (DictionaryVector::DictionaryId(input.data[col_idx]).size() > 64){
+			continue;
+		}
 		if (size.GetIndex() <= 500) {
 			if (insert_to_ussr[col_idx] &&
 			    DictionaryVector::DictionaryId(input.data[col_idx]) != state.current_dict_ids[col_idx]) {

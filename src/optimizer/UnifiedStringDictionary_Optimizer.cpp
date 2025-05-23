@@ -125,14 +125,6 @@ bool USSR_optimizer::useStrings(optional_ptr<LogicalOperator> op){
 
 unique_ptr<LogicalOperator> USSR_optimizer::Rewrite(unique_ptr<LogicalOperator> op) {
 	op->ResolveOperatorTypes();
-	auto string_usage = useStrings(op.get());
-	// Depth-first-search post-order
-	for (idx_t i = 0; i < op->children.size(); ++i) {
-		op->children[i] = Rewrite(std::move(op->children[i]));
-		if(string_usage){
-			choose_operator();
-		}
-	}
 
 	for (idx_t i = 0; i < op->children.size(); ++i) {
 		if (op->children[i]->type == LogicalOperatorType::LOGICAL_GET) {
@@ -144,6 +136,17 @@ unique_ptr<LogicalOperator> USSR_optimizer::Rewrite(unique_ptr<LogicalOperator> 
 			}
 		}
 	}
+
+
+	auto string_usage = useStrings(op.get());
+	// Depth-first-search post-order
+	for (idx_t i = 0; i < op->children.size(); ++i) {
+		op->children[i] = Rewrite(std::move(op->children[i]));
+		if(string_usage){
+			choose_operator();
+		}
+	}
+
 
 
 
