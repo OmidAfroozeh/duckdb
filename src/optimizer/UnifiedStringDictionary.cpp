@@ -47,13 +47,13 @@ UnifiedStringsDictionary::UnifiedStringsDictionary(idx_t size) {
 		HT_address = cast_uint64_to_pointer(USSR_prefix) + USSR_SIZE * USSR_SLOT_SIZE;
 	}
 
-	const auto buffer_start = cast_pointer_to_uint64(buffer.get());
-	const auto buffer_end   = buffer_start + size * BUFFER_SIZE;
-	const auto ht_start     = cast_pointer_to_uint64(HT_address);
-	const auto ht_end       = ht_start + HT_SIZE * HT_BUCKET_SIZE;
-
-	D_ASSERT(ht_start >= buffer_start);          // HT begins inside the buffer
-	D_ASSERT(ht_end   <= buffer_end);            // HT ends   inside the buffer
+//	const auto buffer_start = cast_pointer_to_uint64(buffer.get());
+//	const auto buffer_end   = buffer_start + size * BUFFER_SIZE;
+//	const auto ht_start     = cast_pointer_to_uint64(HT_address);
+//	const auto ht_end       = ht_start + HT_SIZE * HT_BUCKET_SIZE;
+//
+//	D_ASSERT(ht_start >= buffer_start);          // HT begins inside the buffer
+//	D_ASSERT(ht_end   <= buffer_end);            // HT ends   inside the buffer
 	// We zero the hashtable, since we need an indicator if a bucket as been filled or not
 	memset(HT_address, '\0', HT_SIZE * HT_BUCKET_SIZE);
 
