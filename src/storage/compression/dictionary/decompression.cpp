@@ -94,6 +94,7 @@ void CompressedStringScanState::ScanToFlatVector(Vector &result, idx_t result_of
 			auto str_len = GetStringLength(UnsafeNumericCast<sel_t>(string_number));
 			result_data[result_offset + i] = FetchStringFromDict(UnsafeNumericCast<int32_t>(dict_offset), str_len);
 		}
+	}
 }
 
 void CompressedStringScanState::ScanToDictionaryVector(ColumnSegment &segment, Vector &result, idx_t result_offset,

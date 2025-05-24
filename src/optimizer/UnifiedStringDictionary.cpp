@@ -99,7 +99,7 @@ string_t UnifiedStringsDictionary::insertInternal(string_t str) {
 	for (idx_t i = 0; i < PROBING_LIMIT + 16; i++) {
 		idx_t prob_index = i;
 
-		if (HT_slot + i > USSR_SIZE) {
+		if (HT_slot + i >= USSR_SIZE) {
 			prob_index = (HT_slot + i) % USSR_SIZE;
 		}
 
@@ -110,7 +110,7 @@ string_t UnifiedStringsDictionary::insertInternal(string_t str) {
 		if (HT_bucket_salt == HT_salt) {
 			auto slot_ptr = data_ptr_cast(DataRegion + (HT_bucket & slot_mask));
 			auto materialized_str_length = UnsafeNumericCast<uint16_t >(*reinterpret_cast<uint16_t *>(slot_ptr));
-			if(materialized_str_length == str.GetSize() && memcmp(slot_ptr + STR_LENGTH_BYTES, str.GetDataUnsafe(), materialized_str_length) == 0){
+			if(materialized_str_length == str.GetSize() && memcmp(slot_ptr + STR_LENGTH_BYTES, str.GetDataUnsafe(), str.GetSize()) == 0){
 //				already_in++;
 				return string_t(const_char_ptr_cast(slot_ptr + STR_LENGTH_BYTES), UnsafeNumericCast<uint32_t>(materialized_str_length));
 			} else{
@@ -131,7 +131,7 @@ string_t UnifiedStringsDictionary::insertInternal(string_t str) {
 
 			auto increasedSlot = (str_len % 8 == 0) ? 1 + (str_len / 8) : 2 + (str_len / 8);
 
-			uint64_t newBucket = UnsafeNumericCast<uint32_t>(HT_salt);
+			uint32_t newBucket = UnsafeNumericCast<uint32_t>(HT_salt);
 			newBucket = newBucket << (slot_bits);
 			newBucket |= currentEmptySlot;
 
@@ -144,7 +144,7 @@ string_t UnifiedStringsDictionary::insertInternal(string_t str) {
 					auto slot_ptr = data_ptr_cast(DataRegion + (HT[HT_slot + prob_index] & slot_mask));
 
 					auto materialized_str_length = UnsafeNumericCast<uint16_t >(*reinterpret_cast<uint16_t *>(slot_ptr));
-					if(materialized_str_length == str.GetSize() && memcmp(slot_ptr + STR_LENGTH_BYTES, str.GetDataUnsafe(), materialized_str_length) == 0){
+					if(materialized_str_length == str.GetSize() && memcmp(slot_ptr + STR_LENGTH_BYTES, str.GetDataUnsafe(), str.GetSize()) == 0){
 //										already_in++;
 						return string_t(const_char_ptr_cast(slot_ptr + STR_LENGTH_BYTES), UnsafeNumericCast<uint32_t>(materialized_str_length));
 					} else{
@@ -172,8 +172,8 @@ string_t UnifiedStringsDictionary::insertInternal(string_t str) {
 			memcpy(slot_ptr + STR_LENGTH_BYTES, str.GetData(), str.GetSize());
 			Store<uint64_t>(h, slot_ptr-8);
 
-			Store<uint64_t>(newBucket, reinterpret_cast<data_ptr_t>(HT + HT_slot + prob_index));
-			return string_t(const_char_ptr_cast(slot_ptr + STR_LENGTH_BYTES), UnsafeNumericCast<uint32_t>(*slot_ptr));
+			Store<uint32_t>(newBucket, reinterpret_cast<data_ptr_t>(HT + HT_slot + prob_index));
+			return string_t(const_char_ptr_cast(slot_ptr + STR_LENGTH_BYTES), UnsafeNumericCast<uint32_t>(str.GetSize()));
 		}
 	}
 //				nRejections_Probing++;
