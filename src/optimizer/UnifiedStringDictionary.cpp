@@ -15,28 +15,29 @@ UnifiedStringsDictionary::UnifiedStringsDictionary(idx_t size) {
 		USSR_prefix = 0xFFFFFFFFFF;
 		return;
 	}
-	required_bits += static_cast<idx_t>(std::log(size) / std::log(2));
-	// base size is 512kB, I need to calculate how many bits do I need to given the size,
-	// size 1 = 512kb -> 16bits (to slot into a  64k 8 bytes)
-	// size 2 = 1024kB -> 17 bits (
-	// size 3 = 2mB -> 18 bits
+
+	auto extra_bits = static_cast<idx_t>(std::log(size) / std::log(2));
+
+	required_bits += extra_bits;
+	slot_bits += extra_bits;
 
 	USSR_MASK = ~((1ULL << (required_bits)) - 1);
 	USSR_SIZE = size * 65536;
 	HT_SIZE = USSR_SIZE;
 
-	slot_mask = (1ULL << (required_bits - 3)) - 1ULL;
+	slot_mask = (1ULL << (slot_bits)) - 1ULL;
+	salt_mask = ~slot_mask;
 
-	buffer = make_unsafe_uniq_array_uninitialized<data_t>((size * 2) * BUFFER_SIZE);
+	buffer = make_unsafe_uniq_array_uninitialized<data_t>((size) * BUFFER_SIZE);
 	USSR_prefix = cast_pointer_to_uint64(buffer.get() + USSR_SIZE * USSR_SLOT_SIZE) & USSR_MASK;
 
 	DataRegion = reinterpret_cast<uint64_t *>(USSR_prefix);
 
 	// Double check that the DataRegion is contained within the buffer
 	D_ASSERT(cast_pointer_to_uint64(buffer.get()) < cast_pointer_to_uint64(DataRegion));
-	D_ASSERT(cast_pointer_to_uint64(DataRegion) < cast_pointer_to_uint64(buffer.get()) + (size * 2) * BUFFER_SIZE);
+	D_ASSERT(cast_pointer_to_uint64(DataRegion) < cast_pointer_to_uint64(buffer.get()) + size * BUFFER_SIZE);
 	D_ASSERT(cast_pointer_to_uint64(DataRegion) + USSR_SIZE * USSR_SLOT_SIZE <=
-	         cast_pointer_to_uint64(buffer.get()) + (size * 2) * BUFFER_SIZE);
+	         cast_pointer_to_uint64(buffer.get()) + size * BUFFER_SIZE);
 
 	data_ptr_t HT_address;
 	// The hash table can be either before or after the data region
@@ -47,7 +48,7 @@ UnifiedStringsDictionary::UnifiedStringsDictionary(idx_t size) {
 	}
 
 	const auto buffer_start = cast_pointer_to_uint64(buffer.get());
-	const auto buffer_end   = buffer_start + (size * 2) * BUFFER_SIZE;
+	const auto buffer_end   = buffer_start + size * BUFFER_SIZE;
 	const auto ht_start     = cast_pointer_to_uint64(HT_address);
 	const auto ht_end       = ht_start + HT_SIZE * HT_BUCKET_SIZE;
 
@@ -56,7 +57,7 @@ UnifiedStringsDictionary::UnifiedStringsDictionary(idx_t size) {
 	// We zero the hashtable, since we need an indicator if a bucket as been filled or not
 	memset(HT_address, '\0', HT_SIZE * HT_BUCKET_SIZE);
 
-	HT = reinterpret_cast<uint64_t *>(HT_address);
+	HT = reinterpret_cast<uint32_t *>(HT_address);
 
 	currentEmptySlot = 1;
 
@@ -84,68 +85,69 @@ string_t UnifiedStringsDictionary::insertInternal(string_t str) {
 	//	}
 
 	hash_t h = Hash(str);
-	//			candidates++;
+//				candidates++;
 
-	uint64_t slot;
-	memcpy(&slot, &h, slot_size);
-	slot = slot & slot_mask;
-	D_ASSERT(slot <= USSR_SIZE);
+	uint32_t hash_prefix;
+	memcpy(&hash_prefix, &h, HT_BUCKET_SIZE);
 
-	uint16_t hashExtract = h >> slot_size * 8;
+	uint32_t HT_slot;
+	HT_slot = hash_prefix & slot_mask;
+	D_ASSERT(HT_slot <= USSR_SIZE);
+
+	uint32_t HT_salt = hash_prefix >> slot_bits;
 
 	for (idx_t i = 0; i < PROBING_LIMIT + 16; i++) {
 		idx_t prob_index = i;
-		// currently no looping around
-		if (slot + i > USSR_SIZE) {
-			prob_index = (slot + i) % USSR_SIZE;
-			//						nRejections_Probing++;
-			//			return str;
+
+		if (HT_slot + i > USSR_SIZE) {
+			prob_index = (HT_slot + i) % USSR_SIZE;
 		}
 
-		uint64_t bucket = Load<uint64_t>(reinterpret_cast<const_data_ptr_t>(HT + ((slot + prob_index))));
+		uint32_t HT_bucket = Load<uint32_t>(reinterpret_cast<const_data_ptr_t>(HT + ((HT_slot + prob_index))));
 
-		uint16_t bucket_hashExtract = bucket >> (slot_size * 8);
+		uint32_t HT_bucket_salt = HT_bucket >> (slot_bits);
 
-		if (bucket_hashExtract == hashExtract) {
-			// wrong already_in, do this after checking if equal
-			//									already_in++;
-			auto slot_ptr = data_ptr_cast(DataRegion + (bucket & slot_mask));
-			// double checking that the string found is equal to the original string
-
-			auto res_str = string_t(const_char_ptr_cast(slot_ptr + 1), UnsafeNumericCast<uint32_t>(*slot_ptr));
-			return (res_str == str) ? res_str : str;
+		if (HT_bucket_salt == HT_salt) {
+			auto slot_ptr = data_ptr_cast(DataRegion + (HT_bucket & slot_mask));
+			auto materialized_str_length = UnsafeNumericCast<uint16_t >(*reinterpret_cast<uint16_t *>(slot_ptr));
+			if(materialized_str_length == str.GetSize() && memcmp(slot_ptr + STR_LENGTH_BYTES, str.GetDataUnsafe(), materialized_str_length) == 0){
+//				already_in++;
+				return string_t(const_char_ptr_cast(slot_ptr + STR_LENGTH_BYTES), UnsafeNumericCast<uint32_t>(materialized_str_length));
+			} else{
+				return str;
+			}
 		}
 
-		if (bucket == 0) {
-			auto str_len = str.GetSize() + 1;
+		if (HT_bucket == 0) {
+			auto str_len = str.GetSize() + STR_LENGTH_BYTES;
 			std::lock_guard<std::mutex> guard(insertLock);
 
 			// reject if not enough space left
-			auto remaining = (USSR_SIZE - currentEmptySlot) * 8;
-			if (str_len > remaining || currentEmptySlot > USSR_SIZE) {
-				//												nRejections_SizeFull++;
+			auto remaining_bytes = (USSR_SIZE - currentEmptySlot) * 8;
+			if (str_len > remaining_bytes || currentEmptySlot > USSR_SIZE) {
+//																nRejections_SizeFull++;
 				return str;
 			}
 
 			auto increasedSlot = (str_len % 8 == 0) ? 1 + (str_len / 8) : 2 + (str_len / 8);
 
-			uint64_t newBucket = UnsafeNumericCast<uint64_t>(hashExtract);
-			newBucket = newBucket << (slot_size * 8);
+			uint64_t newBucket = UnsafeNumericCast<uint32_t>(HT_salt);
+			newBucket = newBucket << (slot_bits);
 			newBucket |= currentEmptySlot;
 
 			D_ASSERT((newBucket & slot_mask) == currentEmptySlot);
 
 			// another thread inserted
-			if (HT[slot + prob_index] != 0) {
-				auto slot_hashExtract = HT[slot + prob_index] >> (slot_size * 8);
-				if (slot_hashExtract == hashExtract) {
-					//															already_in++;
-					auto slot_ptr = data_ptr_cast(DataRegion + (HT[slot + prob_index] & slot_mask));
+			if (HT[HT_slot + prob_index] != 0) {
+				auto slot_hashExtract = HT[HT_slot + prob_index] >> (slot_bits);
+				if (slot_hashExtract == HT_salt) {
+					auto slot_ptr = data_ptr_cast(DataRegion + (HT[HT_slot + prob_index] & slot_mask));
 
-					auto res_str = string_t(const_char_ptr_cast(slot_ptr + 1), UnsafeNumericCast<uint32_t>(*slot_ptr));
-					if (res_str == str) {
-						return res_str;
-					} else {
+					auto materialized_str_length = UnsafeNumericCast<uint16_t >(*reinterpret_cast<uint16_t *>(slot_ptr));
+					if(materialized_str_length == str.GetSize() && memcmp(slot_ptr + STR_LENGTH_BYTES, str.GetDataUnsafe(), materialized_str_length) == 0){
+//										already_in++;
+						return string_t(const_char_ptr_cast(slot_ptr + STR_LENGTH_BYTES), UnsafeNumericCast<uint32_t>(materialized_str_length));
+					} else{
 						continue;
 					}
 				} else {
@@ -153,7 +155,7 @@ string_t UnifiedStringsDictionary::insertInternal(string_t str) {
 				}
 			}
 
-			//									accepted++;
+//												accepted++;
 			auto ret = currentEmptySlot;
 			// 1 slot for the pre-computed hash,
 			currentEmptySlot += increasedSlot;
@@ -164,23 +166,24 @@ string_t UnifiedStringsDictionary::insertInternal(string_t str) {
 			D_ASSERT(cast_pointer_to_uint64(slot_ptr) <
 			         cast_pointer_to_uint64(DataRegion + USSR_SIZE * USSR_SLOT_SIZE));
 
-			memset(slot_ptr, UnsafeNumericCast<uint8_t>(str.GetSize()), 1);
-			memcpy(slot_ptr + 1, str.GetData(), str.GetSize());
-			memcpy(slot_ptr - 8, &h, 8);
+			const uint16_t len16 = UnsafeNumericCast<uint16_t>(str.GetSize());
 
-			Store<uint64_t>(newBucket, reinterpret_cast<data_ptr_t>(HT + slot + prob_index));
-			auto res_str = string_t(const_char_ptr_cast(slot_ptr + 1), UnsafeNumericCast<uint32_t>(*slot_ptr));
-			return res_str;
+			Store<uint16_t >(len16, slot_ptr);
+			memcpy(slot_ptr + STR_LENGTH_BYTES, str.GetData(), str.GetSize());
+			Store<uint64_t>(h, slot_ptr-8);
+
+			Store<uint64_t>(newBucket, reinterpret_cast<data_ptr_t>(HT + HT_slot + prob_index));
+			return string_t(const_char_ptr_cast(slot_ptr + STR_LENGTH_BYTES), UnsafeNumericCast<uint32_t>(*slot_ptr));
 		}
 	}
-	//			nRejections_Probing++;
+//				nRejections_Probing++;
 	return str;
 }
 
 UnifiedStringsDictionary::~UnifiedStringsDictionary() {
 	this->buffer.reset();
 	//	this->LinearProbingHT.reset();
-	//			this->getStatistics();
+//				this->getStatistics();
 }
 
 void UnifiedStringsDictionary::getStatistics() {

@@ -26,18 +26,23 @@ public:
 	static constexpr const uint64_t USSR_SLOT_SIZE = 8;
 	idx_t USSR_SIZE;
 
-	uint64_t slot_mask;
 
 	// first two bytes are the slot number into the data region
 	// and the second two bytes are the hash extract (a part of the original string's hash)
-	static constexpr const uint64_t HT_BUCKET_SIZE = 8;
+	static constexpr const uint64_t HT_BUCKET_SIZE = 4;
 	idx_t HT_SIZE;
 
 	static constexpr const idx_t PROBING_LIMIT = 16;
 
-	static constexpr const idx_t slot_size = 6;
+	idx_t slot_bits = 16;
+	uint64_t slot_mask;
+	uint64_t salt_mask;
 
 	idx_t required_bits = 19;
+
+	static constexpr const idx_t STR_LENGTH_BYTES = 2;
+
+
 
 private:
 	// Overarching USSR buffer, contains DataRegion + HT + extra, 1MB size
@@ -50,7 +55,7 @@ private:
 
 	uint64_t currentEmptySlot;
 
-	uint64_t *HT;
+	uint32_t *HT;
 
 	// every attempt on inserting a string
 	atomic<uint64_t> candidates;
