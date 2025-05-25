@@ -795,4 +795,6 @@ unique_ptr<LogicalOperator> LogicalUSSRInsertion::Deserialize(Deserializer &dese
 	return std::move(result);
 }
 
+
+
 } // namespace duckdb
