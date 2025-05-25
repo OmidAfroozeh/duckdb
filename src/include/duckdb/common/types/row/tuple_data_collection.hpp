@@ -170,10 +170,10 @@ public:
 	void InitializeScan(TupleDataParallelScanState &gstate, vector<column_t> column_ids,
 	                    TupleDataPinProperties properties = TupleDataPinProperties::UNPIN_AFTER_DONE) const;
 	//! Scans a DataChunk from the TupleDataCollection
-	bool Scan(TupleDataScanState &state, DataChunk &result, optional_ptr<ClientContext> context);
+	bool Scan(TupleDataScanState &state, DataChunk &result, optional_ptr<ClientContext> context = nullptr);
 	//! Scans a DataChunk from the TupleDataCollection
 	bool Scan(TupleDataParallelScanState &gstate, TupleDataLocalScanState &lstate, DataChunk &result,
-	          optional_ptr<ClientContext> context);
+	          optional_ptr<ClientContext> context = nullptr);
 	//! Whether the last scan has been completed on this TupleDataCollection
 	bool ScanComplete(const TupleDataScanState &state) const;
 
