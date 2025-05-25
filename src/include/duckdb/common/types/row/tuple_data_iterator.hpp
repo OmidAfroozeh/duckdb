@@ -16,10 +16,10 @@ class TupleDataChunkIterator {
 public:
 	//! Creates a TupleDataChunkIterator that iterates over all DataChunks in the TupleDataCollection
 	TupleDataChunkIterator(TupleDataCollection &collection, TupleDataPinProperties properties, bool init_heap,
-	                       optional_ptr<ClientContext> context);
+	                       optional_ptr<ClientContext> context = nullptr);
 	//! Creates a TupleDataChunkIterator that iterates over the specified DataChunk range in the TupleDataCollection
 	TupleDataChunkIterator(TupleDataCollection &collection, TupleDataPinProperties properties, idx_t chunk_idx_from,
-	                       idx_t chunk_idx_to, bool init_heap, optional_ptr<ClientContext> context);
+	                       idx_t chunk_idx_to, bool init_heap, optional_ptr<ClientContext> context = nullptr);
 
 public:
 	//! Whether the iterator is done
@@ -41,7 +41,7 @@ public:
 
 private:
 	//! Initializes the row locations (and heap locations/sizes if init_heap is true) at the current scan indices
-	void InitializeCurrentChunk(optional_ptr<ClientContext> context);
+	void InitializeCurrentChunk(optional_ptr<ClientContext> context = nullptr);
 
 private:
 	//! The collection being iterated over
