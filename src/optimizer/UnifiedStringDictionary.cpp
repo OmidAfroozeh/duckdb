@@ -57,9 +57,9 @@ UnifiedStringsDictionary::UnifiedStringsDictionary(idx_t size) {
 	// We zero the hashtable, since we need an indicator if a bucket as been filled or not
 	memset(HT_address, '\0', HT_SIZE * HT_BUCKET_SIZE);
 
-	HT = reinterpret_cast<uint32_t *>(HT_address);
+	HT = reinterpret_cast<atomic<uint32_t> *>(HT_address);
 
-	currentEmptySlot = 1;
+	currentEmptySlot.store(1);
 
 	candidates = 0;
 	accepted = 0;
@@ -85,7 +85,7 @@ string_t UnifiedStringsDictionary::insertInternal(string_t str) {
 	//	}
 
 	hash_t h = Hash(str);
-	//				candidates++;
+//					candidates++;
 
 	uint32_t hash_prefix;
 	memcpy(&hash_prefix, &h, HT_BUCKET_SIZE);
@@ -103,75 +103,65 @@ string_t UnifiedStringsDictionary::insertInternal(string_t str) {
 			prob_index = (HT_slot + i) % USSR_SIZE;
 		}
 
-		uint32_t HT_bucket = Load<uint32_t>(reinterpret_cast<const_data_ptr_t>(HT + ((HT_slot + prob_index))));
+//		uint32_t HT_bucket = Load<uint32_t>(reinterpret_cast<const_data_ptr_t>(HT + ((HT_slot + prob_index))));
+		uint32_t HT_bucket = (HT + (HT_slot + prob_index))->load(std::memory_order_relaxed);
 
 		uint32_t HT_bucket_salt = HT_bucket >> (slot_bits);
 
 		if (HT_bucket == 0) {
-			auto str_len = str.GetSize() + STR_LENGTH_BYTES;
-			std::lock_guard<std::mutex> guard(insertLock);
+			// dirty the bucket
+			uint32_t expected = 0;
+			if ((HT + (HT_slot + prob_index))
+			        ->compare_exchange_strong(expected, (HT_salt << slot_bits), std::memory_order_release,
+			                                  std::memory_order_relaxed)) {
+				auto str_len = str.GetSize() + STR_LENGTH_BYTES;
+				auto increasedSlot = (str_len % 8 == 0) ? 1 + (str_len / 8) : 2 + (str_len / 8);
+				auto slot_to_insert = currentEmptySlot.fetch_add(increasedSlot, std::memory_order_relaxed);
+				if (slot_to_insert + increasedSlot > USSR_SIZE || str_len > (USSR_SIZE - slot_to_insert) * 8) {
+																					nRejections_SizeFull++;
+					return str;
+				}
+				uint32_t newBucket = UnsafeNumericCast<uint32_t>(HT_salt);
+				newBucket = newBucket << (slot_bits);
+				newBucket |= slot_to_insert;
 
-			// reject if not enough space left
-			auto remaining_bytes = (USSR_SIZE - currentEmptySlot) * 8;
-			if (str_len > remaining_bytes || currentEmptySlot > USSR_SIZE) {
-				//																nRejections_SizeFull++;
-				return str;
-			}
+				auto slot_ptr = data_ptr_cast(DataRegion + slot_to_insert);
 
-			auto increasedSlot = (str_len % 8 == 0) ? 1 + (str_len / 8) : 2 + (str_len / 8);
+				const uint16_t len16 = UnsafeNumericCast<uint16_t>(str.GetSize());
 
-			uint32_t newBucket = UnsafeNumericCast<uint32_t>(HT_salt);
-			newBucket = newBucket << (slot_bits);
-			newBucket |= currentEmptySlot;
-
-			D_ASSERT((newBucket & slot_mask) == currentEmptySlot);
-
-			// another thread inserted
-			if (HT[HT_slot + prob_index] != 0) {
-				auto slot_hashExtract = HT[HT_slot + prob_index] >> (slot_bits);
-				if (slot_hashExtract == HT_salt) {
-					auto slot_ptr = data_ptr_cast(DataRegion + (HT[HT_slot + prob_index] & slot_mask));
-
+				Store<uint16_t>(len16, slot_ptr);
+				memcpy(slot_ptr + STR_LENGTH_BYTES, str.GetData(), str.GetSize());
+				Store<uint64_t>(h, slot_ptr - 8);
+//				accepted++;
+				Store<uint32_t>(newBucket, reinterpret_cast<data_ptr_t>(HT + HT_slot + prob_index));
+				return string_t(const_char_ptr_cast(slot_ptr + STR_LENGTH_BYTES),
+				                UnsafeNumericCast<uint32_t>(str.GetSize()));
+			} else { // lost the race to dirty the bucket, check if the dirt = HT_salt, if so wait, else continue probing
+				if (expected == (HT_salt << slot_bits)) {
+					while (((HT + HT_slot + prob_index)->load(std::memory_order_relaxed) & slot_mask) == 0) {
+					};
+					auto slot_ptr =
+					    data_ptr_cast(DataRegion + ((HT + HT_slot + prob_index)->load(std::memory_order_relaxed)& slot_mask) );
 					auto materialized_str_length = UnsafeNumericCast<uint16_t>(*reinterpret_cast<uint16_t *>(slot_ptr));
 					if (materialized_str_length == str.GetSize() &&
 					    memcmp(slot_ptr + STR_LENGTH_BYTES, str.GetDataUnsafe(), str.GetSize()) == 0) {
-						//										already_in++;
+//						already_in++;
 						return string_t(const_char_ptr_cast(slot_ptr + STR_LENGTH_BYTES),
 						                UnsafeNumericCast<uint32_t>(materialized_str_length));
 					} else {
 						continue;
+						return str;
 					}
-				} else {
+				} else{
 					continue;
 				}
 			}
-
-			//												accepted++;
-			auto ret = currentEmptySlot;
-			// 1 slot for the pre-computed hash,
-			currentEmptySlot += increasedSlot;
-			D_ASSERT(ret < currentEmptySlot);
-			auto slot_ptr = data_ptr_cast(DataRegion + ret);
-
-			D_ASSERT(cast_pointer_to_uint64(slot_ptr) > cast_pointer_to_uint64(DataRegion));
-			D_ASSERT(cast_pointer_to_uint64(slot_ptr) <
-			         cast_pointer_to_uint64(DataRegion + USSR_SIZE * USSR_SLOT_SIZE));
-
-			const uint16_t len16 = UnsafeNumericCast<uint16_t>(str.GetSize());
-
-			Store<uint16_t>(len16, slot_ptr);
-			memcpy(slot_ptr + STR_LENGTH_BYTES, str.GetData(), str.GetSize());
-			Store<uint64_t>(h, slot_ptr - 8);
-
-			Store<uint32_t>(newBucket, reinterpret_cast<data_ptr_t>(HT + HT_slot + prob_index));
-			return string_t(const_char_ptr_cast(slot_ptr + STR_LENGTH_BYTES),
-			                UnsafeNumericCast<uint32_t>(str.GetSize()));
 		} else if (HT_bucket_salt == HT_salt) {
 			auto slot_ptr = data_ptr_cast(DataRegion + (HT_bucket & slot_mask));
 			auto materialized_str_length = UnsafeNumericCast<uint16_t>(*reinterpret_cast<uint16_t *>(slot_ptr));
 			if (materialized_str_length == str.GetSize() &&
 			    memcmp(slot_ptr + STR_LENGTH_BYTES, str.GetDataUnsafe(), str.GetSize()) == 0) {
-				already_in++;
+//				already_in++;
 				return string_t(const_char_ptr_cast(slot_ptr + STR_LENGTH_BYTES),
 				                UnsafeNumericCast<uint32_t>(materialized_str_length));
 			} else {
@@ -179,8 +169,79 @@ string_t UnifiedStringsDictionary::insertInternal(string_t str) {
 				return str;
 			}
 		}
+//
+//
+//			std::lock_guard<std::mutex> guard(insertLock);
+//
+//			// reject if not enough space left
+//			auto remaining_bytes = (USSR_SIZE - currentEmptySlot) * 8;
+//			if (str_len > remaining_bytes || currentEmptySlot > USSR_SIZE) {
+//				//																nRejections_SizeFull++;
+//				return str;
+//			}
+//
+//
+//			uint32_t newBucket = UnsafeNumericCast<uint32_t>(HT_salt);
+//			newBucket = newBucket << (slot_bits);
+//			newBucket |= currentEmptySlot;
+//
+//			D_ASSERT((newBucket & slot_mask) == currentEmptySlot);
+//
+//			// another thread inserted
+//			if (HT[HT_slot + prob_index] != 0) {
+//				auto slot_hashExtract = HT[HT_slot + prob_index] >> (slot_bits);
+//				if (slot_hashExtract == HT_salt) {
+//					auto slot_ptr = data_ptr_cast(DataRegion + (HT[HT_slot + prob_index] & slot_mask));
+//
+//					auto materialized_str_length = UnsafeNumericCast<uint16_t>(*reinterpret_cast<uint16_t *>(slot_ptr));
+//					if (materialized_str_length == str.GetSize() &&
+//					    memcmp(slot_ptr + STR_LENGTH_BYTES, str.GetDataUnsafe(), str.GetSize()) == 0) {
+//						//										already_in++;
+//						return string_t(const_char_ptr_cast(slot_ptr + STR_LENGTH_BYTES),
+//						                UnsafeNumericCast<uint32_t>(materialized_str_length));
+//					} else {
+//						continue;
+//					}
+//				} else {
+//					continue;
+//				}
+//			}
+//
+//			//												accepted++;
+////			auto ret = currentEmptySlot;
+//			// 1 slot for the pre-computed hash,
+////			currentEmptySlot += increasedSlot;
+//			D_ASSERT(ret < currentEmptySlot);
+//			auto slot_ptr = data_ptr_cast(DataRegion + ret);
+//
+//			D_ASSERT(cast_pointer_to_uint64(slot_ptr) > cast_pointer_to_uint64(DataRegion));
+//			D_ASSERT(cast_pointer_to_uint64(slot_ptr) <
+//			         cast_pointer_to_uint64(DataRegion + USSR_SIZE * USSR_SLOT_SIZE));
+//
+//			const uint16_t len16 = UnsafeNumericCast<uint16_t>(str.GetSize());
+//
+//			Store<uint16_t>(len16, slot_ptr);
+//			memcpy(slot_ptr + STR_LENGTH_BYTES, str.GetData(), str.GetSize());
+//			Store<uint64_t>(h, slot_ptr - 8);
+//
+//			Store<uint32_t>(newBucket, reinterpret_cast<data_ptr_t>(HT + HT_slot + prob_index));
+//			return string_t(const_char_ptr_cast(slot_ptr + STR_LENGTH_BYTES),
+//			                UnsafeNumericCast<uint32_t>(str.GetSize()));
+//		} else if (HT_bucket_salt == HT_salt) {
+//			auto slot_ptr = data_ptr_cast(DataRegion + (HT_bucket & slot_mask));
+//			auto materialized_str_length = UnsafeNumericCast<uint16_t>(*reinterpret_cast<uint16_t *>(slot_ptr));
+//			if (materialized_str_length == str.GetSize() &&
+//			    memcmp(slot_ptr + STR_LENGTH_BYTES, str.GetDataUnsafe(), str.GetSize()) == 0) {
+//				already_in++;
+//				return string_t(const_char_ptr_cast(slot_ptr + STR_LENGTH_BYTES),
+//				                UnsafeNumericCast<uint32_t>(materialized_str_length));
+//			} else {
+//				continue;
+//				return str;
+//			}
+//		}
 	}
-	//				nRejections_Probing++;
+//					nRejections_Probing++;
 	return str;
 }
 

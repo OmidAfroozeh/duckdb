@@ -53,9 +53,9 @@ private:
 	// temporary solution for concurrency
 	std::mutex insertLock;
 
-	uint64_t currentEmptySlot;
+	atomic<uint64_t> currentEmptySlot;
 
-	uint32_t *HT;
+	atomic<uint32_t>* HT;
 
 	// every attempt on inserting a string
 	atomic<uint64_t> candidates;
