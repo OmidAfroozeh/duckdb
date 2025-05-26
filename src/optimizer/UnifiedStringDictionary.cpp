@@ -85,7 +85,7 @@ string_t UnifiedStringsDictionary::insertInternal(string_t str) {
 	//	}
 
 	hash_t h = Hash(str);
-//				candidates++;
+	//				candidates++;
 
 	uint32_t hash_prefix;
 	memcpy(&hash_prefix, &h, HT_BUCKET_SIZE);
@@ -107,17 +107,6 @@ string_t UnifiedStringsDictionary::insertInternal(string_t str) {
 
 		uint32_t HT_bucket_salt = HT_bucket >> (slot_bits);
 
-		if (HT_bucket_salt == HT_salt) {
-			auto slot_ptr = data_ptr_cast(DataRegion + (HT_bucket & slot_mask));
-			auto materialized_str_length = UnsafeNumericCast<uint16_t >(*reinterpret_cast<uint16_t *>(slot_ptr));
-			if(materialized_str_length == str.GetSize() && memcmp(slot_ptr + STR_LENGTH_BYTES, str.GetDataUnsafe(), str.GetSize()) == 0){
-//				already_in++;
-				return string_t(const_char_ptr_cast(slot_ptr + STR_LENGTH_BYTES), UnsafeNumericCast<uint32_t>(materialized_str_length));
-			} else{
-				return str;
-			}
-		}
-
 		if (HT_bucket == 0) {
 			auto str_len = str.GetSize() + STR_LENGTH_BYTES;
 			std::lock_guard<std::mutex> guard(insertLock);
@@ -125,7 +114,7 @@ string_t UnifiedStringsDictionary::insertInternal(string_t str) {
 			// reject if not enough space left
 			auto remaining_bytes = (USSR_SIZE - currentEmptySlot) * 8;
 			if (str_len > remaining_bytes || currentEmptySlot > USSR_SIZE) {
-//																nRejections_SizeFull++;
+				//																nRejections_SizeFull++;
 				return str;
 			}
 
@@ -143,11 +132,13 @@ string_t UnifiedStringsDictionary::insertInternal(string_t str) {
 				if (slot_hashExtract == HT_salt) {
 					auto slot_ptr = data_ptr_cast(DataRegion + (HT[HT_slot + prob_index] & slot_mask));
 
-					auto materialized_str_length = UnsafeNumericCast<uint16_t >(*reinterpret_cast<uint16_t *>(slot_ptr));
-					if(materialized_str_length == str.GetSize() && memcmp(slot_ptr + STR_LENGTH_BYTES, str.GetDataUnsafe(), str.GetSize()) == 0){
-//										already_in++;
-						return string_t(const_char_ptr_cast(slot_ptr + STR_LENGTH_BYTES), UnsafeNumericCast<uint32_t>(materialized_str_length));
-					} else{
+					auto materialized_str_length = UnsafeNumericCast<uint16_t>(*reinterpret_cast<uint16_t *>(slot_ptr));
+					if (materialized_str_length == str.GetSize() &&
+					    memcmp(slot_ptr + STR_LENGTH_BYTES, str.GetDataUnsafe(), str.GetSize()) == 0) {
+						//										already_in++;
+						return string_t(const_char_ptr_cast(slot_ptr + STR_LENGTH_BYTES),
+						                UnsafeNumericCast<uint32_t>(materialized_str_length));
+					} else {
 						continue;
 					}
 				} else {
@@ -155,7 +146,7 @@ string_t UnifiedStringsDictionary::insertInternal(string_t str) {
 				}
 			}
 
-//												accepted++;
+			//												accepted++;
 			auto ret = currentEmptySlot;
 			// 1 slot for the pre-computed hash,
 			currentEmptySlot += increasedSlot;
@@ -168,16 +159,29 @@ string_t UnifiedStringsDictionary::insertInternal(string_t str) {
 
 			const uint16_t len16 = UnsafeNumericCast<uint16_t>(str.GetSize());
 
-			Store<uint16_t >(len16, slot_ptr);
+			Store<uint16_t>(len16, slot_ptr);
 			memcpy(slot_ptr + STR_LENGTH_BYTES, str.GetData(), str.GetSize());
-			Store<uint64_t>(h, slot_ptr-8);
+			Store<uint64_t>(h, slot_ptr - 8);
 
 			Store<uint32_t>(newBucket, reinterpret_cast<data_ptr_t>(HT + HT_slot + prob_index));
-			return string_t(const_char_ptr_cast(slot_ptr + STR_LENGTH_BYTES), UnsafeNumericCast<uint32_t>(str.GetSize()));
+			return string_t(const_char_ptr_cast(slot_ptr + STR_LENGTH_BYTES),
+			                UnsafeNumericCast<uint32_t>(str.GetSize()));
+		} else if (HT_bucket_salt == HT_salt) {
+			auto slot_ptr = data_ptr_cast(DataRegion + (HT_bucket & slot_mask));
+			auto materialized_str_length = UnsafeNumericCast<uint16_t>(*reinterpret_cast<uint16_t *>(slot_ptr));
+			if (materialized_str_length == str.GetSize() &&
+			    memcmp(slot_ptr + STR_LENGTH_BYTES, str.GetDataUnsafe(), str.GetSize()) == 0) {
+				already_in++;
+				return string_t(const_char_ptr_cast(slot_ptr + STR_LENGTH_BYTES),
+				                UnsafeNumericCast<uint32_t>(materialized_str_length));
+			} else {
+				continue;
+				return str;
+			}
 		}
+		//				nRejections_Probing++;
+		return str;
 	}
-//				nRejections_Probing++;
-	return str;
 }
 
 UnifiedStringsDictionary::~UnifiedStringsDictionary() {
