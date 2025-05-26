@@ -179,9 +179,9 @@ string_t UnifiedStringsDictionary::insertInternal(string_t str) {
 				return str;
 			}
 		}
-		//				nRejections_Probing++;
-		return str;
 	}
+	//				nRejections_Probing++;
+	return str;
 }
 
 UnifiedStringsDictionary::~UnifiedStringsDictionary() {
