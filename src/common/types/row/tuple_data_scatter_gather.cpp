@@ -141,8 +141,12 @@ void TupleDataCollection::ComputeHeapSizes(Vector &heap_sizes_v, const Vector &s
 	switch (type) {
 	case PhysicalType::VARCHAR: {
 		// Only non-inlined strings are stored in the heap
-		const uint64_t ussr_mask = context->GetCurrentQueryUssr().USSR_MASK;
-		const uint64_t ussr_prefix = context->GetCurrentQueryUssr().USSR_prefix;
+		uint64_t ussr_mask{0};
+		uint64_t ussr_prefix{0xFFFFFFFFFFF};
+		if(context){
+			ussr_mask = context->GetCurrentQueryUssr().USSR_MASK;
+			ussr_prefix = context->GetCurrentQueryUssr().USSR_prefix;
+		}
 
 		const auto source_data = UnifiedVectorFormat::GetData<string_t>(source_vector_data);
 		for (idx_t i = 0; i < append_count; i++) {

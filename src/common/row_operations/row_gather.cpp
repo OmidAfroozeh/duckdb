@@ -60,8 +60,12 @@ static void GatherVarchar(Vector &rows, const SelectionVector &row_sel, Vector &
 	auto ptrs = FlatVector::GetData<data_ptr_t>(rows);
 	auto data = FlatVector::GetData<string_t>(col);
 	auto &col_mask = FlatVector::Validity(col);
-	const uint64_t ussr_mask = context->GetCurrentQueryUssr().USSR_MASK;
-	const uint64_t ussr_prefix = context->GetCurrentQueryUssr().USSR_prefix;
+	uint64_t ussr_mask{0};
+	uint64_t ussr_prefix{0xFFFFFFFFFFF};
+	if(context){
+		ussr_mask = context->GetCurrentQueryUssr().USSR_MASK;
+		ussr_prefix = context->GetCurrentQueryUssr().USSR_prefix;
+	}
 
 	for (idx_t i = 0; i < count; i++) {
 		auto row_idx = row_sel.get_index(i);

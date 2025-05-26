@@ -52,8 +52,12 @@ static void TemplatedScatter(UnifiedVectorFormat &col, Vector &rows, const Selec
 static void ComputeStringEntrySizes(const UnifiedVectorFormat &col, idx_t entry_sizes[], const SelectionVector &sel,
                                     const idx_t count, optional_ptr<ClientContext> context, const idx_t offset = 0) {
 	auto data = UnifiedVectorFormat::GetData<string_t>(col);
-	const uint64_t ussr_mask = context->GetCurrentQueryUssr().USSR_MASK;
-	const uint64_t ussr_prefix = context->GetCurrentQueryUssr().USSR_prefix;
+	uint64_t ussr_mask{0};
+	uint64_t ussr_prefix{0xFFFFFFFFFFF};
+	if(context){
+		ussr_mask = context->GetCurrentQueryUssr().USSR_MASK;
+		ussr_prefix = context->GetCurrentQueryUssr().USSR_prefix;
+	}
 	for (idx_t i = 0; i < count; i++) {
 		auto idx = sel.get_index(i);
 		auto col_idx = col.sel->get_index(idx) + offset;
@@ -71,8 +75,12 @@ static void ScatterStringVector(UnifiedVectorFormat &col, Vector &rows, data_ptr
 	auto string_data = UnifiedVectorFormat::GetData<string_t>(col);
 	auto ptrs = FlatVector::GetData<data_ptr_t>(rows);
 
-	const uint64_t ussr_mask = context->GetCurrentQueryUssr().USSR_MASK;
-	const uint64_t ussr_prefix = context->GetCurrentQueryUssr().USSR_prefix;
+	uint64_t ussr_mask{0};
+	uint64_t ussr_prefix{0xFFFFFFFFFFF};
+	if(context){
+		ussr_mask = context->GetCurrentQueryUssr().USSR_MASK;
+		ussr_prefix = context->GetCurrentQueryUssr().USSR_prefix;
+	}
 
 	// Write out zero length to avoid swizzling problems.
 	const string_t null(nullptr, 0);

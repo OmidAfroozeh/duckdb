@@ -18,8 +18,14 @@ void RowOperations::SwizzleColumns(const RowLayout &layout, const data_ptr_t bas
 	const idx_t row_width = layout.GetRowWidth();
 	data_ptr_t heap_row_ptrs[STANDARD_VECTOR_SIZE];
 	idx_t done = 0;
-	const uint64_t ussr_mask = context->GetCurrentQueryUssr().USSR_MASK;
-	const uint64_t ussr_prefix = context->GetCurrentQueryUssr().USSR_prefix;
+
+	uint64_t ussr_mask{0};
+	uint64_t ussr_prefix{0xFFFFFFFFFFF};
+	if(context){
+		ussr_mask = context->GetCurrentQueryUssr().USSR_MASK;
+		ussr_prefix = context->GetCurrentQueryUssr().USSR_prefix;
+	}
+
 	while (done != count) {
 		const idx_t next = MinValue<idx_t>(count - done, STANDARD_VECTOR_SIZE);
 		const data_ptr_t row_ptr = base_row_ptr + done * row_width;
