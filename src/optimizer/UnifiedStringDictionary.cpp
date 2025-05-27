@@ -102,8 +102,6 @@ string_t UnifiedStringsDictionary::insertInternal(string_t str) {
 		if (HT_slot + i >= USSR_SIZE) {
 			prob_index = (HT_slot + i) % USSR_SIZE;
 		}
-
-//		uint32_t HT_bucket = Load<uint32_t>(reinterpret_cast<const_data_ptr_t>(HT + ((HT_slot + prob_index))));
 		uint32_t HT_bucket = (HT + (HT_slot + prob_index))->load(std::memory_order_relaxed);
 
 		uint32_t HT_bucket_salt = HT_bucket >> (slot_bits);
@@ -118,7 +116,11 @@ string_t UnifiedStringsDictionary::insertInternal(string_t str) {
 				auto increasedSlot = (str_len % 8 == 0) ? 1 + (str_len / 8) : 2 + (str_len / 8);
 				auto slot_to_insert = currentEmptySlot.fetch_add(increasedSlot, std::memory_order_relaxed);
 				if (slot_to_insert + increasedSlot > USSR_SIZE || str_len > (USSR_SIZE - slot_to_insert) * 8) {
-																					nRejections_SizeFull++;
+//																					nRejections_SizeFull++;
+					                                                                currentEmptySlot.fetch_sub(increasedSlot, std::memory_order_relaxed);
+					                                                                (HT + HT_slot + prob_index)->store(0, std::memory_order_relaxed);
+
+
 					return str;
 				}
 				uint32_t newBucket = UnsafeNumericCast<uint32_t>(HT_salt);
@@ -135,13 +137,18 @@ string_t UnifiedStringsDictionary::insertInternal(string_t str) {
 //				accepted++;
 				// not sure if needed, maybe just be non-atomic store, just need to suppress TSan
 				(HT + HT_slot + prob_index)->store(newBucket, std::memory_order_relaxed);
-
-//				Store<uint32_t>(newBucket, reinterpret_cast<data_ptr_t>(HT + HT_slot + prob_index));
 				return string_t(const_char_ptr_cast(slot_ptr + STR_LENGTH_BYTES),
 				                UnsafeNumericCast<uint32_t>(str.GetSize()));
 			} else { // lost the race to dirty the bucket, check if the dirt = HT_salt, if so wait, else continue probing
 				if (expected == (HT_salt << slot_bits)) {
-					while (((HT + HT_slot + prob_index)->load(std::memory_order_relaxed) & slot_mask) == 0) {
+					while (true) {
+						auto bucket = (HT + HT_slot + prob_index)->load(std::memory_order_relaxed);
+						if(bucket == 0 ){
+							return str;
+						}
+						if((bucket & slot_mask) != 0){
+							break;
+						}
 					};
 					auto slot_ptr =
 					    data_ptr_cast(DataRegion + ((HT + HT_slot + prob_index)->load(std::memory_order_relaxed)& slot_mask) );
@@ -153,7 +160,6 @@ string_t UnifiedStringsDictionary::insertInternal(string_t str) {
 						                UnsafeNumericCast<uint32_t>(materialized_str_length));
 					} else {
 						continue;
-						return str;
 					}
 				} else{
 					continue;
@@ -169,80 +175,8 @@ string_t UnifiedStringsDictionary::insertInternal(string_t str) {
 				                UnsafeNumericCast<uint32_t>(materialized_str_length));
 			} else {
 				continue;
-				return str;
 			}
 		}
-//
-//
-//			std::lock_guard<std::mutex> guard(insertLock);
-//
-//			// reject if not enough space left
-//			auto remaining_bytes = (USSR_SIZE - currentEmptySlot) * 8;
-//			if (str_len > remaining_bytes || currentEmptySlot > USSR_SIZE) {
-//				//																nRejections_SizeFull++;
-//				return str;
-//			}
-//
-//
-//			uint32_t newBucket = UnsafeNumericCast<uint32_t>(HT_salt);
-//			newBucket = newBucket << (slot_bits);
-//			newBucket |= currentEmptySlot;
-//
-//			D_ASSERT((newBucket & slot_mask) == currentEmptySlot);
-//
-//			// another thread inserted
-//			if (HT[HT_slot + prob_index] != 0) {
-//				auto slot_hashExtract = HT[HT_slot + prob_index] >> (slot_bits);
-//				if (slot_hashExtract == HT_salt) {
-//					auto slot_ptr = data_ptr_cast(DataRegion + (HT[HT_slot + prob_index] & slot_mask));
-//
-//					auto materialized_str_length = UnsafeNumericCast<uint16_t>(*reinterpret_cast<uint16_t *>(slot_ptr));
-//					if (materialized_str_length == str.GetSize() &&
-//					    memcmp(slot_ptr + STR_LENGTH_BYTES, str.GetDataUnsafe(), str.GetSize()) == 0) {
-//						//										already_in++;
-//						return string_t(const_char_ptr_cast(slot_ptr + STR_LENGTH_BYTES),
-//						                UnsafeNumericCast<uint32_t>(materialized_str_length));
-//					} else {
-//						continue;
-//					}
-//				} else {
-//					continue;
-//				}
-//			}
-//
-//			//												accepted++;
-////			auto ret = currentEmptySlot;
-//			// 1 slot for the pre-computed hash,
-////			currentEmptySlot += increasedSlot;
-//			D_ASSERT(ret < currentEmptySlot);
-//			auto slot_ptr = data_ptr_cast(DataRegion + ret);
-//
-//			D_ASSERT(cast_pointer_to_uint64(slot_ptr) > cast_pointer_to_uint64(DataRegion));
-//			D_ASSERT(cast_pointer_to_uint64(slot_ptr) <
-//			         cast_pointer_to_uint64(DataRegion + USSR_SIZE * USSR_SLOT_SIZE));
-//
-//			const uint16_t len16 = UnsafeNumericCast<uint16_t>(str.GetSize());
-//
-//			Store<uint16_t>(len16, slot_ptr);
-//			memcpy(slot_ptr + STR_LENGTH_BYTES, str.GetData(), str.GetSize());
-//			Store<uint64_t>(h, slot_ptr - 8);
-//
-//			Store<uint32_t>(newBucket, reinterpret_cast<data_ptr_t>(HT + HT_slot + prob_index));
-//			return string_t(const_char_ptr_cast(slot_ptr + STR_LENGTH_BYTES),
-//			                UnsafeNumericCast<uint32_t>(str.GetSize()));
-//		} else if (HT_bucket_salt == HT_salt) {
-//			auto slot_ptr = data_ptr_cast(DataRegion + (HT_bucket & slot_mask));
-//			auto materialized_str_length = UnsafeNumericCast<uint16_t>(*reinterpret_cast<uint16_t *>(slot_ptr));
-//			if (materialized_str_length == str.GetSize() &&
-//			    memcmp(slot_ptr + STR_LENGTH_BYTES, str.GetDataUnsafe(), str.GetSize()) == 0) {
-//				already_in++;
-//				return string_t(const_char_ptr_cast(slot_ptr + STR_LENGTH_BYTES),
-//				                UnsafeNumericCast<uint32_t>(materialized_str_length));
-//			} else {
-//				continue;
-//				return str;
-//			}
-//		}
 	}
 //					nRejections_Probing++;
 	return str;
@@ -251,7 +185,7 @@ string_t UnifiedStringsDictionary::insertInternal(string_t str) {
 UnifiedStringsDictionary::~UnifiedStringsDictionary() {
 	this->buffer.reset();
 	//	this->LinearProbingHT.reset();
-//				this->getStatistics();
+				this->getStatistics();
 }
 
 void UnifiedStringsDictionary::getStatistics() {
