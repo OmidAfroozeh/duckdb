@@ -214,7 +214,7 @@ void ClientContext::BeginQueryInternal(ClientContextLock &lock, const string &qu
 	transaction.SetActiveQuery(db->GetDatabaseManager().GetNewQueryNumber());
 	LogQueryInternal(lock, query);
 	active_query->query = query;
-	active_query->ussr = make_uniq<UnifiedStringsDictionary>(1ull);
+	active_query->ussr = make_uniq<UnifiedStringsDictionary>(32ull);
 
 	query_progress.Initialize();
 	// Notify any registered state of query begin
