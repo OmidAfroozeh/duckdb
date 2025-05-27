@@ -133,7 +133,10 @@ string_t UnifiedStringsDictionary::insertInternal(string_t str) {
 				memcpy(slot_ptr + STR_LENGTH_BYTES, str.GetData(), str.GetSize());
 				Store<uint64_t>(h, slot_ptr - 8);
 //				accepted++;
-				Store<uint32_t>(newBucket, reinterpret_cast<data_ptr_t>(HT + HT_slot + prob_index));
+				// not sure if needed, maybe just be non-atomic store, just need to suppress TSan
+				(HT + HT_slot + prob_index)->store(newBucket, std::memory_order_relaxed);
+
+//				Store<uint32_t>(newBucket, reinterpret_cast<data_ptr_t>(HT + HT_slot + prob_index));
 				return string_t(const_char_ptr_cast(slot_ptr + STR_LENGTH_BYTES),
 				                UnsafeNumericCast<uint32_t>(str.GetSize()));
 			} else { // lost the race to dirty the bucket, check if the dirt = HT_salt, if so wait, else continue probing
