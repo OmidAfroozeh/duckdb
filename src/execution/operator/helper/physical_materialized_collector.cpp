@@ -12,7 +12,7 @@ PhysicalMaterializedCollector::PhysicalMaterializedCollector(PreparedStatementDa
 SinkResultType PhysicalMaterializedCollector::Sink(ExecutionContext &context, DataChunk &chunk,
                                                    OperatorSinkInput &input) const {
 	auto &lstate = input.local_state.Cast<MaterializedCollectorLocalState>();
-	lstate.collection->Append(lstate.append_state, chunk);
+	lstate.collection->Append(lstate.append_state, chunk, context.client);
 	return SinkResultType::NEED_MORE_INPUT;
 }
 
