@@ -74,7 +74,7 @@ public:
 	//! Initializes an Append state - useful for optimizing many appends made to the same column data collection
 	DUCKDB_API void InitializeAppend(ColumnDataAppendState &state);
 	//! Append a DataChunk to this ColumnDataCollection using the specified append state
-	DUCKDB_API void Append(ColumnDataAppendState &state, DataChunk &new_chunk);
+	DUCKDB_API void Append(ColumnDataAppendState &state, DataChunk &new_chunk, optional_ptr<ClientContext> context = nullptr);
 
 	//! Initializes a chunk with the correct types that can be used to call Scan
 	DUCKDB_API void InitializeScanChunk(DataChunk &chunk) const;

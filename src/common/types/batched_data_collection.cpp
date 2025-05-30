@@ -39,7 +39,7 @@ void BatchedDataCollection::Append(DataChunk &input, idx_t batch_index) {
 		collection = new_collection.get();
 		data.insert(make_pair(batch_index, std::move(new_collection)));
 	}
-	collection->Append(last_collection.append_state, input);
+	collection->Append(last_collection.append_state, input, context);
 }
 
 void BatchedDataCollection::Merge(BatchedDataCollection &other) {
