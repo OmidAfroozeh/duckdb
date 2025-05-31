@@ -92,6 +92,9 @@ public:
 	//! Data for the currently running transaction
 	TransactionContext transaction;
 
+	unique_ptr<UnifiedStringsDictionary> ussr;
+
+
 public:
 	MetaTransaction &ActiveTransaction() {
 		return transaction.ActiveTransaction();

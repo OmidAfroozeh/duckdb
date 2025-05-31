@@ -60,7 +60,6 @@ public:
 	//! The progress bar
 	unique_ptr<ProgressBar> progress_bar;
 
-	unique_ptr<UnifiedStringsDictionary> ussr;
 
 public:
 	void SetOpenResult(BaseQueryResult &result) {
@@ -214,7 +213,7 @@ void ClientContext::BeginQueryInternal(ClientContextLock &lock, const string &qu
 	transaction.SetActiveQuery(db->GetDatabaseManager().GetNewQueryNumber());
 	LogQueryInternal(lock, query);
 	active_query->query = query;
-	active_query->ussr = make_uniq<UnifiedStringsDictionary>(32ull);
+	ussr = make_uniq<UnifiedStringsDictionary>(32ull);
 
 	query_progress.Initialize();
 	// Notify any registered state of query begin
@@ -243,7 +242,7 @@ ErrorData ClientContext::EndQueryInternal(ClientContextLock &lock, bool success,
 	}
 	active_query->progress_bar.reset();
 	D_ASSERT(active_query.get());
-	active_query->ussr.reset();
+//	active_query->ussr.reset();
 	active_query.reset();
 	query_progress.Initialize();
 	ErrorData error;
@@ -334,7 +333,7 @@ const string &ClientContext::GetCurrentQuery() {
 
 UnifiedStringsDictionary &ClientContext::GetCurrentQueryUssr() {
 	D_ASSERT(active_query);
-	return *(active_query->ussr);
+	return *(ussr);
 }
 
 connection_t ClientContext::GetConnectionId() const {
