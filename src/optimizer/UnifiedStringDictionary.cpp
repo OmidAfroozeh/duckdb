@@ -205,6 +205,7 @@ string_t UnifiedStringsDictionary::insertInternal(string_t str) {
 }
 
 UnifiedStringsDictionary::~UnifiedStringsDictionary() {
+//	Printer::Print("USSR deleted be careful!");
 	this->buffer.reset();
 	//	this->LinearProbingHT.reset();
 //				this->getStatistics();

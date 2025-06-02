@@ -314,7 +314,6 @@ void sqlite3_print_duckbox(sqlite3_stmt *pStmt, size_t max_rows, size_t max_widt
 		config.large_number_rendering = static_cast<LargeNumberRendering>(large_number_rendering);
 		BoxRenderer renderer(config);
 		renderer.Render(*pStmt->db->con->context, pStmt->result->names, materialized.Collection(), *result_renderer);
-		pStmt->db->con->context->ussr.reset();
 	} catch (std::exception &ex) {
 		string error_str = ErrorData(ex).Message() + "\n";
 		result_renderer->RenderLayout(error_str);
