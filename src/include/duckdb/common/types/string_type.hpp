@@ -210,6 +210,13 @@ public:
 				return byte_swap(a_prefix) > byte_swap(b_prefix);
 			}
 #endif
+			uint64_t a_bulk_comp = Load<uint64_t>(const_data_ptr_cast(&left) + 8u);
+			uint64_t b_bulk_comp = Load<uint64_t>(const_data_ptr_cast(&right) + 8u);
+			if (a_bulk_comp == b_bulk_comp && left_length == right_length) {
+				// either they are both inlined (so compare equal) or point to the same string (so compare equal)
+				//								faster_equality++;
+				return false;
+			}
 			auto memcmp_res = memcmp(left.GetData(), right.GetData(), min_length);
 			return memcmp_res > 0 || (memcmp_res == 0 && left_length > right_length);
 		}

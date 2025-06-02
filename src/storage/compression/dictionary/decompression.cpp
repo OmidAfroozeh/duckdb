@@ -59,7 +59,7 @@ void CompressedStringScanState::Initialize(ColumnSegment &segment, bool initiali
 			// NOTE: the passing of dict_child_vector, will not be used, its for big strings
 			uint16_t str_len = GetStringLength(i);
 			auto str = FetchStringFromDict(UnsafeNumericCast<int32_t>(index_buffer_ptr[i]), str_len);
-			//		dict_child_data[i] = FetchStringFromDict(UnsafeNumericCast<int32_t>(index_buffer_ptr[i]), str_len);
+//					dict_child_data[i] = FetchStringFromDict(UnsafeNumericCast<int32_t>(index_buffer_ptr[i]), str_len);
 			dict_child_data[i] = context->GetCurrentQueryUssr().insert(str);
 		}
 	}else{
