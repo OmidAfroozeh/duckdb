@@ -145,7 +145,7 @@ void RowOperations::UnswizzlePointers(const RowLayout &layout, const data_ptr_t 
 				data_ptr_t string_ptr = col_ptr + string_t::HEADER_SIZE;
 				for (idx_t i = 0; i < next; i++) {
 					if (Load<uint32_t>(col_ptr) > string_t::INLINE_LENGTH) {
-						if (!string_t::isInUnifiedStringDictionary(string_ptr)) {
+						if (!string_t::isInUnifiedStringDictionary(Load<data_ptr_t >(string_ptr))) {
 							// Overwrite the string offset with the pointer (if not inlined)
 							Store<data_ptr_t>(heap_row_ptrs[i] + Load<idx_t>(string_ptr), string_ptr);
 						}
