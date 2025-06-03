@@ -137,18 +137,14 @@ void PhysicalUnifiedString::USSR_insertion_loop(data_ptr_t dict_strings, idx_t c
 			if (!validity.RowIsValid(i)) {
 				continue;
 			}
-			auto d = start[i];
-			d.GetData();
-//			start[i] = context.GetCurrentQueryUssr().insert(start[i]);
+			start[i] = context.GetCurrentQueryUssr().insert(start[i]);
 		}
 	} else {
 		for (auto string_idx : priority_insertion) {
 			if (!validity.RowIsValid(string_idx)) {
 				continue;
 			}
-			auto d = start[string_idx];
-			d.GetData();
-//			start[string_idx] = context.GetCurrentQueryUssr().insert(start[string_idx]);
+			start[string_idx] = context.GetCurrentQueryUssr().insert(start[string_idx]);
 		}
 	}
 
