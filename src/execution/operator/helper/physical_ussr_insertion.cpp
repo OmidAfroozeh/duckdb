@@ -132,12 +132,12 @@ void PhysicalUnifiedString::USSR_insertion_loop(data_ptr_t dict_strings, idx_t c
 	if(isParquet){
 		if (priority_insertion.empty() && !exists_prio) {
 			// FIXME: this count - 1 is only to satisfy some parquet files readings, need to investigate!
-			for (idx_t i = 0; i < count - 1; i++) {
+			for (idx_t i = 1; i < count - 1; i++) {
 				start[i] = context.GetCurrentQueryUssr().insert(start[i]);
 			}
 		} else {
 			for (auto string_idx : priority_insertion) {
-				if (string_idx != (count - 1)) {
+				if (string_idx != (count - 1) && string_idx != 0) {
 					start[string_idx] = context.GetCurrentQueryUssr().insert(start[string_idx]);
 				}
 			}
