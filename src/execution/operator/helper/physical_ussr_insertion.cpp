@@ -129,7 +129,7 @@ unique_ptr<GlobalOperatorState> PhysicalUnifiedString::GetGlobalOperatorState(Cl
 	return make_uniq<USSRInsertionGState>(context);
 }
 
-void PhysicalUnifiedString::USSR_insertion_loop(data_ptr_t dict_strings, idx_t count, ClientContext &context, ValidityMask validity,
+void PhysicalUnifiedString::USSR_insertion_loop(data_ptr_t dict_strings, idx_t count, ClientContext &context, ValidityMask& validity,
                                                 const vector<idx_t> &priority_insertion, bool isParquet, bool exists_prio) const {
 	auto start = reinterpret_cast<string_t *>(dict_strings);
 	if (priority_insertion.empty() && !exists_prio) {
@@ -137,14 +137,18 @@ void PhysicalUnifiedString::USSR_insertion_loop(data_ptr_t dict_strings, idx_t c
 			if (!validity.RowIsValid(i)) {
 				continue;
 			}
-			start[i] = context.GetCurrentQueryUssr().insert(start[i]);
+			auto d = start[i];
+			d.GetData();
+//			start[i] = context.GetCurrentQueryUssr().insert(start[i]);
 		}
 	} else {
 		for (auto string_idx : priority_insertion) {
 			if (!validity.RowIsValid(string_idx)) {
 				continue;
 			}
-			start[string_idx] = context.GetCurrentQueryUssr().insert(start[string_idx]);
+			auto d = start[string_idx];
+			d.GetData();
+//			start[string_idx] = context.GetCurrentQueryUssr().insert(start[string_idx]);
 		}
 	}
 
