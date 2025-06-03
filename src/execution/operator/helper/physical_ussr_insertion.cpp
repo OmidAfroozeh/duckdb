@@ -48,14 +48,18 @@ OperatorResultType PhysicalUnifiedString::Execute(ExecutionContext &context, Dat
 		if (!size.IsValid()) {
 			continue;
 		}
-		if (DictionaryVector::DictionaryId(input.data[col_idx]).size() > 64) {
-			continue;
+		bool isParquet;
+		if(std::strtoull(DictionaryVector::DictionaryId(input.data[col_idx]).c_str(), nullptr, 10)){
+			isParquet = false;
+		} else{
+			isParquet = true;
 		}
+
 		if (size.GetIndex() <= 500000000) {
 			if (insert_to_ussr[col_idx] &&
 			    DictionaryVector::DictionaryId(input.data[col_idx]) != state.current_dict_ids[col_idx]) {
 				state.current_dict_ids[col_idx] = DictionaryVector::DictionaryId(input.data[col_idx]);
-				USSR_insertion_loop(dict.GetData(), size.GetIndex(), context.client, {});
+				USSR_insertion_loop(dict.GetData(), size.GetIndex(), context.client, {}, isParquet, false);
 			}
 		} else {
 			if (insert_to_ussr[col_idx] &&
@@ -86,7 +90,7 @@ OperatorResultType PhysicalUnifiedString::Execute(ExecutionContext &context, Dat
 				}
 
 				state.current_dict_ids[col_idx] = DictionaryVector::DictionaryId(input.data[col_idx]);
-				USSR_insertion_loop(dict.GetData(), size.GetIndex(), context.client, priority_selection, true);
+				USSR_insertion_loop(dict.GetData(), size.GetIndex(), context.client, priority_selection, isParquet, true);
 			} else if (insert_to_ussr[col_idx] &&
 			           DictionaryVector::DictionaryId(input.data[col_idx]) == state.current_dict_ids[col_idx] &&
 			           state.current_analysis_count[col_idx] <= state.analysis_budget[col_idx]) {
@@ -106,7 +110,7 @@ OperatorResultType PhysicalUnifiedString::Execute(ExecutionContext &context, Dat
 						state.inserted[col_idx][i] = true;
 					}
 				}
-				USSR_insertion_loop(dict.GetData(), size.GetIndex(), context.client, priority_selection, true);
+				USSR_insertion_loop(dict.GetData(), size.GetIndex(), context.client, priority_selection, isParquet, true);
 			}
 		}
 	}
@@ -123,21 +127,36 @@ unique_ptr<GlobalOperatorState> PhysicalUnifiedString::GetGlobalOperatorState(Cl
 }
 
 void PhysicalUnifiedString::USSR_insertion_loop(data_ptr_t dict_strings, idx_t count, ClientContext &context,
-                                                const vector<idx_t> &priority_insertion, bool exists_prio) const {
+                                                const vector<idx_t> &priority_insertion, bool isParquet, bool exists_prio) const {
 	auto start = reinterpret_cast<string_t *>(dict_strings);
-
-	if (priority_insertion.empty() && !exists_prio) {
-		// FIXME: this count - 1 is only to satisfy some parquet files readings, need to investigate!
-		for (idx_t i = 1; i < count - 1; i++) {
-			start[i] = context.GetCurrentQueryUssr().insert(start[i]);
+	if(isParquet){
+		if (priority_insertion.empty() && !exists_prio) {
+			// FIXME: this count - 1 is only to satisfy some parquet files readings, need to investigate!
+			for (idx_t i = 0; i < count - 1; i++) {
+				start[i] = context.GetCurrentQueryUssr().insert(start[i]);
+			}
+		} else {
+			for (auto string_idx : priority_insertion) {
+				if (string_idx != (count - 1)) {
+					start[string_idx] = context.GetCurrentQueryUssr().insert(start[string_idx]);
+				}
+			}
 		}
-	} else {
-		for (auto string_idx : priority_insertion) {
-			if (string_idx != 0 && string_idx != count - 1) {
-				start[string_idx] = context.GetCurrentQueryUssr().insert(start[string_idx]);
+	}else{
+		if (priority_insertion.empty() && !exists_prio) {
+			// FIXME: this count - 1 is only to satisfy some parquet files readings, need to investigate!
+			for (idx_t i = 1; i < count; i++) {
+				start[i] = context.GetCurrentQueryUssr().insert(start[i]);
+			}
+		} else {
+			for (auto string_idx : priority_insertion) {
+				if (string_idx != 0) {
+					start[string_idx] = context.GetCurrentQueryUssr().insert(start[string_idx]);
+				}
 			}
 		}
 	}
+
 }
 
 } // namespace duckdb

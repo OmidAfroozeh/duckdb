@@ -592,10 +592,8 @@ void TupleDataAllocator::FindHeapPointers(TupleDataChunkState &chunk_state, Sele
 					const auto string_location = row_location + col_offset;
 					if (Load<uint32_t>(string_location) > string_t::INLINE_LENGTH) {
 						const auto string_ptr_location = string_location + string_t::HEADER_SIZE;
-						if (!string_t::isInUnifiedStringDictionary(Load<data_ptr_t >(string_ptr_location))) {
-							heap_locations[idx] = Load<data_ptr_t>(string_ptr_location);
-							continue;
-						}
+						heap_locations[idx] = Load<data_ptr_t>(string_ptr_location);
+						continue;
 					}
 #ifndef DUCKDB_DEBUG_NO_INLINE
 				}
