@@ -49,10 +49,10 @@ OperatorResultType PhysicalUnifiedString::Execute(ExecutionContext &context, Dat
 			continue;
 		}
 		bool isParquet;
-		if(std::strtoull(DictionaryVector::DictionaryId(input.data[col_idx]).c_str(), nullptr, 10)){
-			isParquet = false;
-		} else{
+		if(DictionaryVector::DictionaryId(input.data[col_idx])[0] == 'X'){
 			isParquet = true;
+		} else{
+			isParquet = false;
 		}
 
 		if (size.GetIndex() <= 500000000) {
