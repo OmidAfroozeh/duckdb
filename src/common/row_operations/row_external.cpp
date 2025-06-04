@@ -157,10 +157,17 @@ void RowOperations::UnswizzlePointers(const RowLayout &layout, const data_ptr_t 
 				data_ptr_t string_ptr = col_ptr + string_t::HEADER_SIZE;
 				for (idx_t i = 0; i < next; i++) {
 					if (Load<uint32_t>(col_ptr) > string_t::INLINE_LENGTH) {
-							if ((ussr_mask & reinterpret_cast<uint64_t>(Load<data_ptr_t >(string_ptr))) != ussr_prefix) {
-								// Overwrite the string offset with the pointer (if not inlined)
+						// cannot use string_t here! could be nullAdd commentMore actions
+						auto str = Load<string_t>(col_ptr);
+						if (str.IsInlined()) {
+							Store<data_ptr_t>(heap_row_ptrs[i] + Load<idx_t>(string_ptr), string_ptr);
+						} else {
+
+							if ((ussr_mask & reinterpret_cast<uint64_t>(str.GetDataUnsafe())) !=
+							    ussr_prefix) { // Overwrite the string offset with the pointer (if not inlined)
 								Store<data_ptr_t>(heap_row_ptrs[i] + Load<idx_t>(string_ptr), string_ptr);
 							}
+						}
 						VerifyUnswizzledString(layout, col_idx, row_ptr + i * row_width);
 					}
 					col_ptr += row_width;

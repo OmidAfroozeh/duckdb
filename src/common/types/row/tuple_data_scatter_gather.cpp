@@ -632,7 +632,7 @@ void TupleDataCollection::Scatter(TupleDataChunkState &chunk_state, const DataCh
 		const auto &scatter_function = scatter_functions[0];
 		scatter_function.function(new_chunk.data[0], chunk_state.vector_data[0], append_sel, append_count, layout,
 		                          chunk_state.row_locations, chunk_state.heap_locations, 0,
-		                          chunk_state.vector_data[0].unified, scatter_function.child_functions);
+		                          chunk_state.vector_data[0].unified, scatter_function.child_functions, context);
 	} else {
 		const auto row_locations = FlatVector::GetData<data_ptr_t>(chunk_state.row_locations);
 
@@ -741,7 +741,7 @@ template <class T, SortKeyType SORT_KEY_TYPE>
 void TupleDataSortKeyScatter(const Vector &, const TupleDataVectorFormat &source_format,
                              const SelectionVector &append_sel, const idx_t append_count, const TupleDataLayout &layout,
                              const Vector &row_locations, Vector &heap_locations, const idx_t,
-                             const UnifiedVectorFormat &, const vector<TupleDataScatterFunction> &) {
+                             const UnifiedVectorFormat &, const vector<TupleDataScatterFunction> &, optional_ptr<ClientContext> context) {
 	D_ASSERT(layout.IsSortKeyLayout());
 	D_ASSERT(layout.GetSortKeyType() == SORT_KEY_TYPE);
 	using SORT_KEY = SortKey<SORT_KEY_TYPE>;

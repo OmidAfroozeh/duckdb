@@ -151,7 +151,7 @@ static void SortSwitch(ClientContext &context, const TupleDataCollection &key_da
 
 template <class SORT_KEY>
 static void ReorderKeyData(TupleDataCollection &new_key_data, TupleDataAppendState &new_key_data_append_state,
-                           TupleDataChunkState &input, const idx_t &count) {
+                           TupleDataChunkState &input, const idx_t &count, optional_ptr<ClientContext> context) {
 	D_ASSERT(!SORT_KEY::CONSTANT_SIZE);
 	const auto row_locations = FlatVector::GetData<const SORT_KEY *>(input.row_locations);
 	const auto heap_locations = FlatVector::GetData<data_ptr_t>(input.heap_locations);
@@ -163,7 +163,7 @@ static void ReorderKeyData(TupleDataCollection &new_key_data, TupleDataAppendSta
 	}
 
 	new_key_data_append_state.chunk_state.heap_sizes.Reference(input.heap_sizes);
-	new_key_data.Build(new_key_data_append_state.pin_state, new_key_data_append_state.chunk_state, 0, count);
+	new_key_data.Build(new_key_data_append_state.pin_state, new_key_data_append_state.chunk_state, 0, count, context);
 	new_key_data.CopyRows(new_key_data_append_state.chunk_state, input, *FlatVector::IncrementalSelectionVector(),
 	                      count);
 }
@@ -171,7 +171,7 @@ static void ReorderKeyData(TupleDataCollection &new_key_data, TupleDataAppendSta
 template <class SORT_KEY>
 static void ReorderPayloadData(TupleDataCollection &new_payload_data,
                                TupleDataAppendState &new_payload_data_append_state, SORT_KEY *const *const key_ptrs,
-                               TupleDataChunkState &input, const idx_t &count) {
+                               TupleDataChunkState &input, const idx_t &count, optional_ptr<ClientContext> context) {
 	D_ASSERT(SORT_KEY::HAS_PAYLOAD);
 	const auto row_locations = FlatVector::GetData<data_ptr_t>(input.row_locations);
 	for (idx_t i = 0; i < count; i++) {
@@ -184,7 +184,7 @@ static void ReorderPayloadData(TupleDataCollection &new_payload_data,
 	}
 	new_payload_data_append_state.chunk_state.heap_sizes.Reference(input.heap_sizes);
 	new_payload_data.Build(new_payload_data_append_state.pin_state, new_payload_data_append_state.chunk_state, 0,
-	                       count);
+	                       count, context);
 	new_payload_data.CopyRows(new_payload_data_append_state.chunk_state, input,
 	                          *FlatVector::IncrementalSelectionVector(), count);
 }
@@ -233,11 +233,11 @@ static void TemplatedReorder(ClientContext &context, unique_ptr<TupleDataCollect
 			key_ptrs[i] = &*it++;
 		}
 		if (!SORT_KEY::CONSTANT_SIZE) {
-			ReorderKeyData<SORT_KEY>(*new_key_data, new_key_data_append_state, new_key_data_input, next);
+			ReorderKeyData<SORT_KEY>(*new_key_data, new_key_data_append_state, new_key_data_input, next, context);
 		}
 		if (SORT_KEY::HAS_PAYLOAD) {
 			ReorderPayloadData<SORT_KEY>(*new_payload_data, new_payload_data_append_state, key_ptrs,
-			                             new_payload_data_input, next);
+			                             new_payload_data_input, next, context);
 		}
 		index += next;
 	}
