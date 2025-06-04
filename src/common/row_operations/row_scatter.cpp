@@ -94,7 +94,7 @@ static void ScatterStringVector(UnifiedVectorFormat &col, Vector &rows, data_ptr
 			Store<string_t>(null, row + col_offset);
 		} else if (string_data[col_idx].IsInlined()) {
 			Store<string_t>(string_data[col_idx], row + col_offset);
-		} else if ((ussr_mask & cast_pointer_to_uint64(string_data[col_idx].GetPointer())) == ussr_prefix) {
+		} else if ((ussr_mask & reinterpret_cast<uint64_t>(string_data[col_idx].GetPointer())) == ussr_prefix) {
 			Store<string_t>(string_data[col_idx], row + col_offset);
 		} else {
 			const auto &str = string_data[col_idx];

@@ -45,17 +45,16 @@ OperatorResultType PhysicalUnifiedString::Execute(ExecutionContext &context, Dat
 		// no selection vector analysis
 		auto &dict = DictionaryVector::Child(input.data[col_idx]);
 		auto size = DictionaryVector::DictionarySize(input.data[col_idx]);
+		auto &dict_validity = FlatVector::Validity(dict);
 		if (!size.IsValid()) {
 			continue;
 		}
-		if (DictionaryVector::DictionaryId(input.data[col_idx]).size() > 64) {
-			continue;
-		}
+
 		if (size.GetIndex() <= 500000000) {
 			if (insert_to_ussr[col_idx] &&
 			    DictionaryVector::DictionaryId(input.data[col_idx]) != state.current_dict_ids[col_idx]) {
 				state.current_dict_ids[col_idx] = DictionaryVector::DictionaryId(input.data[col_idx]);
-				USSR_insertion_loop(dict.GetData(), size.GetIndex(), context.client, {});
+				USSR_insertion_loop(dict.GetData(), size.GetIndex(), context.client, {}, dict_validity);
 			}
 		} else {
 			if (insert_to_ussr[col_idx] &&
@@ -86,7 +85,7 @@ OperatorResultType PhysicalUnifiedString::Execute(ExecutionContext &context, Dat
 				}
 
 				state.current_dict_ids[col_idx] = DictionaryVector::DictionaryId(input.data[col_idx]);
-				USSR_insertion_loop(dict.GetData(), size.GetIndex(), context.client, priority_selection, true);
+				USSR_insertion_loop(dict.GetData(), size.GetIndex(), context.client, priority_selection, dict_validity, true);
 			} else if (insert_to_ussr[col_idx] &&
 			           DictionaryVector::DictionaryId(input.data[col_idx]) == state.current_dict_ids[col_idx] &&
 			           state.current_analysis_count[col_idx] <= state.analysis_budget[col_idx]) {
@@ -106,7 +105,7 @@ OperatorResultType PhysicalUnifiedString::Execute(ExecutionContext &context, Dat
 						state.inserted[col_idx][i] = true;
 					}
 				}
-				USSR_insertion_loop(dict.GetData(), size.GetIndex(), context.client, priority_selection, true);
+				USSR_insertion_loop(dict.GetData(), size.GetIndex(), context.client, priority_selection, dict_validity, true);
 			}
 		}
 	}
@@ -123,19 +122,22 @@ unique_ptr<GlobalOperatorState> PhysicalUnifiedString::GetGlobalOperatorState(Cl
 }
 
 void PhysicalUnifiedString::USSR_insertion_loop(data_ptr_t dict_strings, idx_t count, ClientContext &context,
-                                                const vector<idx_t> &priority_insertion, bool exists_prio) const {
+                                                const vector<idx_t> &priority_insertion, ValidityMask &validity, bool exists_prio) const {
 	auto start = reinterpret_cast<string_t *>(dict_strings);
 
 	if (priority_insertion.empty() && !exists_prio) {
-		// FIXME: this count - 1 is only to satisfy some parquet files readings, need to investigate!
-		for (idx_t i = 1; i < count - 1; i++) {
+		for (idx_t i = 0; i < count; i++) {
+			if(!validity.RowIsValid(i)){
+				continue;
+			}
 			start[i] = context.GetCurrentQueryUssr().insert(start[i]);
 		}
 	} else {
 		for (auto string_idx : priority_insertion) {
-			if (string_idx != 0 && string_idx != count - 1) {
-				start[string_idx] = context.GetCurrentQueryUssr().insert(start[string_idx]);
+			if(!validity.RowIsValid(string_idx)){
+				continue;
 			}
+			start[string_idx] = context.GetCurrentQueryUssr().insert(start[string_idx]);
 		}
 	}
 }
