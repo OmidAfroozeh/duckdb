@@ -42,6 +42,8 @@ public:
 
 	static constexpr const idx_t STR_LENGTH_BYTES = 2;
 
+	idx_t size;
+
 
 
 private:
