@@ -44,7 +44,9 @@ OperatorResultType PhysicalUnifiedString::Execute(ExecutionContext &context, Dat
 		}
 		// no selection vector analysis
 		auto &dict = DictionaryVector::Child(input.data[col_idx]);
+		auto dict_encoded_val_size = DictionaryVector::GetDictionaryEncodedValuesSize(input.data[col_idx]);
 		auto size = DictionaryVector::DictionarySize(input.data[col_idx]);
+		Printer::Print(to_string(dict_encoded_val_size.GetIndex()) +  " _____ " + to_string(size.GetIndex()));
 		auto &dict_validity = FlatVector::Validity(dict);
 		if (!size.IsValid()) {
 			continue;
@@ -52,7 +54,7 @@ OperatorResultType PhysicalUnifiedString::Execute(ExecutionContext &context, Dat
 		if(DictionaryVector::DictionaryId(input.data[col_idx])[0] == 'x'){
 			continue;
 		}
-		if (size.GetIndex() <= 500000000) {
+		if (size.GetIndex() <= 500 && dict_encoded_val_size.GetIndex() > 10000) {
 			if (insert_to_ussr[col_idx] &&
 			    DictionaryVector::DictionaryId(input.data[col_idx]) != state.current_dict_ids[col_idx]) {
 				state.current_dict_ids[col_idx] = DictionaryVector::DictionaryId(input.data[col_idx]);

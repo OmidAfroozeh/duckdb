@@ -165,6 +165,12 @@ public:
 	optional_idx GetDictionarySize() const {
 		return dictionary_size;
 	}
+	void SetDictionaryEncodedValuesSize(idx_t dict_encoded_values_size) {
+		dictionary_encoded_values_size = dict_encoded_values_size;
+	}
+	optional_idx GetDictionaryEncodedValuesSize() const {
+		return dictionary_encoded_values_size;
+	}
 	void SetDictionaryId(string id) {
 		dictionary_id = std::move(id);
 	}
@@ -175,6 +181,7 @@ public:
 private:
 	SelectionVector sel_vector;
 	optional_idx dictionary_size;
+	optional_idx dictionary_encoded_values_size;
 	//! A unique identifier for the dictionary that can be used to check if two dictionaries are equivalent
 	string dictionary_id;
 };

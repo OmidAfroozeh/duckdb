@@ -144,6 +144,7 @@ void CompressedStringScanState::ScanToDictionaryVector(ColumnSegment &segment, V
 
 	result.Dictionary(*(dictionary), dictionary_size, *sel_vec, scan_count);
 	DictionaryVector::SetDictionaryId(result, to_string(CastPointerToValue(&segment)));
+	DictionaryVector::SetDictionaryEncodedValuesSize(result, segment.count.load());
 }
 
 } // namespace duckdb

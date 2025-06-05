@@ -340,6 +340,14 @@ struct DictionaryVector {
 		VerifyDictionary(vector);
 		return vector.buffer->Cast<DictionaryBuffer>().GetDictionarySize();
 	}
+	static inline optional_idx GetDictionaryEncodedValuesSize(const Vector &vector) {
+		VerifyDictionary(vector);
+		return vector.buffer->Cast<DictionaryBuffer>().GetDictionaryEncodedValuesSize();
+	}
+	static inline void SetDictionaryEncodedValuesSize(Vector &vector, idx_t dict_encoded_values_size) {
+		VerifyDictionary(vector);
+		return vector.buffer->Cast<DictionaryBuffer>().SetDictionaryEncodedValuesSize(dict_encoded_values_size);
+	}
 	static inline const string &DictionaryId(const Vector &vector) {
 		VerifyDictionary(vector);
 		return vector.buffer->Cast<DictionaryBuffer>().GetDictionaryId();
