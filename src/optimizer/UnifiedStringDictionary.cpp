@@ -90,7 +90,7 @@ string_t UnifiedStringsDictionary::insertInternal(string_t str) {
 		}
 
 	hash_t h = Hash(str);
-//					candidates++;
+					candidates++;
 
 	uint32_t hash_prefix;
 	memcpy(&hash_prefix, &h, HT_BUCKET_SIZE);
@@ -139,7 +139,7 @@ string_t UnifiedStringsDictionary::insertInternal(string_t str) {
 				Store<uint16_t>(len16, slot_ptr);
 				memcpy(slot_ptr + STR_LENGTH_BYTES, str.GetData(), str.GetSize());
 				Store<uint64_t>(h, slot_ptr - 8);
-//				accepted++;
+				accepted++;
 				// not sure if needed, maybe just be non-atomic store, just need to suppress TSan
 				(HT + HT_slot + prob_index)->store(newBucket, std::memory_order_release);
 				return string_t(const_char_ptr_cast(slot_ptr + STR_LENGTH_BYTES),
@@ -160,7 +160,7 @@ string_t UnifiedStringsDictionary::insertInternal(string_t str) {
 					auto materialized_str_length = UnsafeNumericCast<uint16_t>(*reinterpret_cast<uint16_t *>(slot_ptr));
 					if (materialized_str_length == str.GetSize() &&
 					    memcmp(slot_ptr + STR_LENGTH_BYTES, str.GetDataUnsafe(), str.GetSize()) == 0) {
-//						already_in++;
+						already_in++;
 						return string_t(const_char_ptr_cast(slot_ptr + STR_LENGTH_BYTES),
 						                UnsafeNumericCast<uint32_t>(materialized_str_length));
 					} else {
@@ -185,7 +185,7 @@ string_t UnifiedStringsDictionary::insertInternal(string_t str) {
 			auto materialized_str_length = UnsafeNumericCast<uint16_t>(*reinterpret_cast<uint16_t *>(slot_ptr));
 			if (materialized_str_length == str.GetSize() &&
 			    memcmp(slot_ptr + STR_LENGTH_BYTES, str.GetDataUnsafe(), str.GetSize()) == 0) {
-				//						already_in++;
+										already_in++;
 				return string_t(const_char_ptr_cast(slot_ptr + STR_LENGTH_BYTES),
 				                UnsafeNumericCast<uint32_t>(materialized_str_length));
 			} else{
@@ -197,7 +197,7 @@ string_t UnifiedStringsDictionary::insertInternal(string_t str) {
 			auto materialized_str_length = UnsafeNumericCast<uint16_t>(*reinterpret_cast<uint16_t *>(slot_ptr));
 			if (materialized_str_length == str.GetSize() &&
 			    memcmp(slot_ptr + STR_LENGTH_BYTES, str.GetDataUnsafe(), str.GetSize()) == 0) {
-//				already_in++;
+				already_in++;
 				return string_t(const_char_ptr_cast(slot_ptr + STR_LENGTH_BYTES),
 				                UnsafeNumericCast<uint32_t>(materialized_str_length));
 			} else {
@@ -205,7 +205,7 @@ string_t UnifiedStringsDictionary::insertInternal(string_t str) {
 			}
 		}
 	}
-//					nRejections_Probing++;
+					nRejections_Probing++;
 	return str;
 }
 
@@ -213,7 +213,7 @@ UnifiedStringsDictionary::~UnifiedStringsDictionary() {
 //	Printer::Print("USSR deleted be careful!");
 	this->buffer.reset();
 	//	this->LinearProbingHT.reset();
-//				this->getStatistics();
+				this->getStatistics();
 }
 
 void UnifiedStringsDictionary::getStatistics() {
