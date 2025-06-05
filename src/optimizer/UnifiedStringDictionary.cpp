@@ -80,9 +80,9 @@ string_t UnifiedStringsDictionary::insert(string_t str) {
 
 string_t UnifiedStringsDictionary::insertInternal(string_t str) {
 
-	//	if (nRejections_SizeFull.load(std::memory_order_relaxed) > ATTEMPT_THRESHOLD + 1000000) {
-	//		return str;
-	//	}
+		if (nRejections_SizeFull.load(std::memory_order_relaxed) > ATTEMPT_THRESHOLD + 9000) {
+			return str;
+		}
 
 	hash_t h = Hash(str);
 //					candidates++;
@@ -116,7 +116,7 @@ string_t UnifiedStringsDictionary::insertInternal(string_t str) {
 				auto increasedSlot = (str_len % 8 == 0) ? 1 + (str_len / 8) : 2 + (str_len / 8);
 				auto slot_to_insert = currentEmptySlot.fetch_add(increasedSlot);
 				if (slot_to_insert + increasedSlot > USSR_SIZE || str_len > (USSR_SIZE - slot_to_insert) * 8) {
-//																					nRejections_SizeFull++;
+																					nRejections_SizeFull.fetch_add(1, std::memory_order_relaxed);
 					                                                                currentEmptySlot.fetch_sub(increasedSlot, std::memory_order_relaxed);
 					                                                                (HT + HT_slot + prob_index)->store(0, std::memory_order_release);
 
