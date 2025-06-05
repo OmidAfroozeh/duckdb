@@ -36,10 +36,6 @@ void USSR_optimizer::Insert_USSR_Operator(optional_ptr<LogicalOperator> op) {
 
 void USSR_optimizer::choose_operator() {
 	for (auto &ds : candidate_data_sources) {
-		if(optimizer->context.ussr->size == 0){
-			optimizer->context.ussr.reset();
-			optimizer->context.ussr = make_uniq<UnifiedStringsDictionary>(128ull);
-		}
 		chosen_data_sources.push_back(ds);
 	}
 	candidate_data_sources.clear();
