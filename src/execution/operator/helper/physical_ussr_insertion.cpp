@@ -47,13 +47,13 @@ OperatorResultType PhysicalUnifiedString::Execute(ExecutionContext &context, Dat
 		auto dict_encoded_val_size = DictionaryVector::GetDictionaryEncodedValuesSize(input.data[col_idx]);
 		auto size = DictionaryVector::DictionarySize(input.data[col_idx]);
 		auto &dict_validity = FlatVector::Validity(dict);
-		if (!size.IsValid()) {
+		if (!size.IsValid() || !dict_encoded_val_size.IsValid()) {
 			continue;
 		}
 		if(DictionaryVector::DictionaryId(input.data[col_idx])[0] == 'x'){
 			continue;
 		}
-		if (size.GetIndex() <= 1000 && dict_encoded_val_size.GetIndex() > 10000) {
+		if ((size.GetIndex() <= 0 && dict_encoded_val_size.GetIndex() > 10000) || (dict_encoded_val_size.GetIndex() / size.GetIndex()) > 10000000) {
 			if (insert_to_ussr[col_idx] &&
 			    DictionaryVector::DictionaryId(input.data[col_idx]) != state.current_dict_ids[col_idx]) {
 				state.current_dict_ids[col_idx] = DictionaryVector::DictionaryId(input.data[col_idx]);
@@ -72,7 +72,8 @@ OperatorResultType PhysicalUnifiedString::Execute(ExecutionContext &context, Dat
 				}
 //				Printer::Print(to_string(dict_encoded_val_size.GetIndex()) +  " _____ " + to_string(size.GetIndex()));
 
-				state.analysis_budget[col_idx] = (dict_encoded_val_size.GetIndex() / 10) / STANDARD_VECTOR_SIZE;
+//				state.analysis_budget[col_idx] = ((dict_encoded_val_size.GetIndex()/5 ) / STANDARD_VECTOR_SIZE) - 1;
+				state.analysis_budget[col_idx] = 1000000;
 //				Printer::Print(to_string(state.analysis_budget[col_idx]));
 				state.current_analysis_count[col_idx] = 1;
 				const idx_t THRESHOLD = 2;
@@ -82,8 +83,8 @@ OperatorResultType PhysicalUnifiedString::Execute(ExecutionContext &context, Dat
 				}
 
 				vector<idx_t> priority_selection;
-				for (idx_t i = 1; i < state.count[col_idx].size(); i++) {
-					if (state.count[col_idx][i] > (THRESHOLD * state.current_analysis_count[col_idx])) {
+				for (idx_t i = 1; i < size.GetIndex(); i++) {
+					if (state.count[col_idx][i] >= (THRESHOLD * state.current_analysis_count[col_idx])) {
 						priority_selection.push_back(i);
 						state.inserted[col_idx][i] = true;
 					}
@@ -103,8 +104,8 @@ OperatorResultType PhysicalUnifiedString::Execute(ExecutionContext &context, Dat
 				}
 
 				vector<idx_t> priority_selection;
-				for (idx_t i = 1; i < state.count[col_idx].size(); ++i) {
-					if (state.count[col_idx][i] > (27 * state.current_analysis_count[col_idx]) &&
+				for (idx_t i = 1; i < size.GetIndex(); ++i) {
+					if (state.count[col_idx][i] >= (3 * state.current_analysis_count[col_idx]) &&
 					    !state.inserted[col_idx][i]) {
 						priority_selection.push_back(i);
 						state.inserted[col_idx][i] = true;
@@ -135,14 +136,14 @@ void PhysicalUnifiedString::USSR_insertion_loop(data_ptr_t dict_strings, idx_t c
 			if(!validity.RowIsValid(i)){
 				continue;
 			}
-			start[i] = context.GetCurrentQueryUssr().insert(start[i]);
+//			start[i] = context.GetCurrentQueryUssr().insert(start[i]);
 		}
 	} else {
 		for (auto string_idx : priority_insertion) {
 			if(!validity.RowIsValid(string_idx)){
 				continue;
 			}
-			start[string_idx] = context.GetCurrentQueryUssr().insert(start[string_idx]);
+//			start[string_idx] = context.GetCurrentQueryUssr().insert(start[string_idx]);
 		}
 	}
 }
