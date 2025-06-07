@@ -62,7 +62,7 @@ OperatorResultType PhysicalUnifiedString::Execute(ExecutionContext &context, Dat
 		if (dict_size.GetIndex() <= 1000 && ratio > 10 && dict_encoded_val_size.GetIndex() > 20000) {
 			if (insert_to_ussr[col_idx] &&
 			    DictionaryVector::DictionaryId(input.data[col_idx]) != state.current_dict_ids[col_idx]) {
-				Printer::Print(to_string(dict_size.GetIndex()) + " | " + to_string(ratio) + " | " + to_string(dict_encoded_val_size.GetIndex()));
+//				Printer::Print(to_string(dict_size.GetIndex()) + " | " + to_string(ratio) + " | " + to_string(dict_encoded_val_size.GetIndex()));
 				state.current_dict_ids[col_idx] = DictionaryVector::DictionaryId(input.data[col_idx]);
 				USSR_insertion_loop(dict.GetData(), dict_size.GetIndex(), context.client, {}, dict_validity);
 			}
@@ -182,7 +182,7 @@ void PhysicalUnifiedString::USSR_insertion_loop(data_ptr_t dict_strings, idx_t c
 			start[i] = context.GetCurrentQueryUssr().insert(start[i]);
 		}
 	} else {
-		Printer::Print(to_string(priority_insertion.size()));
+//		Printer::Print(to_string(priority_insertion.size()));
 //		counter.fetch_add(priority_insertion.size());
 		for (auto string_idx : priority_insertion) {
 			if(!validity.RowIsValid(string_idx)){
