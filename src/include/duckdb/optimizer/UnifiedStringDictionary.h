@@ -16,7 +16,7 @@ class UnifiedStringsDictionary {
 public:
 	static constexpr const uint64_t ATTEMPT_THRESHOLD = 1000;
 
-	static constexpr const uint64_t MAX_STRING_LENGTH = 255;
+	static constexpr const uint64_t MAX_STRING_LENGTH = 1024;
 
 	static constexpr const uint64_t BUFFER_SIZE = static_cast<uint64_t>(1024 * 1024);
 
