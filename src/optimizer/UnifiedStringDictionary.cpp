@@ -80,9 +80,9 @@ string_t UnifiedStringsDictionary::insert(string_t str) {
 
 string_t UnifiedStringsDictionary::insertInternal(string_t str) {
 
-		if (nRejections_SizeFull.load(std::memory_order_relaxed) > ATTEMPT_THRESHOLD + 9000) {
-			return str;
-		}
+//		if (nRejections_SizeFull.load(std::memory_order_relaxed) > ATTEMPT_THRESHOLD + 9000) {
+//			return str;
+//		}
 
 	hash_t h = Hash(str);
 //					candidates++;

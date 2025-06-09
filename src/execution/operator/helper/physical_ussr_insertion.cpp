@@ -29,7 +29,11 @@ class USSRInsertionGState : public GlobalOperatorState {
 public:
 	explicit USSRInsertionGState(ClientContext &context) {
 		analyzing_budget = 100;
+		total_dictionaries_seen.store(0);
+		total_unique_values_seen.store(0);
 	}
+	atomic<idx_t > total_unique_values_seen;
+	atomic<idx_t > total_dictionaries_seen;
 	mutex budget_lock;
 	idx_t analyzing_budget;
 	vector<optional_ptr<DataChunk>> cached;
@@ -38,7 +42,7 @@ public:
 OperatorResultType PhysicalUnifiedString::Execute(ExecutionContext &context, DataChunk &input, DataChunk &chunk,
                                                   GlobalOperatorState &gstate, OperatorState &state_p) const {
 	auto &state = state_p.Cast<USSRInsertionState>();
-	//	auto &gstateussr = gstate.Cast<USSRInsertionGState>();
+		auto &gstateussr = gstate.Cast<USSRInsertionGState>();
 	for (idx_t col_idx = 0; col_idx < input.data.size(); ++col_idx) {
 		if (input.data[col_idx].GetVectorType() != VectorType::DICTIONARY_VECTOR ||
 		    input.data[col_idx].GetType() != LogicalType::VARCHAR) {
@@ -57,21 +61,29 @@ OperatorResultType PhysicalUnifiedString::Execute(ExecutionContext &context, Dat
 		}
 
 		auto ratio = dict_encoded_val_size.GetIndex() / dict_size.GetIndex();
-
 		// insert low-cardinality columns without sampling
-		if (dict_size.GetIndex() <= 1000 && ratio > 10 && dict_encoded_val_size.GetIndex() > 20000) {
+		if (dict_size.GetIndex() <= 100000000) {
 			if (insert_to_ussr[col_idx] &&
 			    DictionaryVector::DictionaryId(input.data[col_idx]) != state.current_dict_ids[col_idx]) {
-//				Printer::Print(to_string(dict_size.GetIndex()) + " | " + to_string(ratio) + " | " + to_string(dict_encoded_val_size.GetIndex()));
 				state.current_dict_ids[col_idx] = DictionaryVector::DictionaryId(input.data[col_idx]);
+				gstateussr.total_unique_values_seen.fetch_add(dict_size.GetIndex());
+				gstateussr.total_dictionaries_seen++;
+
 				USSR_insertion_loop(dict.GetData(), dict_size.GetIndex(), context.client, {}, dict_validity);
+//				Printer::Print(to_string(context.client.GetCurrentQueryUssr().candidates.load())+ " | "+ to_string(context.client.GetCurrentQueryUssr().accepted.load()));
+//
+//				Printer::Print("Ratio = "+ to_string((float)context.client.GetCurrentQueryUssr().candidates / (float)context.client.GetCurrentQueryUssr().accepted) );
+
 			}
 		} else {
 			if (insert_to_ussr[col_idx] &&
 			    DictionaryVector::DictionaryId(input.data[col_idx]) != state.current_dict_ids[col_idx]) {
 				state.inserted_so_far[col_idx]    = 0;          // reset skew statistics
 				state.rows_seen_total[col_idx]    = 0;
-
+//				Printer::Print(to_string(dict_size.GetIndex()) + " | " + to_string(ratio) + " | " + to_string(dict_encoded_val_size.GetIndex()));
+				gstateussr.total_unique_values_seen.fetch_add(dict_size.GetIndex());
+				gstateussr.total_dictionaries_seen++;
+				Printer::Print(to_string(gstateussr.total_unique_values_seen.load()));
 				if (dict_size.GetIndex() > state.inserted[col_idx].size()) {
 					state.inserted[col_idx].resize(dict_size.GetIndex(), false);   // one memset
 					state.count[col_idx].resize(dict_size.GetIndex(), 0);          // one memset
@@ -80,7 +92,7 @@ OperatorResultType PhysicalUnifiedString::Execute(ExecutionContext &context, Dat
 					std::fill_n(state.count[col_idx].begin(), dict_size.GetIndex(), 0);
 				}
 
-				idx_t sampling_rate = 25;
+				idx_t sampling_rate = 20;
 				idx_t sampling_count = (dict_encoded_val_size.GetIndex()  * sampling_rate) / 100;
 				state.analysis_budget[col_idx] = sampling_count;
 
@@ -100,7 +112,7 @@ OperatorResultType PhysicalUnifiedString::Execute(ExecutionContext &context, Dat
 
 				idx_t dict_k = dict_size.GetIndex()/4; // around 25% of the data will contain the majority of the values
 
-				idx_t threshold = std::max<idx_t >((rows_seen + dict_k) / (dict_k + 1), 1);
+				idx_t threshold = std::max<idx_t >((rows_seen + dict_k) / (dict_k + 1), 2);
 
 
 				auto &sel = DictionaryVector::SelVector(input.data[col_idx]);
@@ -137,7 +149,7 @@ OperatorResultType PhysicalUnifiedString::Execute(ExecutionContext &context, Dat
 				idx_t dict_k =
 				    dict_size.GetIndex()/4; // around 25% of the data will contain the majority of the values
 
-				idx_t threshold = std::max<idx_t >((rows_seen + dict_k) / (dict_k + 1), 1);
+				idx_t threshold = std::max<idx_t >((rows_seen + dict_k) / (dict_k + 1), 2);
 
 				auto &sel = DictionaryVector::SelVector(input.data[col_idx]);
 				for (idx_t i = 0; i < current_analysis_count; i++) {
