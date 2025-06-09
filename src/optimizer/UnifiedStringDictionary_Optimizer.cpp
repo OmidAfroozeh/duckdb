@@ -88,13 +88,10 @@ bool USSR_optimizer::useStrings(optional_ptr<LogicalOperator> op) {
 					return true;
 				}
 			}
-			for (auto &expr : join_op.expressions) {
-				if (expr->GetExpressionType() == ExpressionType::BOUND_COLUMN_REF) {
-					auto &bound_colref = expr->Cast<BoundColumnRefExpression>();
-					if (bound_colref.return_type == LogicalType::VARCHAR) {
+			for (auto &type : join_op.types) {
+					if (type == LogicalType::VARCHAR) {
 						return true;
 					}
-				}
 			}
 		}
 		break;
