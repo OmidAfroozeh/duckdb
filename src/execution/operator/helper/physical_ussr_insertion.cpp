@@ -19,10 +19,13 @@ public:
 	vector<idx_t> rows_seen_total;
 	vector<idx_t > inserted_so_far;
 	unordered_set<string> strs;
-	vector<vector<uint8_t>> inserted;
-	vector<vector<uint32_t>> count;
+//	vector<vector<uint8_t>> inserted;
+//	vector<vector<uint32_t>> count;
 	vector<string> current_dict_ids;
 	vector<idx_t> analysis_budget;
+	vector<array<uint8_t, 10000>> inserted;
+	vector<array<uint16_t, 10000>> count;
+
 };
 
 class USSRInsertionGState : public GlobalOperatorState {
@@ -60,42 +63,27 @@ OperatorResultType PhysicalUnifiedString::Execute(ExecutionContext &context, Dat
 			continue;
 		}
 
+		if(dict_size.GetIndex() > 10000){
+			continue;
+		}
+
 		auto ratio = dict_encoded_val_size.GetIndex() / dict_size.GetIndex();
 		// insert low-cardinality columns without sampling
-		if (dict_size.GetIndex() <= 100000000) {
+		if (dict_size.GetIndex() <= 1000) {
 			if (insert_to_ussr[col_idx] &&
 			    DictionaryVector::DictionaryId(input.data[col_idx]) != state.current_dict_ids[col_idx]) {
 				state.current_dict_ids[col_idx] = DictionaryVector::DictionaryId(input.data[col_idx]);
-				gstateussr.total_unique_values_seen.fetch_add(dict_size.GetIndex());
-				gstateussr.total_dictionaries_seen++;
-
 				USSR_insertion_loop(dict.GetData(), dict_size.GetIndex(), context.client, {}, dict_validity);
-//				Printer::Print(to_string(context.client.GetCurrentQueryUssr().candidates.load())+ " | "+ to_string(context.client.GetCurrentQueryUssr().accepted.load()));
-//
-//				Printer::Print("Ratio = "+ to_string((float)context.client.GetCurrentQueryUssr().candidates / (float)context.client.GetCurrentQueryUssr().accepted) );
-
 			}
 		} else {
 			if (insert_to_ussr[col_idx] &&
 			    DictionaryVector::DictionaryId(input.data[col_idx]) != state.current_dict_ids[col_idx]) {
 				state.inserted_so_far[col_idx]    = 0;          // reset skew statistics
 				state.rows_seen_total[col_idx]    = 0;
-//				Printer::Print(to_string(dict_size.GetIndex()) + " | " + to_string(ratio) + " | " + to_string(dict_encoded_val_size.GetIndex()));
-				gstateussr.total_unique_values_seen.fetch_add(dict_size.GetIndex());
-				gstateussr.total_dictionaries_seen++;
-				Printer::Print(to_string(gstateussr.total_unique_values_seen.load()));
-				if (dict_size.GetIndex() > state.inserted[col_idx].size()) {
-					state.inserted[col_idx].resize(dict_size.GetIndex(), false);   // one memset
-					state.count[col_idx].resize(dict_size.GetIndex(), 0);          // one memset
-				} else {
-					std::fill_n(state.inserted[col_idx].begin(), dict_size.GetIndex(), false);
-					std::fill_n(state.count[col_idx].begin(), dict_size.GetIndex(), 0);
-				}
 
-				idx_t sampling_rate = 20;
+				idx_t sampling_rate = 10;
 				idx_t sampling_count = (dict_encoded_val_size.GetIndex()  * sampling_rate) / 100;
 				state.analysis_budget[col_idx] = sampling_count;
-
 
 				idx_t current_analysis_count;
 				if(state.analysis_budget[col_idx] > input.size()){
@@ -107,6 +95,11 @@ OperatorResultType PhysicalUnifiedString::Execute(ExecutionContext &context, Dat
 					D_ASSERT(state.analysis_budget[col_idx] == 0);
 				}
 
+				// zero out the inserted and count arrays
+				memset(state.count[col_idx].data(), 0, dict_size.GetIndex() * sizeof(uint16_t));
+				memset(state.inserted[col_idx].data(), 0, dict_size.GetIndex());
+
+
 				idx_t &rows_seen   = state.rows_seen_total[col_idx];
 				rows_seen         += current_analysis_count;                   // add current batch size
 
@@ -116,11 +109,15 @@ OperatorResultType PhysicalUnifiedString::Execute(ExecutionContext &context, Dat
 
 
 				auto &sel = DictionaryVector::SelVector(input.data[col_idx]);
+				auto *sel_data = sel.data();
+
 				for (idx_t i = 0; i < current_analysis_count; i++) {
-					state.count[col_idx][sel.data()[i]]++;
+					state.count[col_idx][sel_data[i]]++;
 				}
 
 				vector<idx_t> priority_selection;
+				priority_selection.reserve(dict_size.GetIndex());
+
 				for (idx_t i = 1; i < dict_size.GetIndex(); i++) {
 					if (state.count[col_idx][i] >= (threshold)) {
 						priority_selection.push_back(i);
@@ -152,8 +149,10 @@ OperatorResultType PhysicalUnifiedString::Execute(ExecutionContext &context, Dat
 				idx_t threshold = std::max<idx_t >((rows_seen + dict_k) / (dict_k + 1), 2);
 
 				auto &sel = DictionaryVector::SelVector(input.data[col_idx]);
+				auto *sel_data = sel.data();
+
 				for (idx_t i = 0; i < current_analysis_count; i++) {
-					state.count[col_idx][sel.data()[i]]++;
+					state.count[col_idx][sel_data[i]]++;
 				}
 
 				vector<idx_t> priority_selection;
@@ -181,7 +180,7 @@ unique_ptr<OperatorState> PhysicalUnifiedString::GetOperatorState(ExecutionConte
 unique_ptr<GlobalOperatorState> PhysicalUnifiedString::GetGlobalOperatorState(ClientContext &context) const {
 	return make_uniq<USSRInsertionGState>(context);
 }
-//atomic<idx_t > counter{0};
+
 void PhysicalUnifiedString::USSR_insertion_loop(data_ptr_t dict_strings, idx_t count, ClientContext &context,
                                                 const vector<idx_t> &priority_insertion, ValidityMask &validity, bool exists_prio) const {
 	auto start = reinterpret_cast<string_t *>(dict_strings);
@@ -194,8 +193,6 @@ void PhysicalUnifiedString::USSR_insertion_loop(data_ptr_t dict_strings, idx_t c
 			start[i] = context.GetCurrentQueryUssr().insert(start[i]);
 		}
 	} else {
-//		Printer::Print(to_string(priority_insertion.size()));
-//		counter.fetch_add(priority_insertion.size());
 		for (auto string_idx : priority_insertion) {
 			if(!validity.RowIsValid(string_idx)){
 				continue;
