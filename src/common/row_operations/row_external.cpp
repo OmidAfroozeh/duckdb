@@ -35,13 +35,13 @@ void RowOperations::SwizzleColumns(const RowLayout &layout, const data_ptr_t bas
 			}
 			data_ptr_t col_ptr = row_ptr + layout.GetOffsets()[col_idx];
 			if (physical_type == PhysicalType::VARCHAR) {
-				string_t* string_ptr = reinterpret_cast<string_t *>(col_ptr);
+				data_ptr_t string_ptr = col_ptr + string_t::HEADER_SIZE;
 				for (idx_t i = 0; i < next; i++) {
-					if (!string_ptr->IsInlined()) {
-						if (!string_t::isInUnifiedStringDictionary(string_ptr->GetTaggedPointer())) {
+					if (Load<uint32_t>(col_ptr) > string_t::INLINE_LENGTH) {
+						if (!string_t::isInUnifiedStringDictionary(char_ptr_cast(string_ptr))) {
 							// Overwrite the string pointer with the within-row offset (if not inlined)
-							string_ptr->SetPointer(
-							    reinterpret_cast<char *>(const_data_ptr_cast(string_ptr->GetPointer()) - heap_row_ptrs[i]));
+							Store<idx_t>(UnsafeNumericCast<idx_t>(Load<data_ptr_t>(string_ptr) - heap_row_ptrs[i]),
+							             string_ptr);
 						}
 					}
 					col_ptr += row_width;
@@ -142,14 +142,12 @@ void RowOperations::UnswizzlePointers(const RowLayout &layout, const data_ptr_t 
 			}
 			data_ptr_t col_ptr = row_ptr + layout.GetOffsets()[col_idx];
 			if (physical_type == PhysicalType::VARCHAR) {
-				string_t* string_ptr = reinterpret_cast<string_t *>(col_ptr);
+				data_ptr_t string_ptr = col_ptr + string_t::HEADER_SIZE;
 				for (idx_t i = 0; i < next; i++) {
 					if (Load<uint32_t>(col_ptr) > string_t::INLINE_LENGTH) {
-						if (!string_t::isInUnifiedStringDictionary(string_ptr->GetTaggedPointer())) {
+						if (!string_t::isInUnifiedStringDictionary(char_ptr_cast(string_ptr))) {
 							// Overwrite the string offset with the pointer (if not inlined)
-//							Store<data_ptr_t>(heap_row_ptrs[i] + Load<idx_t>(string_ptr), string_ptr);
-							string_ptr->SetPointer(
-							    reinterpret_cast<char *>(reinterpret_cast<uint64_t >(string_ptr->GetPointer()) + heap_row_ptrs[i]));
+							Store<data_ptr_t>(heap_row_ptrs[i] + Load<idx_t>(string_ptr), string_ptr);
 						}
 						VerifyUnswizzledString(layout, col_idx, row_ptr + i * row_width);
 					}

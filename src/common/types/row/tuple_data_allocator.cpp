@@ -507,13 +507,14 @@ void TupleDataAllocator::RecomputeHeapPointers(Vector &old_heap_ptrs, const Sele
 				const auto &old_heap_ptr = old_heap_locations[old_heap_sel.get_index(idx)];
 				const auto &new_heap_ptr = new_heap_locations[new_heap_sel.get_index(idx)];
 
-				string_t * string_location = reinterpret_cast<string_t *>( row_location + col_offset);
-				if (!string_location->IsInlined()) {
-					if (!string_t::isInUnifiedStringDictionary(string_location->GetTaggedPointer())) {
-						const auto string_ptr = data_ptr_cast(string_location->GetPointer());
+				const auto string_location = row_location + col_offset;
+				if (Load<uint32_t>(string_location) > string_t::INLINE_LENGTH) {
+					const auto string_ptr_location = string_location + string_t::HEADER_SIZE;
+					if (!string_t::isInUnifiedStringDictionary(char_ptr_cast(string_ptr_location))) {
+						const auto string_ptr = Load<data_ptr_t>(string_ptr_location);
 						const auto diff = string_ptr - old_heap_ptr;
 						D_ASSERT(diff >= 0);
-						string_location->SetPointer(char_ptr_cast(new_heap_ptr + diff));
+						Store<data_ptr_t>(new_heap_ptr + diff, string_ptr_location);
 					}
 				}
 			}
@@ -588,9 +589,10 @@ void TupleDataAllocator::FindHeapPointers(TupleDataChunkState &chunk_state, Sele
 				ValidityBytes row_mask(row_location, layout.ColumnCount());
 				if (row_mask.RowIsValid(row_mask.GetValidityEntryUnsafe(entry_idx), idx_in_entry)) {
 #endif
-					string_t * string_location = reinterpret_cast<string_t *>( row_location + col_offset);
-					if (!string_location->IsInlined()) {
-						heap_locations[idx] = data_ptr_cast(string_location->GetPointer());
+					const auto string_location = row_location + col_offset;
+					if (Load<uint32_t>(string_location) > string_t::INLINE_LENGTH) {
+						const auto string_ptr_location = reinterpret_cast<uint64_t >(string_location + string_t::HEADER_SIZE) & string_t::POINTER_MASK;
+						heap_locations[idx] = Load<data_ptr_t>(reinterpret_cast<data_ptr_t>(string_ptr_location));
 						continue;
 					}
 #ifndef DUCKDB_DEBUG_NO_INLINE
