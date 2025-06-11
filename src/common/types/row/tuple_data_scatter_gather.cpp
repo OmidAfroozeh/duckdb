@@ -35,7 +35,7 @@ inline void TupleDataValueStore(const string_t &source, const data_ptr_t &row_lo
 	if (source.IsInlined()) {
 		Store<string_t>(source, row_location + offset_in_row);
 	} else {
-		if (string_t::isInUnifiedStringDictionary(data_ptr_cast(source.GetPointer()))) {
+		if (string_t::isInUnifiedStringDictionary(source.GetTaggedPointer())) {
 			Store<string_t>(source, row_location + offset_in_row);
 			return;
 		}
@@ -115,7 +115,7 @@ void TupleDataCollection::ComputeHeapSizes(TupleDataChunkState &chunk_state, con
 }
 
 static idx_t StringHeapSize(const string_t &val) {
-	if (val.IsInlined() || string_t::isInUnifiedStringDictionary(data_ptr_cast(val.GetPointer()))) {
+	if (val.IsInlined() || string_t::isInUnifiedStringDictionary(val.GetTaggedPointer())) {
 		return 0;
 	}
 

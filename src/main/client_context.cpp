@@ -46,6 +46,12 @@
 #include "duckdb/logging/log_type.hpp"
 
 #include "duckdb/common/stacktrace.hpp"
+#include <execinfo.h>
+#include <signal.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+
 
 namespace duckdb {
 
@@ -196,8 +202,8 @@ void ClientContext::segfault_handler(int t) {
 }
 
 void ClientContext::BeginQueryInternal(ClientContextLock &lock, const string &query) {
-//				signal(SIGSEGV, segfault_handler);
-//			    signal(SIGBUS, segfault_handler);
+				signal(SIGSEGV, segfault_handler);
+			    signal(SIGBUS, segfault_handler);
 	// check if we are on AutoCommit. In this case we should start a transaction
 	D_ASSERT(!active_query);
 	auto &db_inst = DatabaseInstance::GetDatabase(*this);

@@ -53,7 +53,7 @@ OperatorResultType PhysicalUnifiedString::Execute(ExecutionContext &context, Dat
 //		Printer::Print(dict_validity.ToString());
 		bool isParquet;
 		if(DictionaryVector::DictionaryId(input.data[col_idx])[0] == 'x'){
-			isParquet = true;
+			continue;
 		} else{
 			isParquet = false;
 		}
