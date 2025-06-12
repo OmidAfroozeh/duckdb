@@ -135,8 +135,12 @@ string_t UnifiedStringsDictionary::insertInternal(string_t str) {
 				//				accepted++;
 				// not sure if needed, maybe just be non-atomic store, just need to suppress TSan
 				(HT + HT_slot + prob_index)->store(newBucket, std::memory_order_release);
-				return string_t(const_char_ptr_cast(AddSalt(slot_ptr + STR_LENGTH_BYTES)),
-				                UnsafeNumericCast<uint32_t>(str.GetSize()));
+//				return string_t(const_char_ptr_cast(AddSalt(slot_ptr + STR_LENGTH_BYTES)),
+//				                UnsafeNumericCast<uint32_t>(str.GetSize()));
+				auto res_str = string_t(const_char_ptr_cast(slot_ptr + STR_LENGTH_BYTES),
+				                        UnsafeNumericCast<uint32_t>(str.GetSize()));
+				res_str.SetPointer(AddSalt(res_str.GetPointer()));
+				return res_str;
 			} else { // lost the race to dirty the bucket, check if the dirt = HT_salt, if so wait, else continue
 				     // probing
 				if (expected == ((HT_salt << slot_bits) | 1)) {
@@ -155,8 +159,11 @@ string_t UnifiedStringsDictionary::insertInternal(string_t str) {
 					if (materialized_str_length == str.GetSize() &&
 					    memcmp(slot_ptr + STR_LENGTH_BYTES, str.GetDataUnsafe(), str.GetSize()) == 0) {
 						//						already_in++;
-						return string_t(const_char_ptr_cast(AddSalt(slot_ptr + STR_LENGTH_BYTES)),
-						                UnsafeNumericCast<uint32_t>(materialized_str_length));
+						auto res_str = string_t(const_char_ptr_cast(slot_ptr + STR_LENGTH_BYTES),
+						                        UnsafeNumericCast<uint32_t>(materialized_str_length));
+						res_str.SetPointer(AddSalt(res_str.GetPointer()));
+						return res_str;
+
 					} else {
 						continue;
 					}
@@ -180,8 +187,10 @@ string_t UnifiedStringsDictionary::insertInternal(string_t str) {
 			if (materialized_str_length == str.GetSize() &&
 			    memcmp(slot_ptr + STR_LENGTH_BYTES, str.GetDataUnsafe(), str.GetSize()) == 0) {
 				//						already_in++;
-				return string_t(const_char_ptr_cast(AddSalt(slot_ptr + STR_LENGTH_BYTES)),
+				auto res_str = string_t(const_char_ptr_cast(slot_ptr + STR_LENGTH_BYTES),
 				                UnsafeNumericCast<uint32_t>(materialized_str_length));
+				res_str.SetPointer(AddSalt(res_str.GetPointer()));
+				return res_str;
 			} else {
 				continue;
 			}
@@ -191,8 +200,10 @@ string_t UnifiedStringsDictionary::insertInternal(string_t str) {
 			if (materialized_str_length == str.GetSize() &&
 			    memcmp(slot_ptr + STR_LENGTH_BYTES, str.GetDataUnsafe(), str.GetSize()) == 0) {
 				//				already_in++;
-				return string_t(const_char_ptr_cast(AddSalt(slot_ptr + STR_LENGTH_BYTES)),
-				                UnsafeNumericCast<uint32_t>(materialized_str_length));
+				auto res_str = string_t(const_char_ptr_cast(slot_ptr + STR_LENGTH_BYTES),
+				                        UnsafeNumericCast<uint32_t>(materialized_str_length));
+				res_str.SetPointer(AddSalt(res_str.GetPointer()));
+				return res_str;
 			} else {
 				continue;
 			}
@@ -209,13 +220,13 @@ UnifiedStringsDictionary::~UnifiedStringsDictionary() {
 	//				this->getStatistics();
 }
 
-data_ptr_t UnifiedStringsDictionary::AddSalt(data_ptr_t ptr) {
-//#ifndef DUCKDB_DISABLE_POINTER_SALT
-//	return reinterpret_cast<data_ptr_t>(reinterpret_cast<uint64_t>(ptr) |
-//	                                    string_t::UNIFIED_STRING_DICTIONARY_SALT_MASK);
-//#else
+char * UnifiedStringsDictionary::AddSalt(char * ptr) {
+#ifndef DUCKDB_DISABLE_POINTER_SALT
+	return reinterpret_cast<char *>(reinterpret_cast<uint64_t>(ptr) |
+	                                    string_t::UNIFIED_STRING_DICTIONARY_SALT_MASK);
+#else
 	return ptr;
-//#endif
+#endif
 }
 
 void UnifiedStringsDictionary::getStatistics() {
