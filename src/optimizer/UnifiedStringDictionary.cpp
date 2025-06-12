@@ -74,7 +74,6 @@ string_t UnifiedStringsDictionary::insert(string_t str) {
 	if (str.GetSize() <= 12 || str.GetSize() > MAX_STRING_LENGTH) {
 		return str;
 	}
-
 	return insertInternal(str);
 }
 
@@ -211,12 +210,12 @@ UnifiedStringsDictionary::~UnifiedStringsDictionary() {
 }
 
 data_ptr_t UnifiedStringsDictionary::AddSalt(data_ptr_t ptr) {
-#ifndef DUCKDB_DISABLE_POINTER_SALT
-	return reinterpret_cast<data_ptr_t>(reinterpret_cast<uint64_t>(ptr) |
-	                                    string_t::UNIFIED_STRING_DICTIONARY_SALT_MASK);
-#else
+//#ifndef DUCKDB_DISABLE_POINTER_SALT
+//	return reinterpret_cast<data_ptr_t>(reinterpret_cast<uint64_t>(ptr) |
+//	                                    string_t::UNIFIED_STRING_DICTIONARY_SALT_MASK);
+//#else
 	return ptr;
-#endif
+//#endif
 }
 
 void UnifiedStringsDictionary::getStatistics() {
