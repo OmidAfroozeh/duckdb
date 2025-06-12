@@ -57,7 +57,7 @@ static void ComputeStringEntrySizes(const UnifiedVectorFormat &col, idx_t entry_
 		auto col_idx = col.sel->get_index(idx) + offset;
 		const auto &str = data[col_idx];
 		if (col.validity.RowIsValid(col_idx) && !str.IsInlined() &&
-		    (!string_t::isInUnifiedStringDictionary(str.GetPointer()))) {
+		    (!string_t::isInUnifiedStringDictionary(str.GetTaggedPointer()))) {
 			entry_sizes[i] += str.GetSize();
 		}
 	}
