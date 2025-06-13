@@ -3228,7 +3228,6 @@ const StringUtil::EnumStringLiteral *GetPhysicalOperatorTypeValues() {
 		{ static_cast<uint32_t>(PhysicalOperatorType::UPDATE_EXTENSIONS), "UPDATE_EXTENSIONS" },
 	    { static_cast<uint32_t>(PhysicalOperatorType::UNIFIED_STRINGS), "UNIFIED_STRINGS" },
 		{ static_cast<uint32_t>(PhysicalOperatorType::CREATE_SECRET), "CREATE_SECRET" },
-
 	};
 	return values;
 }
