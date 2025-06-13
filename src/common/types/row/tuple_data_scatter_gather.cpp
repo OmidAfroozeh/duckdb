@@ -118,7 +118,6 @@ static idx_t StringHeapSize(const string_t &val) {
 	if (val.IsInlined() || string_t::isInUnifiedStringDictionary(val.GetTaggedPointer())) {
 		return 0;
 	}
-
 	return val.GetSize();
 }
 

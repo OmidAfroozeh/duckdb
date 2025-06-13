@@ -40,7 +40,7 @@ public:
 	//! The names of the result
 	vector<string> names;
 
-	unique_ptr<UnifiedStringsDictionary> ussr;
+	unique_ptr<UnifiedStringsDictionary> UnifiedStringDictionary;
 
 public:
 	[[noreturn]] DUCKDB_API void ThrowError(const string &prepended_message = "") const;

@@ -157,10 +157,10 @@ hash_t Hash(uint8_t *val, size_t size) {
 hash_t string_hash(string_t val) {
 	if (!val.IsInlined() &&
 	    (reinterpret_cast<uint64_t>(val.GetTaggedPointer()) & string_t::UNIFIED_STRING_DICTIONARY_SALT_MASK)) {
+//				string_t::StringComparisonOperators::faster_hash++;
 		return *(reinterpret_cast<uint64_t *>(data_ptr_cast(val.GetPointer()) -
-		                                      (8 + UnifiedStringsDictionary::STR_LENGTH_BYTES)));
+		                                      (sizeof(hash_t) + UnifiedStringsDictionary::STR_LENGTH_BYTES)));
 	}
 	return Hash(val);
 }
-
 } // namespace duckdb
