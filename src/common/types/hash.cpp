@@ -162,5 +162,4 @@ hash_t string_hash(string_t val) {
 	}
 	return Hash(val);
 }
-
 } // namespace duckdb

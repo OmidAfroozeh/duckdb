@@ -72,7 +72,7 @@ public:
 
 	string_t insert(string_t str);
 
-	char * AddSalt(char * ptr);
+	char *AddSalt(char *ptr);
 
 private:
 	string_t insertInternal(string_t str);

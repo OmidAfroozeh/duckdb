@@ -52,7 +52,6 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-
 namespace duckdb {
 
 struct ActiveQueryContext {
@@ -202,8 +201,8 @@ void ClientContext::segfault_handler(int t) {
 }
 
 void ClientContext::BeginQueryInternal(ClientContextLock &lock, const string &query) {
-				signal(SIGSEGV, segfault_handler);
-			    signal(SIGBUS, segfault_handler);
+	signal(SIGSEGV, segfault_handler);
+	signal(SIGBUS, segfault_handler);
 	// check if we are on AutoCommit. In this case we should start a transaction
 	D_ASSERT(!active_query);
 	auto &db_inst = DatabaseInstance::GetDatabase(*this);
@@ -274,6 +273,7 @@ ErrorData ClientContext::EndQueryInternal(ClientContextLock &lock, bool success,
 	} catch (...) { // LCOV_EXCL_START
 		error = ErrorData("Unhandled exception!");
 	} // LCOV_EXCL_STOP
+	client_data->profiler->EndQuery();
 
 	// Refresh the logger
 	logger->Flush();

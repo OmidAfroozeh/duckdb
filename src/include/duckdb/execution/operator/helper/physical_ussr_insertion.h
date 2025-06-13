@@ -11,8 +11,8 @@ public:
 	static constexpr const PhysicalOperatorType TYPE = PhysicalOperatorType::UNIFIED_STRINGS;
 
 public:
-	PhysicalUnifiedString(vector<LogicalType> types, vector<bool> insert_to_ussr, idx_t estimated_cardinality)
-	    : PhysicalOperator(TYPE, std::move(types), estimated_cardinality) {
+	PhysicalUnifiedString(PhysicalPlan &physical_plan, vector<LogicalType> types, vector<bool> insert_to_ussr, idx_t estimated_cardinality)
+	    : PhysicalOperator(physical_plan, TYPE, std::move(types), estimated_cardinality) {
 		this->insert_to_ussr = std::move(insert_to_ussr);
 	};
 

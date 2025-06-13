@@ -30,7 +30,6 @@ public:
 	static constexpr idx_t MAX_STRING_SIZE = NumericLimits<uint32_t>::Maximum();
 	static constexpr const idx_t UNIFIED_STRING_DICTIONARY_SALT_MASK = 0x8000000000000000;
 	static constexpr const idx_t POINTER_MASK = 0x0000FFFFFFFFFFFF;
-
 #ifndef DUCKDB_DEBUG_NO_INLINE
 	static constexpr idx_t PREFIX_LENGTH = PREFIX_BYTES;
 	static constexpr idx_t INLINE_LENGTH = INLINE_BYTES;
@@ -78,14 +77,18 @@ public:
 	}
 
 	const char *GetData() const {
-		return IsInlined() ? const_char_ptr_cast(value.inlined.inlined) : reinterpret_cast<const char *>(reinterpret_cast<uint64_t>(value.pointer.ptr) & POINTER_MASK);
+		return IsInlined()
+		           ? const_char_ptr_cast(value.inlined.inlined)
+		           : reinterpret_cast<const char *>(reinterpret_cast<uint64_t>(value.pointer.ptr) & POINTER_MASK);
 	}
 	const char *GetDataUnsafe() const {
 		return GetData();
 	}
 
 	char *GetDataWriteable() const {
-		return IsInlined() ? (char *)value.inlined.inlined : reinterpret_cast<char *>(reinterpret_cast<uint64_t>(value.pointer.ptr) & POINTER_MASK); // NOLINT
+		return IsInlined()
+		           ? (char *)value.inlined.inlined
+		           : reinterpret_cast<char *>(reinterpret_cast<uint64_t>(value.pointer.ptr) & POINTER_MASK); // NOLINT
 	}
 
 	const char *GetPrefix() const {
@@ -133,7 +136,7 @@ public:
 		value.pointer.ptr = new_ptr;
 	}
 
-	static bool isInUnifiedStringDictionary(char * ptr) {
+	static bool isInUnifiedStringDictionary(char *ptr) {
 		return reinterpret_cast<uint64_t>(ptr) & UNIFIED_STRING_DICTIONARY_SALT_MASK;
 	}
 

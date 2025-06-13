@@ -135,8 +135,8 @@ string_t UnifiedStringsDictionary::insertInternal(string_t str) {
 				//				accepted++;
 				// not sure if needed, maybe just be non-atomic store, just need to suppress TSan
 				(HT + HT_slot + prob_index)->store(newBucket, std::memory_order_release);
-//				return string_t(const_char_ptr_cast(AddSalt(slot_ptr + STR_LENGTH_BYTES)),
-//				                UnsafeNumericCast<uint32_t>(str.GetSize()));
+				//				return string_t(const_char_ptr_cast(AddSalt(slot_ptr + STR_LENGTH_BYTES)),
+				//				                UnsafeNumericCast<uint32_t>(str.GetSize()));
 				auto res_str = string_t(const_char_ptr_cast(slot_ptr + STR_LENGTH_BYTES),
 				                        UnsafeNumericCast<uint32_t>(str.GetSize()));
 				res_str.SetPointer(AddSalt(res_str.GetPointer()));
@@ -188,7 +188,7 @@ string_t UnifiedStringsDictionary::insertInternal(string_t str) {
 			    memcmp(slot_ptr + STR_LENGTH_BYTES, str.GetDataUnsafe(), str.GetSize()) == 0) {
 				//						already_in++;
 				auto res_str = string_t(const_char_ptr_cast(slot_ptr + STR_LENGTH_BYTES),
-				                UnsafeNumericCast<uint32_t>(materialized_str_length));
+				                        UnsafeNumericCast<uint32_t>(materialized_str_length));
 				res_str.SetPointer(AddSalt(res_str.GetPointer()));
 				return res_str;
 			} else {
@@ -220,10 +220,9 @@ UnifiedStringsDictionary::~UnifiedStringsDictionary() {
 	//				this->getStatistics();
 }
 
-char * UnifiedStringsDictionary::AddSalt(char * ptr) {
+char *UnifiedStringsDictionary::AddSalt(char *ptr) {
 #ifndef DUCKDB_DISABLE_POINTER_SALT
-	return reinterpret_cast<char *>(reinterpret_cast<uint64_t>(ptr) |
-	                                    string_t::UNIFIED_STRING_DICTIONARY_SALT_MASK);
+	return reinterpret_cast<char *>(reinterpret_cast<uint64_t>(ptr) | string_t::UNIFIED_STRING_DICTIONARY_SALT_MASK);
 #else
 	return ptr;
 #endif

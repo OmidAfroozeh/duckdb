@@ -90,7 +90,7 @@ bool USSR_optimizer::useStrings(optional_ptr<LogicalOperator> op) {
 			}
 			for (auto &type : join_op.types) {
 				if (type == LogicalType::VARCHAR) {
-						return true;
+					return true;
 				}
 			}
 		}
