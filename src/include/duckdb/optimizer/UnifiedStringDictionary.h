@@ -11,12 +11,24 @@
 
 namespace duckdb {
 
-// Singleton
+enum class InsertResult {
+	// string is inserted for the first time
+	SUCCESS,
+	// string already exists and is returned
+	ALREADY_EXISTS,
+	// insertion failure, maximum capacity for new strings
+	REJECTED_FULL,
+	// insertion failure, going over the probing limit
+	REJECTED_PROBING,
+	// string not suitable for dictionary due to its size
+	INVALID
+};
+
 class UnifiedStringsDictionary {
 public:
 	static constexpr const uint64_t ATTEMPT_THRESHOLD = 1000;
 
-	static constexpr const uint64_t MAX_STRING_LENGTH = 255;
+	static constexpr const uint64_t MAX_STRING_LENGTH = 512;
 
 	static constexpr const uint64_t BUFFER_SIZE = static_cast<uint64_t>(1024 * 1024);
 
@@ -31,7 +43,7 @@ public:
 	static constexpr const uint64_t HT_BUCKET_SIZE = 4;
 	idx_t HT_SIZE;
 
-	static constexpr const idx_t PROBING_LIMIT = 16;
+	static constexpr const idx_t PROBING_LIMIT = 32;
 
 	idx_t slot_bits = 16;
 	uint64_t slot_mask;
@@ -40,6 +52,8 @@ public:
 	idx_t required_bits = 19;
 
 	static constexpr const idx_t STR_LENGTH_BYTES = 2;
+
+	idx_t UnifiedStringDictionarySize;
 
 private:
 	// Overarching USSR buffer, contains DataRegion + HT + extra, 1MB size
@@ -64,20 +78,26 @@ private:
 	atomic<uint64_t> nRejections_SizeFull;
 	atomic<uint64_t> nRejections_Probing;
 
+	idx_t failed_attempt;
+
+	static constexpr const idx_t HT_DIRTY_SENTINEL = 1;
+
 public:
-	UnifiedStringsDictionary();
 	UnifiedStringsDictionary(idx_t size);
 
 	~UnifiedStringsDictionary();
 
-	string_t insert(string_t str);
+	void UpdateFailedAttempts(idx_t n_failed);
 
-	char *AddSalt(char *ptr);
+	InsertResult insert(string_t &str);
 
 private:
-	string_t insertInternal(string_t str);
+	bool WaitForSlotResolution(uint32_t *HT_bucket_ptr);
 
+	char *AddTag(char *ptr);
 	void getStatistics();
+	bool CheckEqualityAndUpdatePtr(string_t &str, idx_t bucket_idx);
+	bool WaitUntilSlotResolves(idx_t bucket_idx);
 };
 
 } // namespace duckdb

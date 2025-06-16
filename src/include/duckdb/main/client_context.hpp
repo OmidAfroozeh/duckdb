@@ -72,8 +72,6 @@ class ClientContext : public enable_shared_from_this<ClientContext> {
 	friend class ConnectionManager;
 
 public:
-	static void segfault_handler(int s);
-
 	DUCKDB_API explicit ClientContext(shared_ptr<DatabaseInstance> db);
 	DUCKDB_API ~ClientContext();
 
@@ -92,9 +90,11 @@ public:
 	//! Data for the currently running transaction
 	TransactionContext transaction;
 
-	unique_ptr<UnifiedStringsDictionary> ussr;
+	unique_ptr<UnifiedStringsDictionary> UnifiedStringDictionary;
 
 public:
+	static void segfault_handler(int s);
+
 	MetaTransaction &ActiveTransaction() {
 		return transaction.ActiveTransaction();
 	}
@@ -212,7 +212,7 @@ public:
 	//! Returns the current query string (if any)
 	const string &GetCurrentQuery();
 
-	UnifiedStringsDictionary &GetCurrentQueryUssr();
+	UnifiedStringsDictionary &GetUnifiedStringDictionary();
 
 	connection_t GetConnectionId() const;
 

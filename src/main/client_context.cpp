@@ -44,7 +44,6 @@
 #include "duckdb/transaction/transaction_context.hpp"
 #include "duckdb/transaction/transaction_manager.hpp"
 #include "duckdb/logging/log_type.hpp"
-
 #include "duckdb/common/stacktrace.hpp"
 #include <execinfo.h>
 #include <signal.h>
@@ -53,7 +52,10 @@
 #include <unistd.h>
 
 namespace duckdb {
-
+void ClientContext::segfault_handler(int t) {
+	Printer::Print(StackTrace::GetStackTrace());
+	exit(1);
+}
 struct ActiveQueryContext {
 public:
 	//! The query that is currently being executed
@@ -195,11 +197,6 @@ unique_ptr<T> ClientContext::ErrorResult(ErrorData error, const string &query) {
 	return make_uniq<T>(std::move(error));
 }
 
-void ClientContext::segfault_handler(int t) {
-	Printer::Print(StackTrace::GetStackTrace());
-	exit(1);
-}
-
 void ClientContext::BeginQueryInternal(ClientContextLock &lock, const string &query) {
 	signal(SIGSEGV, segfault_handler);
 	signal(SIGBUS, segfault_handler);
@@ -217,7 +214,7 @@ void ClientContext::BeginQueryInternal(ClientContextLock &lock, const string &qu
 	transaction.SetActiveQuery(db->GetDatabaseManager().GetNewQueryNumber());
 	LogQueryInternal(lock, query);
 	active_query->query = query;
-	ussr = make_uniq<UnifiedStringsDictionary>(1ull);
+	UnifiedStringDictionary = make_uniq<UnifiedStringsDictionary>(0ull);
 
 	query_progress.Initialize();
 	// Notify any registered state of query begin
@@ -239,14 +236,11 @@ void ClientContext::BeginQueryInternal(ClientContextLock &lock, const string &qu
 
 ErrorData ClientContext::EndQueryInternal(ClientContextLock &lock, bool success, bool invalidate_transaction,
                                           optional_ptr<ErrorData> previous_error) {
-	//	Printer::Print(to_string(string_t::StringComparisonOperators::eq_check_counter));
-	client_data->profiler->EndQuery();
 	if (active_query->executor) {
 		active_query->executor->CancelTasks();
 	}
 	active_query->progress_bar.reset();
 	D_ASSERT(active_query.get());
-	//	active_query->ussr.reset();
 	active_query.reset();
 	query_progress.Initialize();
 	ErrorData error;
@@ -275,6 +269,8 @@ ErrorData ClientContext::EndQueryInternal(ClientContextLock &lock, bool success,
 	} // LCOV_EXCL_STOP
 	client_data->profiler->EndQuery();
 
+	client_data->profiler->EndQuery();
+
 	// Refresh the logger
 	logger->Flush();
 	LoggingContext context(LogContextScope::CONNECTION);
@@ -289,9 +285,6 @@ ErrorData ClientContext::EndQueryInternal(ClientContextLock &lock, bool success,
 			s->QueryEnd(*this, previous_error);
 		}
 	}
-
-	//	UnifiedStringsDictionary::destroy_UnifiedStrings();
-
 	return error;
 }
 
@@ -336,9 +329,9 @@ const string &ClientContext::GetCurrentQuery() {
 	return active_query->query;
 }
 
-UnifiedStringsDictionary &ClientContext::GetCurrentQueryUssr() {
+UnifiedStringsDictionary &ClientContext::GetUnifiedStringDictionary() {
 	D_ASSERT(active_query);
-	return *(ussr);
+	return *(UnifiedStringDictionary);
 }
 
 connection_t ClientContext::GetConnectionId() const {

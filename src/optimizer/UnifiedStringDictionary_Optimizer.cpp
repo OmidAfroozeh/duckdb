@@ -11,13 +11,16 @@ unique_ptr<LogicalOperator> USSR_optimizer::CheckUnifiedDictionary(unique_ptr<Lo
 	for (auto &ds : chosen_data_sources) {
 		Insert_USSR_Operator(ds);
 	}
+	if(!chosen_data_sources.empty()){
+		optimizer->context.UnifiedStringDictionary.reset();
+		optimizer->context.UnifiedStringDictionary = make_uniq<UnifiedStringsDictionary>(1ull);
+	}
 	return op;
 }
 
 void USSR_optimizer::Insert_USSR_Operator(optional_ptr<LogicalOperator> op) {
 	for (idx_t i = 0; i < op->children.size(); ++i) {
 		vector<bool> ussr_insert_vec;
-		//		D_ASSERT(op->children[i]->type == LogicalOperatorType::LOGICAL_GET);
 		for (auto &type : op->children[i]->types) {
 			if (type == LogicalType::VARCHAR) {
 				ussr_insert_vec.push_back(true);
@@ -137,18 +140,6 @@ unique_ptr<LogicalOperator> USSR_optimizer::Rewrite(unique_ptr<LogicalOperator> 
 			choose_operator();
 		}
 	}
-
-	// if you don't output VARCHAR columns, clear the candidates vector
-	//	bool clear_candidates = true;
-	//	for (auto &type : op->types) {
-	//		if(type == LogicalType::VARCHAR){
-	//			clear_candidates = false;
-	//			break;
-	//		}
-	//	}
-	//	if(clear_candidates){
-	//		candidate_data_sources.clear();
-	//	}
 	return op;
 }
 

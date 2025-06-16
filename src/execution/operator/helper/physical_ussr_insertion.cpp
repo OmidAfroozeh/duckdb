@@ -8,116 +8,105 @@ public:
 	explicit USSRInsertionState(ExecutionContext &context, idx_t cols) {
 		for (idx_t i = 0; i < cols; ++i) {
 			current_dict_ids.push_back("");
-			inserted.push_back({});
-			count.push_back({});
-			analysis_budget.push_back(0);
-			current_analysis_count.push_back(0);
 		}
 	}
-	unordered_set<string> strs;
-	vector<vector<uint8_t>> inserted;
-	vector<vector<uint16_t>> count;
 	vector<string> current_dict_ids;
-	vector<idx_t> analysis_budget;
-	vector<idx_t> current_analysis_count;
+	idx_t n_success = 0;
+	idx_t n_already_exists = 0;
+	idx_t n_rejected_full = 0;
+	idx_t n_rejected_probing = 0;
+	idx_t n_invalid = 0;
 };
 
 class USSRInsertionGState : public GlobalOperatorState {
 public:
-	explicit USSRInsertionGState(ClientContext &context) {
-		analyzing_budget = 100;
+	explicit USSRInsertionGState(ClientContext &context, idx_t cols) {
+		for (idx_t i = 0; i < cols; ++i) {
+			inserted_unique_strings.push_back(0);
+			unique_strings_in_unified_dictionary_per_column.push_back(0);
+			inserted_dictionaries.push_back(0);
+			is_high_cardinality.push_back(false);
+		}
 	}
-
-	mutex budget_lock;
-	idx_t analyzing_budget;
-	vector<optional_ptr<DataChunk>> cached;
+	mutex statistics_lock;
+	vector<bool> is_high_cardinality;
+	vector<idx_t> inserted_unique_strings;
+	vector<idx_t> unique_strings_in_unified_dictionary_per_column;
+	vector<idx_t> inserted_dictionaries;
 };
 
 OperatorResultType PhysicalUnifiedString::Execute(ExecutionContext &context, DataChunk &input, DataChunk &chunk,
                                                   GlobalOperatorState &gstate, OperatorState &state_p) const {
 	auto &state = state_p.Cast<USSRInsertionState>();
-	//	auto &gstateussr = gstate.Cast<USSRInsertionGState>();
+	auto &global_state = gstate.Cast<USSRInsertionGState>();
 	for (idx_t col_idx = 0; col_idx < input.data.size(); ++col_idx) {
 		if (input.data[col_idx].GetVectorType() != VectorType::DICTIONARY_VECTOR ||
 		    input.data[col_idx].GetType() != LogicalType::VARCHAR) {
 			continue;
 		}
-		// no selection vector analysis
 		auto &dict = DictionaryVector::Child(input.data[col_idx]);
 		auto size = DictionaryVector::DictionarySize(input.data[col_idx]);
-		//		auto &dict_id = DictionaryVector::DictionaryId(input.data[col_idx]);
 		if (!size.IsValid()) {
 			continue;
 		}
 		auto dict_validity = FlatVector::Validity(dict);
-		//		Printer::Print(dict_validity.ToString());
-		bool isParquet;
 		if (DictionaryVector::DictionaryId(input.data[col_idx])[0] == 'x') {
 			continue;
-		} else {
-			isParquet = false;
 		}
 
-		if (size.GetIndex() <= 500000000) {
-			if (insert_to_ussr[col_idx] &&
-			    DictionaryVector::DictionaryId(input.data[col_idx]) != state.current_dict_ids[col_idx]) {
-				state.current_dict_ids[col_idx] = DictionaryVector::DictionaryId(input.data[col_idx]);
-				USSR_insertion_loop(dict.GetData(), size.GetIndex(), context.client, dict_validity, {}, isParquet,
-				                    false);
+		if (insert_to_ussr[col_idx] && !global_state.is_high_cardinality[col_idx] &&
+		    DictionaryVector::DictionaryId(input.data[col_idx]) != state.current_dict_ids[col_idx]) {
+			auto start = reinterpret_cast<string_t *>(dict.GetData());
+			for (idx_t i = 0; i < size.GetIndex(); i++) {
+				if (!dict_validity.RowIsValid(i)) {
+					continue;
+				}
+				auto result = context.client.GetUnifiedStringDictionary().insert(start[i]);
+				// process the results, we use the statistics to determine the unique cardinality of the column
+				switch (result) {
+				case InsertResult::SUCCESS:
+					++state.n_success;
+					break;
+				case InsertResult::ALREADY_EXISTS:
+					++state.n_already_exists;
+					break;
+				case InsertResult::REJECTED_PROBING:
+					++state.n_rejected_probing;
+					break;
+				case InsertResult::REJECTED_FULL:
+					++state.n_rejected_full;
+					break;
+				default:
+					break;
+				}
 			}
-		} else {
-			if (insert_to_ussr[col_idx] &&
-			    DictionaryVector::DictionaryId(input.data[col_idx]) != state.current_dict_ids[col_idx]) {
+			// update local and global states
+			state.current_dict_ids[col_idx] = DictionaryVector::DictionaryId(input.data[col_idx]);
+			unique_lock<mutex> lock(global_state.statistics_lock);
+			global_state.inserted_unique_strings[col_idx] += size.GetIndex();
+			global_state.unique_strings_in_unified_dictionary_per_column[col_idx] += state.n_success;
+			global_state.inserted_dictionaries[col_idx]++;
+			lock.unlock();
 
-				// initialize the local state
-				state.inserted[col_idx].clear();
-				state.count[col_idx].clear();
-				state.inserted[col_idx].reserve(size.GetIndex());
-				state.count[col_idx].reserve(size.GetIndex());
-				for (idx_t i = 0; i < size.GetIndex(); i++) {
-					state.inserted[col_idx].push_back(false);
-					state.count[col_idx].push_back(0);
-				}
-				state.analysis_budget[col_idx] = 5;
-				state.current_analysis_count[col_idx] = 1;
-				auto &sel = DictionaryVector::SelVector(input.data[col_idx]);
-				for (idx_t i = 0; i < input.size(); i++) {
-					state.count[col_idx][sel.data()[i]]++;
-				}
+			constexpr double TOTAL_GROWTH_THRESHOLD = 0.1;
+			const idx_t MIN_STRING_SEEN = 10000;
 
-				vector<idx_t> priority_selection;
-				for (idx_t i = 1; i < state.count[col_idx].size(); i++) {
-					if (state.count[col_idx][i] > (25 * state.current_analysis_count[col_idx])) {
-						priority_selection.push_back(i);
-						state.inserted[col_idx][i] = true;
-					}
-				}
+			if (global_state.inserted_unique_strings[col_idx] > MIN_STRING_SEEN) {
+				auto avg_growth =
+				    static_cast<double>(global_state.unique_strings_in_unified_dictionary_per_column[col_idx]) /
+				    static_cast<double>(global_state.inserted_unique_strings[col_idx]);
 
-				state.current_dict_ids[col_idx] = DictionaryVector::DictionaryId(input.data[col_idx]);
-				USSR_insertion_loop(dict.GetData(), size.GetIndex(), context.client, dict_validity, priority_selection,
-				                    isParquet, true);
-			} else if (insert_to_ussr[col_idx] &&
-			           DictionaryVector::DictionaryId(input.data[col_idx]) == state.current_dict_ids[col_idx] &&
-			           state.current_analysis_count[col_idx] <= state.analysis_budget[col_idx]) {
-				state.current_analysis_count[col_idx]++;
-				//				Printer::Print(to_string(++vec_counter));
-
-				auto &sel = DictionaryVector::SelVector(input.data[col_idx]);
-				for (idx_t i = 0; i < input.size(); i++) {
-					state.count[col_idx][sel.data()[i]]++;
+				if (avg_growth > TOTAL_GROWTH_THRESHOLD) {
+					global_state.is_high_cardinality[col_idx] = true;
 				}
-
-				vector<idx_t> priority_selection;
-				for (idx_t i = 1; i < state.count[col_idx].size(); ++i) {
-					if (state.count[col_idx][i] > (27 * state.current_analysis_count[col_idx]) &&
-					    !state.inserted[col_idx][i]) {
-						priority_selection.push_back(i);
-						state.inserted[col_idx][i] = true;
-					}
-				}
-				USSR_insertion_loop(dict.GetData(), size.GetIndex(), context.client, dict_validity, priority_selection,
-				                    isParquet, true);
 			}
+
+			context.client.GetUnifiedStringDictionary().UpdateFailedAttempts(state.n_rejected_probing + state.n_rejected_full);
+
+			state.n_success = 0;
+			state.n_rejected_full = 0;
+			state.n_rejected_probing = 0;
+			state.n_already_exists = 0;
 		}
 	}
 	chunk.Reference(input);
@@ -129,28 +118,7 @@ unique_ptr<OperatorState> PhysicalUnifiedString::GetOperatorState(ExecutionConte
 }
 
 unique_ptr<GlobalOperatorState> PhysicalUnifiedString::GetGlobalOperatorState(ClientContext &context) const {
-	return make_uniq<USSRInsertionGState>(context);
-}
-
-void PhysicalUnifiedString::USSR_insertion_loop(data_ptr_t dict_strings, idx_t count, ClientContext &context,
-                                                ValidityMask &validity, const vector<idx_t> &priority_insertion,
-                                                bool isParquet, bool exists_prio) const {
-	auto start = reinterpret_cast<string_t *>(dict_strings);
-	if (priority_insertion.empty() && !exists_prio) {
-		for (idx_t i = 0; i < count; i++) {
-			if (!validity.RowIsValid(i)) {
-				continue;
-			}
-			start[i] = context.GetCurrentQueryUssr().insert(start[i]);
-		}
-	} else {
-		for (auto string_idx : priority_insertion) {
-			if (!validity.RowIsValid(string_idx)) {
-				continue;
-			}
-			start[string_idx] = context.GetCurrentQueryUssr().insert(start[string_idx]);
-		}
-	}
+	return make_uniq<USSRInsertionGState>(context, insert_to_ussr.size());
 }
 
 } // namespace duckdb
