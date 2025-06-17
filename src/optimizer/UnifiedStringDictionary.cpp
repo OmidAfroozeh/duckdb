@@ -21,43 +21,50 @@ UnifiedStringsDictionary::UnifiedStringsDictionary(idx_t size) {
 	required_bits += extra_bits;
 	slot_bits += extra_bits;
 
-	USSR_MASK = ~((1ULL << (required_bits)) - 1);
 	USSR_SIZE = size * 65536;
 	HT_SIZE = USSR_SIZE;
 
 	slot_mask = (1ULL << (slot_bits)) - 1ULL;
 	salt_mask = ~slot_mask;
 
-	buffer = make_unsafe_uniq_array_uninitialized<data_t>((size)*BUFFER_SIZE);
-	USSR_prefix = cast_pointer_to_uint64(buffer.get() + USSR_SIZE * USSR_SLOT_SIZE) & USSR_MASK;
+	buffer = make_unsafe_uniq_array_uninitialized<data_t>(USSR_SIZE * USSR_SLOT_SIZE + HT_SIZE * HT_BUCKET_SIZE);
+	HT = reinterpret_cast<atomic<uint32_t >*> (buffer.get());
+	DataRegion = reinterpret_cast<uint64_t *>(buffer.get() + HT_SIZE * HT_BUCKET_SIZE);
+//	auto raw_base = cast_pointer_to_uint64(buffer.get());
+//	auto data_region_start =
+//	    (raw_base + USSR_SIZE * USSR_SLOT_SIZE + ((1ULL << required_bits) - 1)) & USSR_MASK; // round **up**
+//
+//	DataRegion   = reinterpret_cast<uint64_t *>(data_region_start);
 
-	DataRegion = reinterpret_cast<uint64_t *>(USSR_prefix);
+//	USSR_prefix = cast_pointer_to_uint64(buffer.get() + USSR_SIZE * USSR_SLOT_SIZE) & USSR_MASK;
+//
+//	DataRegion = reinterpret_cast<uint64_t *>(USSR_prefix);
 
-	// Double check that the DataRegion is contained within the buffer
-	D_ASSERT(cast_pointer_to_uint64(buffer.get()) < cast_pointer_to_uint64(DataRegion));
-	D_ASSERT(cast_pointer_to_uint64(DataRegion) < cast_pointer_to_uint64(buffer.get()) + size * BUFFER_SIZE);
-	D_ASSERT(cast_pointer_to_uint64(DataRegion) + USSR_SIZE * USSR_SLOT_SIZE <=
-	         cast_pointer_to_uint64(buffer.get()) + size * BUFFER_SIZE);
+//	// Double check that the DataRegion is contained within the buffer
+//	D_ASSERT(cast_pointer_to_uint64(buffer.get()) < cast_pointer_to_uint64(DataRegion));
+//	D_ASSERT(cast_pointer_to_uint64(DataRegion) < cast_pointer_to_uint64(buffer.get()) + size * BUFFER_SIZE);
+//	D_ASSERT(cast_pointer_to_uint64(DataRegion) + USSR_SIZE * USSR_SLOT_SIZE <=
+//	         cast_pointer_to_uint64(buffer.get()) + size * BUFFER_SIZE);
 
-	data_ptr_t HT_address;
-	// The hash table can be either before or after the data region
-	if (USSR_prefix - cast_pointer_to_uint64(buffer.get()) >= HT_SIZE * HT_BUCKET_SIZE) {
-		HT_address = buffer.get();
-	} else {
-		HT_address = cast_uint64_to_pointer(USSR_prefix) + USSR_SIZE * USSR_SLOT_SIZE;
-	}
-
-	//	const auto buffer_start = cast_pointer_to_uint64(buffer.get());
-	//	const auto buffer_end   = buffer_start + size * BUFFER_SIZE;
-	//	const auto ht_start     = cast_pointer_to_uint64(HT_address);
-	//	const auto ht_end       = ht_start + HT_SIZE * HT_BUCKET_SIZE;
-	//
-	//	D_ASSERT(ht_start >= buffer_start);          // HT begins inside the buffer
+//	data_ptr_t HT_address;
+//	// The hash table can be either before or after the data region
+//	if (USSR_prefix - cast_pointer_to_uint64(buffer.get()) >= HT_SIZE * HT_BUCKET_SIZE) {
+//		HT_address = buffer.get();
+//	} else {
+//		HT_address = cast_uint64_to_pointer(USSR_prefix) + USSR_SIZE * USSR_SLOT_SIZE;
+//	}
+//
+//		const auto buffer_start = cast_pointer_to_uint64(buffer.get());
+//		const auto buffer_end   = buffer_start + size * BUFFER_SIZE;
+//		const auto ht_start     = cast_pointer_to_uint64(HT_address);
+//		const auto ht_end       = ht_start + HT_SIZE * HT_BUCKET_SIZE;
+//	//
+//	//	D_ASSERT(ht_start >= buffer_start);          // HT begins inside the buffer
 	//	D_ASSERT(ht_end   <= buffer_end);            // HT ends   inside the buffer
 	// We zero the hashtable, since we need an indicator if a bucket as been filled or not
-	memset(HT_address, '\0', HT_SIZE * HT_BUCKET_SIZE);
-
-	HT = reinterpret_cast<atomic<uint32_t> *>(HT_address);
+	memset(buffer.get(), '\0', HT_SIZE * HT_BUCKET_SIZE);
+//	Printer::Print(to_string(reinterpret_cast<uint64_t >(HT_address)));
+//	HT = reinterpret_cast<atomic<uint32_t> *>(HT_address);
 
 	currentEmptySlot.store(2);
 
@@ -119,10 +126,8 @@ InsertResult UnifiedStringsDictionary::insert(string_t &str) {
 		if (bucket_index + i >= USSR_SIZE) {
 			prob_index = (bucket_index + i) % USSR_SIZE;
 		}
-
 		uint32_t HT_bucket = HT[bucket_index + prob_index].load(std::memory_order_acquire);
 		uint32_t HT_bucket_salt = HT_bucket >> slot_bits;
-
 		if (HT_bucket == 0) {
 			// dirty the bucket
 			uint32_t expected = 0;
