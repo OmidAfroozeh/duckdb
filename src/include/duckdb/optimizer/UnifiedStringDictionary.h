@@ -47,8 +47,6 @@ public:
 
 	idx_t slot_bits = 16;
 	uint64_t slot_mask;
-	uint64_t salt_mask;
-
 	idx_t required_bits = 19;
 
 	static constexpr const idx_t STR_LENGTH_BYTES = 2;
@@ -60,23 +58,8 @@ private:
 	unsafe_unique_array<data_t> buffer;
 	// Start of the DataRegion
 	uint64_t *DataRegion;
-
-	// temporary solution for concurrency
-	std::mutex insertLock;
-
 	atomic<uint64_t> currentEmptySlot;
-
 	atomic<uint32_t> *HT;
-
-	// every attempt on inserting a string
-	atomic<uint64_t> candidates;
-	// accepted strings into the USSR
-	atomic<uint64_t> accepted;
-
-	atomic<uint64_t> already_in;
-
-	atomic<uint64_t> nRejections_SizeFull;
-	atomic<uint64_t> nRejections_Probing;
 
 	idx_t failed_attempt;
 
@@ -92,8 +75,6 @@ public:
 	InsertResult insert(string_t &str);
 
 private:
-	bool WaitForSlotResolution(uint32_t *HT_bucket_ptr);
-
 	char *AddTag(char *ptr);
 	void getStatistics();
 	bool CheckEqualityAndUpdatePtr(string_t &str, idx_t bucket_idx);
