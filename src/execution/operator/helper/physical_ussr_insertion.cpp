@@ -50,9 +50,9 @@ OperatorResultType PhysicalUnifiedString::Execute(ExecutionContext &context, Dat
 			continue;
 		}
 		auto dict_validity = FlatVector::Validity(dict);
-		if (DictionaryVector::DictionaryId(input.data[col_idx])[0] == 'x') {
-			continue;
-		}
+//		if (DictionaryVector::DictionaryId(input.data[col_idx])[0] == 'x') {
+//			continue;
+//		}
 
 		if (insert_to_ussr[col_idx] && !global_state.is_high_cardinality[col_idx] &&
 		    DictionaryVector::DictionaryId(input.data[col_idx]) != state.current_dict_ids[col_idx]) {
