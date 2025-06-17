@@ -61,7 +61,7 @@ private:
 	atomic<uint64_t> currentEmptySlot;
 	atomic<uint32_t> *HT;
 
-	idx_t failed_attempt;
+	atomic<idx_t> failed_attempt;
 
 	static constexpr const idx_t HT_DIRTY_SENTINEL = 1;
 

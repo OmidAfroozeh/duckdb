@@ -41,7 +41,7 @@ OperatorResultType PhysicalUnifiedString::Execute(ExecutionContext &context, Dat
 	auto &global_state = gstate.Cast<USSRInsertionGState>();
 	for (idx_t col_idx = 0; col_idx < input.data.size(); ++col_idx) {
 		if (input.data[col_idx].GetVectorType() != VectorType::DICTIONARY_VECTOR ||
-		    input.data[col_idx].GetType() != LogicalType::VARCHAR) {
+		    input.data[col_idx].GetType() != LogicalType::VARCHAR || input.size() < STANDARD_VECTOR_SIZE) {
 			continue;
 		}
 		auto &dict = DictionaryVector::Child(input.data[col_idx]);
