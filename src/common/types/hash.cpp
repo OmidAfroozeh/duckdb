@@ -136,7 +136,7 @@ hash_t Hash(string_t val) {
 		D_ASSERT(h == Hash(val.GetData(), val.GetSize()));
 
 		return h;
-	} else if(string_t::isInUnifiedStringDictionary(val.GetTaggedPointer())){
+	} else if (string_t::isInUnifiedStringDictionary(val.GetTaggedPointer())) {
 		return *(reinterpret_cast<uint64_t *>(data_ptr_cast(val.GetPointer()) -
 		                                      (sizeof(hash_t) + UnifiedStringsDictionary::STR_LENGTH_BYTES)));
 	}

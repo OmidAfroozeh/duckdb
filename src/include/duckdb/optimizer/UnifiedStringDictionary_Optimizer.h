@@ -27,7 +27,6 @@ private:
 
 	unique_ptr<LogicalOperator> prev_op;
 
-
 	void Insert_USSR_Operator(optional_ptr<LogicalOperator> op);
 	void choose_operator();
 	bool useStrings(optional_ptr<LogicalOperator> op);
