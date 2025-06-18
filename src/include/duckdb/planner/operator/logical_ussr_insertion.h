@@ -15,10 +15,11 @@ namespace duckdb {
 class LogicalUSSRInsertion : public LogicalOperator {
 
 public:
-	static constexpr const LogicalOperatorType TYPE = LogicalOperatorType::LOGICAL_USSR_INSERTION;
+	static constexpr const LogicalOperatorType TYPE = LogicalOperatorType::LOGICAL_UNIFIED_STRING_DICTIONARY_INSERTION;
 
 	explicit LogicalUSSRInsertion(vector<bool> cols_to_insert)
-	    : LogicalOperator(LogicalOperatorType::LOGICAL_USSR_INSERTION), insert_to_ussr(std::move(cols_to_insert)) {
+	    : LogicalOperator(LogicalOperatorType::LOGICAL_UNIFIED_STRING_DICTIONARY_INSERTION),
+	      insert_to_ussr(std::move(cols_to_insert)) {
 	}
 
 	vector<bool> insert_to_ussr;

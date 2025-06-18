@@ -8,7 +8,7 @@ namespace duckdb {
 
 class PhysicalUnifiedString : public PhysicalOperator {
 public:
-	static constexpr const PhysicalOperatorType TYPE = PhysicalOperatorType::UNIFIED_STRINGS;
+	static constexpr const PhysicalOperatorType TYPE = PhysicalOperatorType::UNIFIED_STRING_DICTIONARY_INSERTION;
 
 public:
 	PhysicalUnifiedString(PhysicalPlan &physical_plan, vector<LogicalType> types, vector<bool> insert_to_ussr,
