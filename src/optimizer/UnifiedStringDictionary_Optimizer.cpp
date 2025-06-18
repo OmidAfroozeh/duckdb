@@ -11,7 +11,7 @@ unique_ptr<LogicalOperator> USSR_optimizer::CheckUnifiedDictionary(unique_ptr<Lo
 	for (auto &ds : chosen_data_sources) {
 		Insert_USSR_Operator(ds);
 	}
-	if(!chosen_data_sources.empty()){
+	if (!chosen_data_sources.empty()) {
 		optimizer->context.UnifiedStringDictionary.reset();
 		optimizer->context.UnifiedStringDictionary = make_uniq<UnifiedStringsDictionary>(1ull);
 	}

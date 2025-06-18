@@ -50,9 +50,9 @@ OperatorResultType PhysicalUnifiedString::Execute(ExecutionContext &context, Dat
 			continue;
 		}
 		auto dict_validity = FlatVector::Validity(dict);
-//		if (DictionaryVector::DictionaryId(input.data[col_idx])[0] == 'x') {
-//			continue;
-//		}
+		//		if (DictionaryVector::DictionaryId(input.data[col_idx])[0] == 'x') {
+		//			continue;
+		//		}
 
 		if (insert_to_ussr[col_idx] && !global_state.is_high_cardinality[col_idx] &&
 		    DictionaryVector::DictionaryId(input.data[col_idx]) != state.current_dict_ids[col_idx]) {
@@ -101,7 +101,8 @@ OperatorResultType PhysicalUnifiedString::Execute(ExecutionContext &context, Dat
 				}
 			}
 
-			context.client.GetUnifiedStringDictionary().UpdateFailedAttempts(state.n_rejected_probing + state.n_rejected_full);
+			context.client.GetUnifiedStringDictionary().UpdateFailedAttempts(state.n_rejected_probing +
+			                                                                 state.n_rejected_full);
 
 			state.n_success = 0;
 			state.n_rejected_full = 0;

@@ -27,7 +27,7 @@ UnifiedStringsDictionary::UnifiedStringsDictionary(idx_t size) {
 	slot_mask = (1ULL << (slot_bits)) - 1ULL;
 
 	buffer = make_unsafe_uniq_array_uninitialized<data_t>(USSR_SIZE * USSR_SLOT_SIZE + HT_SIZE * HT_BUCKET_SIZE);
-	HT = reinterpret_cast<atomic<uint32_t >*> (buffer.get());
+	HT = reinterpret_cast<atomic<uint32_t> *>(buffer.get());
 	DataRegion = reinterpret_cast<uint64_t *>(buffer.get() + HT_SIZE * HT_BUCKET_SIZE);
 	// We zero the hashtable, since we need an indicator if a bucket as been filled or not
 	memset(buffer.get(), '\0', HT_SIZE * HT_BUCKET_SIZE);
@@ -59,7 +59,6 @@ bool UnifiedStringsDictionary::WaitUntilSlotResolves(idx_t bucket_idx) {
 	}
 }
 
-
 InsertResult UnifiedStringsDictionary::insert(string_t &str) {
 	// no support for inlined strings
 	if (str.IsInlined() || str.GetSize() > MAX_STRING_LENGTH) {
@@ -71,7 +70,7 @@ InsertResult UnifiedStringsDictionary::insert(string_t &str) {
 		return InsertResult::REJECTED_FULL;
 	}
 
-	if(UnifiedStringDictionarySize == 0){
+	if (UnifiedStringDictionarySize == 0) {
 		return InsertResult::INVALID;
 	}
 
@@ -125,7 +124,7 @@ InsertResult UnifiedStringsDictionary::insert(string_t &str) {
 				     // probing
 				if (expected == dirty_bucket_value) {
 					// the thread that won is most likely inserting the same string, wait
-					if(!WaitUntilSlotResolves(bucket_index + prob_index)){
+					if (!WaitUntilSlotResolves(bucket_index + prob_index)) {
 						return InsertResult::REJECTED_FULL;
 					}
 					if (CheckEqualityAndUpdatePtr(str, bucket_index + prob_index)) {
@@ -140,7 +139,7 @@ InsertResult UnifiedStringsDictionary::insert(string_t &str) {
 		} else if (HT_bucket_salt == hash_salt &&
 		           (HT_bucket & slot_mask) == HT_DIRTY_SENTINEL) { // dirtied but the salt matches, wait until the other
 			                                                       // thread finishes, then check again
-			if(!WaitUntilSlotResolves(bucket_index + prob_index)){
+			if (!WaitUntilSlotResolves(bucket_index + prob_index)) {
 				return InsertResult::REJECTED_FULL;
 			}
 			if (CheckEqualityAndUpdatePtr(str, bucket_index + prob_index)) {
