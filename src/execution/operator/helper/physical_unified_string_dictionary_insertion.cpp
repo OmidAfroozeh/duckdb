@@ -41,7 +41,7 @@ OperatorResultType PhysicalUnifiedString::Execute(ExecutionContext &context, Dat
 	auto &global_state = gstate.Cast<USDInsertionGState>();
 	for (idx_t col_idx = 0; col_idx < input.data.size(); ++col_idx) {
 		if (input.data[col_idx].GetVectorType() != VectorType::DICTIONARY_VECTOR ||
-		    input.data[col_idx].GetType() != LogicalType::VARCHAR || input.size() < STANDARD_VECTOR_SIZE) {
+		    input.data[col_idx].GetType() != LogicalType::VARCHAR) {
 			continue;
 		}
 		auto &dict = DictionaryVector::Child(input.data[col_idx]);
@@ -50,9 +50,10 @@ OperatorResultType PhysicalUnifiedString::Execute(ExecutionContext &context, Dat
 			continue;
 		}
 		auto dict_validity = FlatVector::Validity(dict);
-		//		if (DictionaryVector::DictionaryId(input.data[col_idx])[0] == 'x') {
-		//			continue;
-		//		}
+		// there's an odd bug with parquet, disabled for now
+		if (DictionaryVector::DictionaryId(input.data[col_idx])[0] == 'x') {
+			continue;
+		}
 
 		if (insert_to_usd[col_idx] && !global_state.is_high_cardinality[col_idx] &&
 		    DictionaryVector::DictionaryId(input.data[col_idx]) != state.current_dict_ids[col_idx]) {
