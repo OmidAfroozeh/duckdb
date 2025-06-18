@@ -51,9 +51,9 @@ OperatorResultType PhysicalUnifiedString::Execute(ExecutionContext &context, Dat
 		}
 		auto dict_validity = FlatVector::Validity(dict);
 		// there's an odd bug with parquet, disabled for now
-		if (DictionaryVector::DictionaryId(input.data[col_idx])[0] == 'x') {
-			continue;
-		}
+//		if (DictionaryVector::DictionaryId(input.data[col_idx])[0] == 'x') {
+//			continue;
+//		}
 
 		if (insert_to_usd[col_idx] && !global_state.is_high_cardinality[col_idx] &&
 		    DictionaryVector::DictionaryId(input.data[col_idx]) != state.current_dict_ids[col_idx]) {
