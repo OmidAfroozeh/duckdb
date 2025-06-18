@@ -1,4 +1,4 @@
-#include "duckdb/optimizer/UnifiedStringDictionary.h"
+#include "duckdb/optimizer/unified_string_dictionary.h"
 #include "duckdb/common/types/hash.hpp"
 #include <cstring>
 #include <algorithm>
@@ -10,9 +10,9 @@
 namespace duckdb {
 
 UnifiedStringsDictionary::UnifiedStringsDictionary(idx_t size) {
-	UnifiedStringDictionarySize = size;
+	USD_size = size;
 
-	if (UnifiedStringDictionarySize == 0) {
+	if (USD_size == 0) {
 		return;
 	}
 
@@ -21,12 +21,12 @@ UnifiedStringsDictionary::UnifiedStringsDictionary(idx_t size) {
 	required_bits += extra_bits;
 	slot_bits += extra_bits;
 
-	USSR_SIZE = size * 65536;
-	HT_SIZE = USSR_SIZE;
+	USD_SIZE = size * 65536;
+	HT_SIZE = USD_SIZE;
 
 	slot_mask = (1ULL << (slot_bits)) - 1ULL;
 
-	buffer = make_unsafe_uniq_array_uninitialized<data_t>(USSR_SIZE * USSR_SLOT_SIZE + HT_SIZE * HT_BUCKET_SIZE);
+	buffer = make_unsafe_uniq_array_uninitialized<data_t>(USD_SIZE * USD_SLOT_SIZE + HT_SIZE * HT_BUCKET_SIZE);
 	HT = reinterpret_cast<atomic<uint32_t> *>(buffer.get());
 	DataRegion = reinterpret_cast<uint64_t *>(buffer.get() + HT_SIZE * HT_BUCKET_SIZE);
 	// We zero the hashtable, since we need an indicator if a bucket as been filled or not
@@ -70,7 +70,7 @@ InsertResult UnifiedStringsDictionary::insert(string_t &str) {
 		return InsertResult::REJECTED_FULL;
 	}
 
-	if (UnifiedStringDictionarySize == 0) {
+	if (USD_size == 0) {
 		return InsertResult::INVALID;
 	}
 
@@ -81,12 +81,12 @@ InsertResult UnifiedStringsDictionary::insert(string_t &str) {
 	uint32_t hash_salt = string_hash_prefix >> slot_bits;
 	uint32_t dirty_bucket_value = (hash_salt << slot_bits) | HT_DIRTY_SENTINEL;
 
-	D_ASSERT(bucket_index <= USSR_SIZE);
+	D_ASSERT(bucket_index <= USD_SIZE);
 
 	for (idx_t i = 0; i < PROBING_LIMIT; i++) {
 		idx_t prob_index = i;
-		if (bucket_index + i >= USSR_SIZE) {
-			prob_index = (bucket_index + i) % USSR_SIZE;
+		if (bucket_index + i >= USD_SIZE) {
+			prob_index = (bucket_index + i) % USD_SIZE;
 		}
 		uint32_t HT_bucket = HT[bucket_index + prob_index].load(std::memory_order_acquire);
 		uint32_t HT_bucket_salt = HT_bucket >> slot_bits;
@@ -99,8 +99,7 @@ InsertResult UnifiedStringsDictionary::insert(string_t &str) {
 				auto slots_needed =
 				    (total_bytes_needed % 8 == 0) ? total_bytes_needed / 8 : 1 + (total_bytes_needed / 8);
 				auto slot_to_insert = currentEmptySlot.fetch_add(slots_needed);
-				if (slot_to_insert + slots_needed > USSR_SIZE ||
-				    total_bytes_needed > (USSR_SIZE - slot_to_insert) * 8) {
+				if (slot_to_insert + slots_needed > USD_SIZE || total_bytes_needed > (USD_SIZE - slot_to_insert) * 8) {
 					// give back the reserved slots
 					currentEmptySlot.fetch_sub(slots_needed, std::memory_order_relaxed);
 					// clear the dirtied bucket

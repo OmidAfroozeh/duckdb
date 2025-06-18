@@ -1,28 +1,20 @@
-//===----------------------------------------------------------------------===//
-//                         DuckDB
-//
-// duckdb/planner/operator/logical_set_operation.hpp
-//
-//
-//===----------------------------------------------------------------------===//
-
 #pragma once
 
 #include "duckdb/planner/logical_operator.hpp"
 
 namespace duckdb {
 
-class LogicalUSSRInsertion : public LogicalOperator {
+class LogicalUnifiedStringDictionaryInsertion : public LogicalOperator {
 
 public:
 	static constexpr const LogicalOperatorType TYPE = LogicalOperatorType::LOGICAL_UNIFIED_STRING_DICTIONARY_INSERTION;
 
-	explicit LogicalUSSRInsertion(vector<bool> cols_to_insert)
+	explicit LogicalUnifiedStringDictionaryInsertion(vector<bool> cols_to_insert)
 	    : LogicalOperator(LogicalOperatorType::LOGICAL_UNIFIED_STRING_DICTIONARY_INSERTION),
-	      insert_to_ussr(std::move(cols_to_insert)) {
+	      insert_to_usd(std::move(cols_to_insert)) {
 	}
 
-	vector<bool> insert_to_ussr;
+	vector<bool> insert_to_usd;
 
 public:
 	void Serialize(Serializer &serializer) const override;
