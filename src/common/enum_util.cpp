@@ -2428,6 +2428,7 @@ const StringUtil::EnumStringLiteral *GetLogicalOperatorTypeValues() {
 		{ static_cast<uint32_t>(LogicalOperatorType::LOGICAL_LOAD), "LOGICAL_LOAD" },
 		{ static_cast<uint32_t>(LogicalOperatorType::LOGICAL_RESET), "LOGICAL_RESET" },
 		{ static_cast<uint32_t>(LogicalOperatorType::LOGICAL_UPDATE_EXTENSIONS), "LOGICAL_UPDATE_EXTENSIONS" },
+		{ static_cast<uint32_t>(LogicalOperatorType::LOGICAL_UNIFIED_STRING_DICTIONARY_INSERTION), "LOGICAL_UNIFIED_STRING_DICTIONARY_INSERTION" },
 		{ static_cast<uint32_t>(LogicalOperatorType::LOGICAL_CREATE_SECRET), "LOGICAL_CREATE_SECRET" },
 		{ static_cast<uint32_t>(LogicalOperatorType::LOGICAL_EXTENSION_OPERATOR), "LOGICAL_EXTENSION_OPERATOR" }
 	};
@@ -2436,12 +2437,12 @@ const StringUtil::EnumStringLiteral *GetLogicalOperatorTypeValues() {
 
 template<>
 const char* EnumUtil::ToChars<LogicalOperatorType>(LogicalOperatorType value) {
-	return StringUtil::EnumToString(GetLogicalOperatorTypeValues(), 61, "LogicalOperatorType", static_cast<uint32_t>(value));
+	return StringUtil::EnumToString(GetLogicalOperatorTypeValues(), 62, "LogicalOperatorType", static_cast<uint32_t>(value));
 }
 
 template<>
 LogicalOperatorType EnumUtil::FromString<LogicalOperatorType>(const char *value) {
-	return static_cast<LogicalOperatorType>(StringUtil::StringToEnum(GetLogicalOperatorTypeValues(), 61, "LogicalOperatorType", value));
+	return static_cast<LogicalOperatorType>(StringUtil::StringToEnum(GetLogicalOperatorTypeValues(), 62, "LogicalOperatorType", value));
 }
 
 const StringUtil::EnumStringLiteral *GetLogicalTypeIdValues() {
@@ -2667,19 +2668,20 @@ const StringUtil::EnumStringLiteral *GetMetricsTypeValues() {
 		{ static_cast<uint32_t>(MetricsType::OPTIMIZER_MATERIALIZED_CTE), "OPTIMIZER_MATERIALIZED_CTE" },
 		{ static_cast<uint32_t>(MetricsType::OPTIMIZER_SUM_REWRITER), "OPTIMIZER_SUM_REWRITER" },
 		{ static_cast<uint32_t>(MetricsType::OPTIMIZER_LATE_MATERIALIZATION), "OPTIMIZER_LATE_MATERIALIZATION" },
-		{ static_cast<uint32_t>(MetricsType::OPTIMIZER_CTE_INLINING), "OPTIMIZER_CTE_INLINING" }
+		{ static_cast<uint32_t>(MetricsType::OPTIMIZER_CTE_INLINING), "OPTIMIZER_CTE_INLINING" },
+		{ static_cast<uint32_t>(MetricsType::OPTIMIZER_UNIFIED_STRING_DICTIONARY), "OPTIMIZER_UNIFIED_STRING_DICTIONARY" }
 	};
 	return values;
 }
 
 template<>
 const char* EnumUtil::ToChars<MetricsType>(MetricsType value) {
-	return StringUtil::EnumToString(GetMetricsTypeValues(), 52, "MetricsType", static_cast<uint32_t>(value));
+	return StringUtil::EnumToString(GetMetricsTypeValues(), 53, "MetricsType", static_cast<uint32_t>(value));
 }
 
 template<>
 MetricsType EnumUtil::FromString<MetricsType>(const char *value) {
-	return static_cast<MetricsType>(StringUtil::StringToEnum(GetMetricsTypeValues(), 52, "MetricsType", value));
+	return static_cast<MetricsType>(StringUtil::StringToEnum(GetMetricsTypeValues(), 53, "MetricsType", value));
 }
 
 const StringUtil::EnumStringLiteral *GetMultiFileColumnMappingModeValues() {
@@ -2911,19 +2913,20 @@ const StringUtil::EnumStringLiteral *GetOptimizerTypeValues() {
 		{ static_cast<uint32_t>(OptimizerType::MATERIALIZED_CTE), "MATERIALIZED_CTE" },
 		{ static_cast<uint32_t>(OptimizerType::SUM_REWRITER), "SUM_REWRITER" },
 		{ static_cast<uint32_t>(OptimizerType::LATE_MATERIALIZATION), "LATE_MATERIALIZATION" },
-		{ static_cast<uint32_t>(OptimizerType::CTE_INLINING), "CTE_INLINING" }
+		{ static_cast<uint32_t>(OptimizerType::CTE_INLINING), "CTE_INLINING" },
+		{ static_cast<uint32_t>(OptimizerType::UNIFIED_STRING_DICTIONARY), "UNIFIED_STRING_DICTIONARY" }
 	};
 	return values;
 }
 
 template<>
 const char* EnumUtil::ToChars<OptimizerType>(OptimizerType value) {
-	return StringUtil::EnumToString(GetOptimizerTypeValues(), 29, "OptimizerType", static_cast<uint32_t>(value));
+	return StringUtil::EnumToString(GetOptimizerTypeValues(), 30, "OptimizerType", static_cast<uint32_t>(value));
 }
 
 template<>
 OptimizerType EnumUtil::FromString<OptimizerType>(const char *value) {
-	return static_cast<OptimizerType>(StringUtil::StringToEnum(GetOptimizerTypeValues(), 29, "OptimizerType", value));
+	return static_cast<OptimizerType>(StringUtil::StringToEnum(GetOptimizerTypeValues(), 30, "OptimizerType", value));
 }
 
 const StringUtil::EnumStringLiteral *GetOrderByNullTypeValues() {
@@ -3224,20 +3227,20 @@ const StringUtil::EnumStringLiteral *GetPhysicalOperatorTypeValues() {
 		{ static_cast<uint32_t>(PhysicalOperatorType::EXTENSION), "EXTENSION" },
 		{ static_cast<uint32_t>(PhysicalOperatorType::VERIFY_VECTOR), "VERIFY_VECTOR" },
 		{ static_cast<uint32_t>(PhysicalOperatorType::UPDATE_EXTENSIONS), "UPDATE_EXTENSIONS" },
-	    { static_cast<uint32_t>(PhysicalOperatorType::UNIFIED_STRINGS), "UNIFIED_STRINGS" },
-		{ static_cast<uint32_t>(PhysicalOperatorType::CREATE_SECRET), "CREATE_SECRET" },
+		{ static_cast<uint32_t>(PhysicalOperatorType::UNIFIED_STRING_DICTIONARY_INSERTION), "UNIFIED_STRING_DICTIONARY_INSERTION" },
+		{ static_cast<uint32_t>(PhysicalOperatorType::CREATE_SECRET), "CREATE_SECRET" }
 	};
 	return values;
 }
 
 template<>
 const char* EnumUtil::ToChars<PhysicalOperatorType>(PhysicalOperatorType value) {
-	return StringUtil::EnumToString(GetPhysicalOperatorTypeValues(), 81, "PhysicalOperatorType", static_cast<uint32_t>(value));
+	return StringUtil::EnumToString(GetPhysicalOperatorTypeValues(), 82, "PhysicalOperatorType", static_cast<uint32_t>(value));
 }
 
 template<>
 PhysicalOperatorType EnumUtil::FromString<PhysicalOperatorType>(const char *value) {
-	return static_cast<PhysicalOperatorType>(StringUtil::StringToEnum(GetPhysicalOperatorTypeValues(), 81, "PhysicalOperatorType", value));
+	return static_cast<PhysicalOperatorType>(StringUtil::StringToEnum(GetPhysicalOperatorTypeValues(), 82, "PhysicalOperatorType", value));
 }
 
 const StringUtil::EnumStringLiteral *GetPhysicalTypeValues() {

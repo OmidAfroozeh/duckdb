@@ -181,7 +181,7 @@ unique_ptr<LogicalOperator> LogicalOperator::Deserialize(Deserializer &deseriali
 	case LogicalOperatorType::LOGICAL_WINDOW:
 		result = LogicalWindow::Deserialize(deserializer);
 		break;
-	case LogicalOperatorType::LOGICAL_USSR_INSERTION:
+	case LogicalOperatorType::LOGICAL_UNIFIED_STRING_DICTIONARY_INSERTION:
 		result = LogicalUSSRInsertion::Deserialize(deserializer);
 		break;
 	default:
