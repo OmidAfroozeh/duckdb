@@ -27,16 +27,10 @@ enum class InsertResult {
 class UnifiedStringsDictionary {
 public:
 	static constexpr const uint64_t ATTEMPT_THRESHOLD = 1000;
-
 	static constexpr const uint64_t MAX_STRING_LENGTH = 512;
 
-	static constexpr const uint64_t BUFFER_SIZE = static_cast<uint64_t>(1024 * 1024);
-
-	uint64_t USSR_MASK;
-	uint64_t USSR_prefix;
-
-	static constexpr const uint64_t USSR_SLOT_SIZE = 8;
-	idx_t USSR_SIZE;
+	static constexpr const uint64_t USD_SLOT_SIZE = 8;
+	idx_t USD_SIZE;
 
 	// first two bytes are the slot number into the data region
 	// and the second two bytes are the hash extract (a part of the original string's hash)
@@ -51,7 +45,7 @@ public:
 
 	static constexpr const idx_t STR_LENGTH_BYTES = 2;
 
-	idx_t UnifiedStringDictionarySize;
+	idx_t USD_size;
 
 private:
 	// Overarching USSR buffer, contains DataRegion + HT + extra, 1MB size
@@ -76,7 +70,6 @@ public:
 
 private:
 	char *AddTag(char *ptr);
-	void getStatistics();
 	bool CheckEqualityAndUpdatePtr(string_t &str, idx_t bucket_idx);
 	bool WaitUntilSlotResolves(idx_t bucket_idx);
 };

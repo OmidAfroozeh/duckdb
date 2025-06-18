@@ -8,14 +8,14 @@ class Optimizer;
 class BoundColumnRefExpression;
 class ClientContext;
 
-class USSR_optimizer {
+class UnifiedStringDictionaryOptimizer {
 public:
-	explicit USSR_optimizer(Optimizer *optimizer, optional_ptr<LogicalOperator> root) {
+	explicit UnifiedStringDictionaryOptimizer(Optimizer *optimizer, optional_ptr<LogicalOperator> root) {
 		this->optimizer = optimizer;
 		this->root = root;
 	}
 
-	unique_ptr<LogicalOperator> CheckUnifiedDictionary(unique_ptr<LogicalOperator> op);
+	unique_ptr<LogicalOperator> CheckIfUnifiedStringDictionaryRequired(unique_ptr<LogicalOperator> op);
 	unique_ptr<LogicalOperator> Rewrite(unique_ptr<LogicalOperator> op);
 
 private:
@@ -27,7 +27,7 @@ private:
 
 	unique_ptr<LogicalOperator> prev_op;
 
-	void Insert_USSR_Operator(optional_ptr<LogicalOperator> op);
+	void InsertUnifiedStringDictionaryOperator(optional_ptr<LogicalOperator> op);
 	void choose_operator();
 	bool useStrings(optional_ptr<LogicalOperator> op);
 };

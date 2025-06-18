@@ -1,11 +1,11 @@
-#include "duckdb/execution/operator/helper/physical_ussr_insertion.h"
+#include "duckdb/execution/operator/helper/physical_unified_string_dictionary_insertion.h"
 #include "duckdb/common/printer.hpp"
 
 namespace duckdb {
 
-class USSRInsertionState : public OperatorState {
+class USDInsertionState : public OperatorState {
 public:
-	explicit USSRInsertionState(ExecutionContext &context, idx_t cols) {
+	explicit USDInsertionState(ExecutionContext &context, idx_t cols) {
 		for (idx_t i = 0; i < cols; ++i) {
 			current_dict_ids.push_back("");
 		}
@@ -18,9 +18,9 @@ public:
 	idx_t n_invalid = 0;
 };
 
-class USSRInsertionGState : public GlobalOperatorState {
+class USDInsertionGState : public GlobalOperatorState {
 public:
-	explicit USSRInsertionGState(ClientContext &context, idx_t cols) {
+	explicit USDInsertionGState(ClientContext &context, idx_t cols) {
 		for (idx_t i = 0; i < cols; ++i) {
 			inserted_unique_strings.push_back(0);
 			unique_strings_in_unified_dictionary_per_column.push_back(0);
@@ -37,8 +37,8 @@ public:
 
 OperatorResultType PhysicalUnifiedString::Execute(ExecutionContext &context, DataChunk &input, DataChunk &chunk,
                                                   GlobalOperatorState &gstate, OperatorState &state_p) const {
-	auto &state = state_p.Cast<USSRInsertionState>();
-	auto &global_state = gstate.Cast<USSRInsertionGState>();
+	auto &state = state_p.Cast<USDInsertionState>();
+	auto &global_state = gstate.Cast<USDInsertionGState>();
 	for (idx_t col_idx = 0; col_idx < input.data.size(); ++col_idx) {
 		if (input.data[col_idx].GetVectorType() != VectorType::DICTIONARY_VECTOR ||
 		    input.data[col_idx].GetType() != LogicalType::VARCHAR || input.size() < STANDARD_VECTOR_SIZE) {
@@ -54,7 +54,7 @@ OperatorResultType PhysicalUnifiedString::Execute(ExecutionContext &context, Dat
 		//			continue;
 		//		}
 
-		if (insert_to_ussr[col_idx] && !global_state.is_high_cardinality[col_idx] &&
+		if (insert_to_usd[col_idx] && !global_state.is_high_cardinality[col_idx] &&
 		    DictionaryVector::DictionaryId(input.data[col_idx]) != state.current_dict_ids[col_idx]) {
 			auto start = reinterpret_cast<string_t *>(dict.GetData());
 			for (idx_t i = 0; i < size.GetIndex(); i++) {
@@ -115,11 +115,11 @@ OperatorResultType PhysicalUnifiedString::Execute(ExecutionContext &context, Dat
 }
 
 unique_ptr<OperatorState> PhysicalUnifiedString::GetOperatorState(ExecutionContext &context) const {
-	return make_uniq<USSRInsertionState>(context, insert_to_ussr.size());
+	return make_uniq<USDInsertionState>(context, insert_to_usd.size());
 }
 
 unique_ptr<GlobalOperatorState> PhysicalUnifiedString::GetGlobalOperatorState(ClientContext &context) const {
-	return make_uniq<USSRInsertionGState>(context, insert_to_ussr.size());
+	return make_uniq<USDInsertionGState>(context, insert_to_usd.size());
 }
 
 } // namespace duckdb

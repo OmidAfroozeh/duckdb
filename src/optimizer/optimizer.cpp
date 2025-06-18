@@ -37,7 +37,7 @@
 #include "duckdb/planner/binder.hpp"
 #include "duckdb/planner/planner.hpp"
 
-#include "duckdb/optimizer/UnifiedStringDictionary_Optimizer.h"
+#include "duckdb/optimizer/unified_string_dictionary_optimizer.h"
 
 namespace duckdb {
 
@@ -274,8 +274,8 @@ void Optimizer::RunBuiltInOptimizers() {
 		JoinFilterPushdownOptimizer join_filter_pushdown(*this);
 		join_filter_pushdown.VisitOperator(*plan);
 		//
-		USSR_optimizer ussrOptimizer(this, plan);
-		plan = ussrOptimizer.CheckUnifiedDictionary(std::move(plan));
+		UnifiedStringDictionaryOptimizer unifiedStringDictionaryOptimizer(this, plan);
+		plan = unifiedStringDictionaryOptimizer.CheckIfUnifiedStringDictionaryRequired(std::move(plan));
 	});
 }
 

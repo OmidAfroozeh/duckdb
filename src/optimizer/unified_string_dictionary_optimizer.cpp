@@ -1,15 +1,16 @@
-#include "duckdb/optimizer/UnifiedStringDictionary_Optimizer.h"
+#include "duckdb/optimizer/unified_string_dictionary_optimizer.h"
 #include "duckdb/common/helper.hpp"
 #include "duckdb/common/printer.hpp"
-#include "duckdb/planner/operator/logical_ussr_insertion.h"
+#include "duckdb/planner/operator/logical_unified_string_dictionary_insertion.h"
 #include "duckdb/planner/operator/list.hpp"
 
 namespace duckdb {
 
-unique_ptr<LogicalOperator> USSR_optimizer::CheckUnifiedDictionary(unique_ptr<LogicalOperator> op) {
+unique_ptr<LogicalOperator>
+UnifiedStringDictionaryOptimizer::CheckIfUnifiedStringDictionaryRequired(unique_ptr<LogicalOperator> op) {
 	op = Rewrite(std::move(op));
 	for (auto &ds : chosen_data_sources) {
-		Insert_USSR_Operator(ds);
+		InsertUnifiedStringDictionaryOperator(ds);
 	}
 	if (!chosen_data_sources.empty()) {
 		optimizer->context.UnifiedStringDictionary.reset();
@@ -18,18 +19,18 @@ unique_ptr<LogicalOperator> USSR_optimizer::CheckUnifiedDictionary(unique_ptr<Lo
 	return op;
 }
 
-void USSR_optimizer::Insert_USSR_Operator(optional_ptr<LogicalOperator> op) {
+void UnifiedStringDictionaryOptimizer::InsertUnifiedStringDictionaryOperator(optional_ptr<LogicalOperator> op) {
 	for (idx_t i = 0; i < op->children.size(); ++i) {
-		vector<bool> ussr_insert_vec;
+		vector<bool> usd_insert_vec;
 		for (auto &type : op->children[i]->types) {
 			if (type == LogicalType::VARCHAR) {
-				ussr_insert_vec.push_back(true);
+				usd_insert_vec.push_back(true);
 			} else {
-				ussr_insert_vec.push_back(false);
+				usd_insert_vec.push_back(false);
 			}
 		}
 
-		auto new_operator = make_uniq<LogicalUSSRInsertion>(std::move(ussr_insert_vec));
+		auto new_operator = make_uniq<LogicalUnifiedStringDictionaryInsertion>(std::move(usd_insert_vec));
 		new_operator->children.push_back(std::move(op->children[i]));
 		op->children[i] = std::move(new_operator);
 
@@ -37,7 +38,7 @@ void USSR_optimizer::Insert_USSR_Operator(optional_ptr<LogicalOperator> op) {
 	}
 }
 
-void USSR_optimizer::choose_operator() {
+void UnifiedStringDictionaryOptimizer::choose_operator() {
 	for (auto &ds : candidate_data_sources) {
 		chosen_data_sources.push_back(ds);
 	}
@@ -45,7 +46,7 @@ void USSR_optimizer::choose_operator() {
 	return;
 }
 
-bool USSR_optimizer::useStrings(optional_ptr<LogicalOperator> op) {
+bool UnifiedStringDictionaryOptimizer::useStrings(optional_ptr<LogicalOperator> op) {
 	switch (op->type) {
 
 	case LogicalOperatorType::LOGICAL_AGGREGATE_AND_GROUP_BY: {
@@ -118,7 +119,7 @@ bool USSR_optimizer::useStrings(optional_ptr<LogicalOperator> op) {
 	return false;
 }
 
-unique_ptr<LogicalOperator> USSR_optimizer::Rewrite(unique_ptr<LogicalOperator> op) {
+unique_ptr<LogicalOperator> UnifiedStringDictionaryOptimizer::Rewrite(unique_ptr<LogicalOperator> op) {
 	op->ResolveOperatorTypes();
 
 	for (idx_t i = 0; i < op->children.size(); ++i) {

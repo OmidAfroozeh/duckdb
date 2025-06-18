@@ -13,7 +13,7 @@
 #include "duckdb/common/winapi.hpp"
 #include "duckdb/common/error_data.hpp"
 #include "duckdb/main/client_properties.hpp"
-#include "duckdb/optimizer/UnifiedStringDictionary.h"
+#include "duckdb/optimizer/unified_string_dictionary.h"
 
 namespace duckdb {
 struct BoxRendererConfig;

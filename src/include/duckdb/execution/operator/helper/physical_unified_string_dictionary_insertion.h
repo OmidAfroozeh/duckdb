@@ -11,10 +11,10 @@ public:
 	static constexpr const PhysicalOperatorType TYPE = PhysicalOperatorType::UNIFIED_STRING_DICTIONARY_INSERTION;
 
 public:
-	PhysicalUnifiedString(PhysicalPlan &physical_plan, vector<LogicalType> types, vector<bool> insert_to_ussr,
+	PhysicalUnifiedString(PhysicalPlan &physical_plan, vector<LogicalType> types, vector<bool> insert_to_usd,
 	                      idx_t estimated_cardinality)
 	    : PhysicalOperator(physical_plan, TYPE, std::move(types), estimated_cardinality) {
-		this->insert_to_ussr = std::move(insert_to_ussr);
+		this->insert_to_usd = std::move(insert_to_usd);
 	};
 
 	bool ParallelOperator() const override {
@@ -31,13 +31,11 @@ public:
 
 	OperatorResultType Execute(ExecutionContext &context, DataChunk &input, DataChunk &chunk,
 	                           GlobalOperatorState &gstate, OperatorState &state) const override;
-
 	unique_ptr<OperatorState> GetOperatorState(ExecutionContext &context) const override;
 	unique_ptr<GlobalOperatorState> GetGlobalOperatorState(ClientContext &context) const override;
 
-public:
 private:
-	vector<bool> insert_to_ussr;
+	vector<bool> insert_to_usd;
 };
 
 } // namespace duckdb
