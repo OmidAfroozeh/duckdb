@@ -93,8 +93,6 @@ public:
 	unique_ptr<UnifiedStringsDictionary> UnifiedStringDictionary;
 
 public:
-	static void segfault_handler(int s);
-
 	MetaTransaction &ActiveTransaction() {
 		return transaction.ActiveTransaction();
 	}

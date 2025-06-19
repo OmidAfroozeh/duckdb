@@ -273,7 +273,8 @@ void Optimizer::RunBuiltInOptimizers() {
 	RunOptimizer(OptimizerType::JOIN_FILTER_PUSHDOWN, [&]() {
 		JoinFilterPushdownOptimizer join_filter_pushdown(*this);
 		join_filter_pushdown.VisitOperator(*plan);
-		//
+
+		// FIXME: move to its own RunOptimizer
 		UnifiedStringDictionaryOptimizer unifiedStringDictionaryOptimizer(this, plan);
 		plan = unifiedStringDictionaryOptimizer.CheckIfUnifiedStringDictionaryRequired(std::move(plan));
 	});

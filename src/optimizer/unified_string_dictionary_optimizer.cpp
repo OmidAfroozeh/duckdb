@@ -38,7 +38,7 @@ void UnifiedStringDictionaryOptimizer::InsertUnifiedStringDictionaryOperator(opt
 	}
 }
 
-void UnifiedStringDictionaryOptimizer::choose_operator() {
+void UnifiedStringDictionaryOptimizer::AddMarkedDataSources() {
 	for (auto &ds : candidate_data_sources) {
 		chosen_data_sources.push_back(ds);
 	}
@@ -46,9 +46,8 @@ void UnifiedStringDictionaryOptimizer::choose_operator() {
 	return;
 }
 
-bool UnifiedStringDictionaryOptimizer::useStrings(optional_ptr<LogicalOperator> op) {
+bool UnifiedStringDictionaryOptimizer::IsTargetOperator(optional_ptr<LogicalOperator> op) {
 	switch (op->type) {
-
 	case LogicalOperatorType::LOGICAL_AGGREGATE_AND_GROUP_BY: {
 		auto &aggr_op = op->Cast<LogicalAggregate>();
 		for (auto &expr : aggr_op.groups) {
@@ -59,7 +58,6 @@ bool UnifiedStringDictionaryOptimizer::useStrings(optional_ptr<LogicalOperator> 
 				}
 			}
 		}
-
 		break;
 	}
 	case LogicalOperatorType::LOGICAL_DISTINCT: {
@@ -72,10 +70,8 @@ bool UnifiedStringDictionaryOptimizer::useStrings(optional_ptr<LogicalOperator> 
 				}
 			}
 		}
-
 		break;
 	}
-
 	case LogicalOperatorType::LOGICAL_COMPARISON_JOIN: {
 		auto &join_op = op->Cast<LogicalComparisonJoin>();
 		// if the join condition contains strings
@@ -102,7 +98,6 @@ bool UnifiedStringDictionaryOptimizer::useStrings(optional_ptr<LogicalOperator> 
 	}
 	case LogicalOperatorType::LOGICAL_ORDER_BY: {
 		auto &sort_op = op->Cast<LogicalOrder>();
-
 		for (auto &node : sort_op.orders) {
 			if (node.expression->type == ExpressionType::BOUND_COLUMN_REF) {
 				auto &bound_colref = node.expression->Cast<BoundColumnRefExpression>();
@@ -133,12 +128,12 @@ unique_ptr<LogicalOperator> UnifiedStringDictionaryOptimizer::Rewrite(unique_ptr
 		}
 	}
 
-	auto string_usage = useStrings(op.get());
+	auto string_usage = IsTargetOperator(op.get());
 	// Depth-first-search post-order
 	for (idx_t i = 0; i < op->children.size(); ++i) {
 		op->children[i] = Rewrite(std::move(op->children[i]));
 		if (string_usage) {
-			choose_operator();
+			AddMarkedDataSources();
 		}
 	}
 	return op;
