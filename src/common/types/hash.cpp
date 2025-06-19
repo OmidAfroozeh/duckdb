@@ -5,8 +5,6 @@
 #include "duckdb/common/types/interval.hpp"
 #include "duckdb/common/types/uhugeint.hpp"
 
-#include "duckdb/optimizer/unified_string_dictionary.h"
-
 #include <functional>
 #include <cmath>
 
@@ -158,4 +156,5 @@ hash_t Hash(const char *val, size_t size) {
 hash_t Hash(uint8_t *val, size_t size) {
 	return HashBytes(const_data_ptr_cast(val), size);
 }
+
 } // namespace duckdb

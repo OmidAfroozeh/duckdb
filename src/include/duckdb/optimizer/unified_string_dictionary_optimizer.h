@@ -28,8 +28,8 @@ private:
 	unique_ptr<LogicalOperator> prev_op;
 
 	void InsertUnifiedStringDictionaryOperator(optional_ptr<LogicalOperator> op);
-	void choose_operator();
-	bool useStrings(optional_ptr<LogicalOperator> op);
+	void AddMarkedDataSources();
+	bool IsTargetOperator(optional_ptr<LogicalOperator> op);
 };
 
 } // namespace duckdb

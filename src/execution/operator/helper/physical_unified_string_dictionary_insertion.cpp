@@ -35,8 +35,9 @@ public:
 	vector<idx_t> inserted_dictionaries;
 };
 
-OperatorResultType PhysicalUnifiedString::Execute(ExecutionContext &context, DataChunk &input, DataChunk &chunk,
-                                                  GlobalOperatorState &gstate, OperatorState &state_p) const {
+OperatorResultType PhysicalUnifiedStringDictionary::Execute(ExecutionContext &context, DataChunk &input,
+                                                            DataChunk &chunk, GlobalOperatorState &gstate,
+                                                            OperatorState &state_p) const {
 	auto &state = state_p.Cast<USDInsertionState>();
 	auto &global_state = gstate.Cast<USDInsertionGState>();
 	for (idx_t col_idx = 0; col_idx < input.data.size(); ++col_idx) {
@@ -114,11 +115,11 @@ OperatorResultType PhysicalUnifiedString::Execute(ExecutionContext &context, Dat
 	return OperatorResultType::NEED_MORE_INPUT;
 }
 
-unique_ptr<OperatorState> PhysicalUnifiedString::GetOperatorState(ExecutionContext &context) const {
+unique_ptr<OperatorState> PhysicalUnifiedStringDictionary::GetOperatorState(ExecutionContext &context) const {
 	return make_uniq<USDInsertionState>(context, insert_to_usd.size());
 }
 
-unique_ptr<GlobalOperatorState> PhysicalUnifiedString::GetGlobalOperatorState(ClientContext &context) const {
+unique_ptr<GlobalOperatorState> PhysicalUnifiedStringDictionary::GetGlobalOperatorState(ClientContext &context) const {
 	return make_uniq<USDInsertionGState>(context, insert_to_usd.size());
 }
 

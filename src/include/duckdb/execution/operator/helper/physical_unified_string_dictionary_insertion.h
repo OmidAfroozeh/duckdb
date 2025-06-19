@@ -6,13 +6,13 @@
 
 namespace duckdb {
 
-class PhysicalUnifiedString : public PhysicalOperator {
+class PhysicalUnifiedStringDictionary : public PhysicalOperator {
 public:
 	static constexpr const PhysicalOperatorType TYPE = PhysicalOperatorType::UNIFIED_STRING_DICTIONARY_INSERTION;
 
 public:
-	PhysicalUnifiedString(PhysicalPlan &physical_plan, vector<LogicalType> types, vector<bool> insert_to_usd,
-	                      idx_t estimated_cardinality)
+	PhysicalUnifiedStringDictionary(PhysicalPlan &physical_plan, vector<LogicalType> types, vector<bool> insert_to_usd,
+	                                idx_t estimated_cardinality)
 	    : PhysicalOperator(physical_plan, TYPE, std::move(types), estimated_cardinality) {
 		this->insert_to_usd = std::move(insert_to_usd);
 	};

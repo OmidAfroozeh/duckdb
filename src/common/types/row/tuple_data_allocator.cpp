@@ -7,6 +7,7 @@
 #include "duckdb/storage/buffer/block_handle.hpp"
 #include "duckdb/storage/buffer_manager.hpp"
 #include "duckdb/common/sorting/sort_key.hpp"
+
 namespace duckdb {
 
 using ValidityBytes = TupleDataLayout::ValidityBytes;
