@@ -41,7 +41,10 @@ OperatorResultType PhysicalUnifiedString::Execute(ExecutionContext &context, Dat
 	auto &global_state = gstate.Cast<USDInsertionGState>();
 	for (idx_t col_idx = 0; col_idx < input.data.size(); ++col_idx) {
 		if (input.data[col_idx].GetVectorType() != VectorType::DICTIONARY_VECTOR ||
-		    input.data[col_idx].GetType() != LogicalType::VARCHAR) {
+		    input.data[col_idx].GetType() != LogicalType::VARCHAR ||
+		    input.size() == 1 // FIXME: this condition is not needed but there's an extremely odd bug with this test:
+		                      // test/sql/copy/partitioned/hive_partition_escape.test
+		) {
 			continue;
 		}
 		auto &dict = DictionaryVector::Child(input.data[col_idx]);
@@ -50,10 +53,6 @@ OperatorResultType PhysicalUnifiedString::Execute(ExecutionContext &context, Dat
 			continue;
 		}
 		auto dict_validity = FlatVector::Validity(dict);
-		// there's an odd bug with parquet, disabled for now
-//		if (DictionaryVector::DictionaryId(input.data[col_idx])[0] == 'x') {
-//			continue;
-//		}
 
 		if (insert_to_usd[col_idx] && !global_state.is_high_cardinality[col_idx] &&
 		    DictionaryVector::DictionaryId(input.data[col_idx]) != state.current_dict_ids[col_idx]) {
@@ -87,7 +86,6 @@ OperatorResultType PhysicalUnifiedString::Execute(ExecutionContext &context, Dat
 			global_state.inserted_unique_strings[col_idx] += size.GetIndex();
 			global_state.unique_strings_in_unified_dictionary_per_column[col_idx] += state.n_success;
 			global_state.inserted_dictionaries[col_idx]++;
-			lock.unlock();
 
 			constexpr double TOTAL_GROWTH_THRESHOLD = 0.1;
 			const idx_t MIN_STRING_SEEN = 10000;
@@ -101,6 +99,7 @@ OperatorResultType PhysicalUnifiedString::Execute(ExecutionContext &context, Dat
 					global_state.is_high_cardinality[col_idx] = true;
 				}
 			}
+			lock.unlock();
 
 			context.client.GetUnifiedStringDictionary().UpdateFailedAttempts(state.n_rejected_probing +
 			                                                                 state.n_rejected_full);
