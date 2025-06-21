@@ -21,6 +21,10 @@ UnifiedStringDictionaryOptimizer::CheckIfUnifiedStringDictionaryRequired(unique_
 
 void UnifiedStringDictionaryOptimizer::InsertUnifiedStringDictionaryOperator(optional_ptr<LogicalOperator> op) {
 	for (idx_t i = 0; i < op->children.size(); ++i) {
+		// already exists, do not proceed
+		if(op->children[i]->type == LogicalOperatorType::LOGICAL_UNIFIED_STRING_DICTIONARY_INSERTION){
+			continue;
+		}
 		vector<bool> usd_insert_vec;
 		for (auto &type : op->children[i]->types) {
 			if (type == LogicalType::VARCHAR) {
