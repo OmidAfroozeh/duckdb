@@ -41,11 +41,12 @@ UnifiedStringsDictionary::UnifiedStringsDictionary(idx_t size) {
 
 bool UnifiedStringsDictionary::CheckEqualityAndUpdatePtr(string_t &str, idx_t bucket_idx) {
 	auto slot_ptr = data_ptr_cast(DataRegion + (HT[bucket_idx].load(std::memory_order_relaxed) & slot_mask));
-	auto materialized_str_length = UnsafeNumericCast<uint16_t>(*reinterpret_cast<uint16_t *>(slot_ptr));
-	if (materialized_str_length == str.GetSize() &&
-	    memcmp(slot_ptr + STR_LENGTH_BYTES, str.GetDataUnsafe(), str.GetSize()) == 0) {
-		str.SetPointer(AddTag(char_ptr_cast(slot_ptr + STR_LENGTH_BYTES)));
-		return true;
+	if (memcmp(slot_ptr, str.GetDataUnsafe(), str.GetSize()) == 0) {
+		// make sure the string in the USD is null-terminated
+		if(slot_ptr[str.GetSize()] == '\0'){
+			str.SetPointer(AddTag(char_ptr_cast(slot_ptr)));
+			return true;
+		}
 	}
 	return false;
 }
@@ -98,7 +99,7 @@ InsertResult UnifiedStringsDictionary::insert(string_t &str) {
 			uint32_t expected = 0;
 			if (HT[bucket_index + prob_index].compare_exchange_strong(
 			        expected, dirty_bucket_value, std::memory_order_release, std::memory_order_relaxed)) {
-				auto total_bytes_needed = str.GetSize() + STR_LENGTH_BYTES + sizeof(hash_t);
+				auto total_bytes_needed = str.GetSize() + sizeof(hash_t) + 1;
 				auto slots_needed =
 				    (total_bytes_needed % 8 == 0) ? total_bytes_needed / 8 : 1 + (total_bytes_needed / 8);
 				auto slot_to_insert = currentEmptySlot.fetch_add(slots_needed);
@@ -115,12 +116,12 @@ InsertResult UnifiedStringsDictionary::insert(string_t &str) {
 
 				auto slot_ptr = data_ptr_cast(DataRegion + slot_to_insert);
 
-				idx_t str_len = str.GetSize();
-				memcpy(slot_ptr, &str_len, STR_LENGTH_BYTES);
-				memcpy(slot_ptr + STR_LENGTH_BYTES, str.GetData(), str.GetSize());
+
+				memcpy(slot_ptr, str.GetData(), str.GetSize());
+				memset(slot_ptr + str.GetSize(), '\0', 1);
 				Store<uint64_t>(string_hash, slot_ptr - sizeof(hash_t));
 				HT[bucket_index + prob_index].store(new_bucket, std::memory_order_release);
-				str.SetPointer(AddTag(char_ptr_cast(slot_ptr + STR_LENGTH_BYTES)));
+				str.SetPointer(AddTag(char_ptr_cast(slot_ptr)));
 				return InsertResult::SUCCESS;
 			} else { // lost the race to dirty the bucket, check if the dirt = HT_salt, if so wait, else continue
 				     // probing
