@@ -26,9 +26,12 @@ UnifiedStringsDictionary::UnifiedStringsDictionary(idx_t size) {
 
 	slot_mask = (1ULL << (slot_bits)) - 1ULL;
 
-	buffer = make_unsafe_uniq_array_uninitialized<data_t>(USD_SIZE * USD_SLOT_SIZE + HT_SIZE * HT_BUCKET_SIZE);
+	auto bytes_needed = USD_SIZE * USD_SLOT_SIZE + HT_SIZE * HT_BUCKET_SIZE + 8;
+
+	buffer = make_unsafe_uniq_array_uninitialized<data_t>(bytes_needed);
 	HT = reinterpret_cast<atomic<uint32_t> *>(buffer.get());
-	DataRegion = reinterpret_cast<uint64_t *>(buffer.get() + HT_SIZE * HT_BUCKET_SIZE);
+	// should be 8byte aligned
+	DataRegion = reinterpret_cast<uint64_t *>(AlignValue(reinterpret_cast<uint64_t>(buffer.get() + HT_SIZE * HT_BUCKET_SIZE)));
 	// We zero the hashtable, since we need an indicator if a bucket as been filled or not
 	memset(buffer.get(), '\0', HT_SIZE * HT_BUCKET_SIZE);
 
@@ -74,7 +77,7 @@ InsertResult UnifiedStringsDictionary::insert(string_t &str) {
 		return InsertResult::INVALID;
 	}
 
-	hash_t string_hash = Hash(str);
+	hash_t string_hash = Hash(str.GetData(), str.GetSize());
 	uint32_t string_hash_prefix = Load<uint32_t>(reinterpret_cast<const_data_ptr_t>(&string_hash));
 
 	uint32_t bucket_index = string_hash_prefix & slot_mask;
