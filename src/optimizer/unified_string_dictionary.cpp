@@ -65,7 +65,8 @@ bool UnifiedStringsDictionary::WaitUntilSlotResolves(idx_t bucket_idx) {
 
 InsertResult UnifiedStringsDictionary::insert(string_t &str) {
 	// no support for inlined strings
-	if (str.IsInlined() || str.GetSize() > MAX_STRING_LENGTH) {
+	// FIXME: the first condition should be IsInlined, change for bug test
+	if (str.GetSize() <= 12 || str.GetSize() > MAX_STRING_LENGTH) {
 		return InsertResult::INVALID;
 	}
 
