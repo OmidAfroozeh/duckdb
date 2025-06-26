@@ -37,6 +37,13 @@ UnifiedStringsDictionary::UnifiedStringsDictionary(idx_t size) {
 
 	currentEmptySlot.store(2);
 	failed_attempt = 0;
+
+	candidates = 0;
+	accepted = 0;
+	nRejections_Probing = 0;
+	nRejections_SizeFull = 0;
+	already_in = 0;
+
 }
 
 bool UnifiedStringsDictionary::CheckEqualityAndUpdatePtr(string_t &str, idx_t bucket_idx) {
@@ -64,6 +71,7 @@ bool UnifiedStringsDictionary::WaitUntilSlotResolves(idx_t bucket_idx) {
 }
 
 InsertResult UnifiedStringsDictionary::insert(string_t &str) {
+
 	// no support for inlined strings
 	// FIXME: the first condition should be IsInlined, change for bug test
 	if (str.GetSize() <= 12 || str.GetSize() > MAX_STRING_LENGTH) {
@@ -79,6 +87,7 @@ InsertResult UnifiedStringsDictionary::insert(string_t &str) {
 		return InsertResult::INVALID;
 	}
 
+	candidates++;
 	hash_t string_hash = Hash(str.GetData(), str.GetSize());
 	uint32_t string_hash_prefix = Load<uint32_t>(reinterpret_cast<const_data_ptr_t>(&string_hash));
 
@@ -109,6 +118,7 @@ InsertResult UnifiedStringsDictionary::insert(string_t &str) {
 					currentEmptySlot.fetch_sub(slots_needed, std::memory_order_relaxed);
 					// clear the dirtied bucket
 					HT[bucket_index + prob_index].store(0, std::memory_order_release);
+					nRejections_SizeFull++;
 					return InsertResult::REJECTED_FULL;
 				}
 				uint32_t new_bucket = UnsafeNumericCast<uint32_t>(hash_salt);
@@ -123,15 +133,18 @@ InsertResult UnifiedStringsDictionary::insert(string_t &str) {
 				Store<uint64_t>(string_hash, slot_ptr - sizeof(hash_t));
 				HT[bucket_index + prob_index].store(new_bucket, std::memory_order_release);
 				str.SetPointer(AddTag(char_ptr_cast(slot_ptr)));
+				accepted++;
 				return InsertResult::SUCCESS;
 			} else { // lost the race to dirty the bucket, check if the dirt = HT_salt, if so wait, else continue
 				     // probing
 				if (expected == dirty_bucket_value) {
 					// the thread that won is most likely inserting the same string, wait
 					if (!WaitUntilSlotResolves(bucket_index + prob_index)) {
+						nRejections_SizeFull++;
 						return InsertResult::REJECTED_FULL;
 					}
 					if (CheckEqualityAndUpdatePtr(str, bucket_index + prob_index)) {
+						already_in++;
 						return InsertResult::ALREADY_EXISTS;
 					} else {
 						continue;
@@ -144,9 +157,11 @@ InsertResult UnifiedStringsDictionary::insert(string_t &str) {
 		           (HT_bucket & slot_mask) == HT_DIRTY_SENTINEL) { // dirtied but the salt matches, wait until the other
 			                                                       // thread finishes, then check again
 			if (!WaitUntilSlotResolves(bucket_index + prob_index)) {
+				nRejections_SizeFull++;
 				return InsertResult::REJECTED_FULL;
 			}
 			if (CheckEqualityAndUpdatePtr(str, bucket_index + prob_index)) {
+				already_in++;
 				return InsertResult::ALREADY_EXISTS;
 			} else {
 				continue;
@@ -154,12 +169,14 @@ InsertResult UnifiedStringsDictionary::insert(string_t &str) {
 		} else if (HT_bucket_salt == hash_salt) { // the salt matches, string already exists, set the input string to
 			// point into the unified string dictionary
 			if (CheckEqualityAndUpdatePtr(str, bucket_index + prob_index)) {
+				already_in++;
 				return InsertResult::ALREADY_EXISTS;
 			} else {
 				continue;
 			}
 		}
 	}
+	nRejections_Probing++;
 	return InsertResult::REJECTED_PROBING;
 }
 
@@ -168,6 +185,7 @@ void UnifiedStringsDictionary::UpdateFailedAttempts(idx_t n_failed) {
 }
 
 UnifiedStringsDictionary::~UnifiedStringsDictionary() {
+	getStatistics();
 	this->buffer.reset();
 }
 
@@ -178,4 +196,51 @@ char *UnifiedStringsDictionary::AddTag(char *ptr) {
 	return ptr;
 #endif
 }
+
+void UnifiedStringsDictionary::getStatistics() {
+	// A small helper to pad strings on the right
+	Printer::Print("");
+	auto padRight = [](const std::string &text, std::size_t width) {
+		if (text.size() >= width) {
+			return text; // If it already exceeds or matches the width, just return it
+		}
+		return text + std::string(width - text.size(), ' ');
+	};
+
+	// Specify column widths as needed
+	const std::size_t w1 = 15;
+	const std::size_t w2 = 15;
+	const std::size_t w3 = 20;
+	const std::size_t w4 = 25;
+	const std::size_t w5 = 15;
+
+	// Build header row
+	std::string header;
+	header += padRight("candidates", w1);
+	header += padRight("accepted", w5);
+	header += padRight("already in", w2);
+	header += padRight("Rejected(full USSR)", w3);
+	header += padRight("Rejected(failed probing)", w4);
+
+	Printer::Print(header);
+
+	// Build stats row
+	std::string statsStr;
+	statsStr += padRight(std::to_string(candidates), w1);
+	statsStr += padRight(std::to_string(accepted), w2);
+	statsStr += padRight(std::to_string(already_in), w5);
+	statsStr += padRight(std::to_string(nRejections_SizeFull), w3);
+	statsStr += padRight(std::to_string(nRejections_Probing), w4);
+	//
+	//
+	Printer::Print(statsStr);
+
+	Printer::PrintF("faster hash path triggered: %d, equal pointers for strings: %d",
+	                string_t::StringComparisonOperators::faster_hash.load(),
+	                string_t::StringComparisonOperators::faster_equality.load());
+	string_t::StringComparisonOperators::faster_equality = 0;
+	string_t::StringComparisonOperators::faster_hash = 0;
+}
+
+
 } // namespace duckdb

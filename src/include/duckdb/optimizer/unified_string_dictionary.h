@@ -68,6 +68,15 @@ public:
 
 	InsertResult insert(string_t &str);
 
+	atomic<idx_t> candidates;
+	atomic<idx_t> accepted;
+	atomic<idx_t> nRejections_Probing;
+	atomic<idx_t> nRejections_SizeFull;
+	atomic<idx_t> already_in;
+
+	void getStatistics();
+
+
 private:
 	char *AddTag(char *ptr);
 	bool CheckEqualityAndUpdatePtr(string_t &str, idx_t bucket_idx);

@@ -138,6 +138,7 @@ hash_t Hash(string_t val) {
 	} else if (string_t::isInUnifiedStringDictionary(val.GetTaggedPointer())) {
 		D_ASSERT(ValueIsAligned(reinterpret_cast<uint64_t>(
 		    data_ptr_cast(val.GetPointer()) - (sizeof(hash_t)))));
+		string_t::StringComparisonOperators::faster_hash++;
 		return *(reinterpret_cast<uint64_t *>(data_ptr_cast(val.GetPointer()) -
 		                                      (sizeof(hash_t))));
 	}

@@ -163,6 +163,9 @@ public:
 
 	struct StringComparisonOperators {
 
+		static std::atomic<uint64_t> faster_hash;
+		static std::atomic<uint64_t> faster_equality;
+
 		static inline bool Equals(const string_t &a, const string_t &b) {
 #ifdef DUCKDB_DEBUG_NO_INLINE
 			if (a.GetSize() != b.GetSize()) {
@@ -181,6 +184,7 @@ public:
 			b_bulk_comp = Load<uint64_t>(const_data_ptr_cast(&b) + 8u);
 			if (a_bulk_comp == b_bulk_comp) {
 				// either they are both inlined (so compare equal) or point to the same string (so compare equal)
+				// faster_equality++;
 				return true;
 			}
 			if (!a.IsInlined()) {

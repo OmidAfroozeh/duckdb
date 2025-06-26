@@ -41,10 +41,7 @@ OperatorResultType PhysicalUnifiedStringDictionary::Execute(ExecutionContext &co
 	auto &state = state_p.Cast<USDInsertionState>();
 	auto &global_state = gstate.Cast<USDInsertionGState>();
 	for (idx_t col_idx = 0; col_idx < input.data.size(); ++col_idx) {
-		if (input.data[col_idx].GetType() != LogicalType::VARCHAR || !insert_to_usd[col_idx] ||
-		    input.size() == 1 // FIXME: this condition is not needed but there's an extremely odd bug with this test:
-		                      // test/sql/copy/partitioned/hive_partition_escape.test
-		) {
+		if (input.data[col_idx].GetType() != LogicalType::VARCHAR || !insert_to_usd[col_idx]) {
 			continue;
 		}
 
@@ -55,6 +52,7 @@ OperatorResultType PhysicalUnifiedStringDictionary::Execute(ExecutionContext &co
 				context.client.GetUnifiedStringDictionary().insert(*str_value);
 			}
 		} else if (input.data[col_idx].GetVectorType() == VectorType::FLAT_VECTOR && insert_flat_vectors) {
+			Printer::Print("oh uh");
 			auto start = reinterpret_cast<string_t *>(FlatVector::GetData(input.data[col_idx]));
 			auto validity = FlatVector::Validity(input.data[col_idx]);
 			for (idx_t i = 0; i < input.size(); i++) {
@@ -69,7 +67,7 @@ OperatorResultType PhysicalUnifiedStringDictionary::Execute(ExecutionContext &co
 				continue;
 			}
 			auto dict_validity = FlatVector::Validity(dict);
-
+			Printer::Print(to_string(size.GetIndex()));
 			if (!global_state.is_high_cardinality[col_idx] &&
 			    DictionaryVector::DictionaryId(input.data[col_idx]) != state.current_dict_ids[col_idx]) {
 				auto start = reinterpret_cast<string_t *>(dict.GetData());
@@ -98,28 +96,28 @@ OperatorResultType PhysicalUnifiedStringDictionary::Execute(ExecutionContext &co
 				}
 				// update local and global states
 				state.current_dict_ids[col_idx] = DictionaryVector::DictionaryId(input.data[col_idx]);
-				unique_lock<mutex> lock(global_state.statistics_lock);
-				global_state.inserted_unique_strings[col_idx] += size.GetIndex();
-				global_state.unique_strings_in_unified_dictionary_per_column[col_idx] += state.n_success;
-				global_state.inserted_dictionaries[col_idx]++;
-
-				constexpr double TOTAL_GROWTH_THRESHOLD = 0.1;
-				const idx_t MIN_DICTIONARY_SEEN = 10;
-				constexpr idx_t HARD_LIMIT = 100000;
-
-				if (global_state.inserted_dictionaries[col_idx] > MIN_DICTIONARY_SEEN) {
-					auto avg_growth =
-					    static_cast<double>(global_state.unique_strings_in_unified_dictionary_per_column[col_idx]) /
-					    static_cast<double>(global_state.inserted_unique_strings[col_idx]);
-
-					if (avg_growth > TOTAL_GROWTH_THRESHOLD) {
-						global_state.is_high_cardinality[col_idx] = true;
-					}
-				}
-				if(global_state.unique_strings_in_unified_dictionary_per_column[col_idx] > HARD_LIMIT){
-					global_state.is_high_cardinality[col_idx] = true;
-				}
-				lock.unlock();
+//				unique_lock<mutex> lock(global_state.statistics_lock);
+//				global_state.inserted_unique_strings[col_idx] += size.GetIndex();
+//				global_state.unique_strings_in_unified_dictionary_per_column[col_idx] += state.n_success;
+//				global_state.inserted_dictionaries[col_idx]++;
+//
+//				constexpr double TOTAL_GROWTH_THRESHOLD = 0.1;
+//				const idx_t MIN_DICTIONARY_SEEN = 10;
+//				constexpr idx_t HARD_LIMIT = 100000;
+//
+//				if (global_state.inserted_dictionaries[col_idx] > MIN_DICTIONARY_SEEN) {
+//					auto avg_growth =
+//					    static_cast<double>(global_state.unique_strings_in_unified_dictionary_per_column[col_idx]) /
+//					    static_cast<double>(global_state.inserted_unique_strings[col_idx]);
+//
+//					if (avg_growth > TOTAL_GROWTH_THRESHOLD) {
+//						global_state.is_high_cardinality[col_idx] = true;
+//					}
+//				}
+//				if(global_state.unique_strings_in_unified_dictionary_per_column[col_idx] > HARD_LIMIT){
+//					global_state.is_high_cardinality[col_idx] = true;
+//				}
+//				lock.unlock();
 
 				context.client.GetUnifiedStringDictionary().UpdateFailedAttempts(state.n_rejected_probing +
 				                                                                 state.n_rejected_full);
