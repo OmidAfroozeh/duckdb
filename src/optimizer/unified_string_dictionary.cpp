@@ -137,6 +137,7 @@ InsertResult UnifiedStringsDictionary::insert(string_t &str) {
 				return InsertResult::SUCCESS;
 			} else { // lost the race to dirty the bucket, check if the dirt = HT_salt, if so wait, else continue
 				     // probing
+				Printer::Print("LOST");
 				if (expected == dirty_bucket_value) {
 					// the thread that won is most likely inserting the same string, wait
 					if (!WaitUntilSlotResolves(bucket_index + prob_index)) {
@@ -156,6 +157,7 @@ InsertResult UnifiedStringsDictionary::insert(string_t &str) {
 		} else if (HT_bucket_salt == hash_salt &&
 		           (HT_bucket & slot_mask) == HT_DIRTY_SENTINEL) { // dirtied but the salt matches, wait until the other
 			                                                       // thread finishes, then check again
+			Printer::Print("FOUND A DIRTIED");
 			if (!WaitUntilSlotResolves(bucket_index + prob_index)) {
 				nRejections_SizeFull++;
 				return InsertResult::REJECTED_FULL;
@@ -167,6 +169,7 @@ InsertResult UnifiedStringsDictionary::insert(string_t &str) {
 				continue;
 			}
 		} else if (HT_bucket_salt == hash_salt) { // the salt matches, string already exists, set the input string to
+//			Printer::Print("clean");
 			// point into the unified string dictionary
 			if (CheckEqualityAndUpdatePtr(str, bucket_index + prob_index)) {
 				already_in++;

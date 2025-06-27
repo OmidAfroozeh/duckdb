@@ -40,7 +40,8 @@ OperatorResultType PhysicalUnifiedStringDictionary::Execute(ExecutionContext &co
                                                             OperatorState &state_p) const {
 	auto &state = state_p.Cast<USDInsertionState>();
 	auto &global_state = gstate.Cast<USDInsertionGState>();
-	for (idx_t col_idx = 0; col_idx < input.data.size(); ++col_idx) {
+	for (idx_t col_idx = 0; col_idx < input.data.size(); ++col_idx)
+	{
 		if (input.data[col_idx].GetType() != LogicalType::VARCHAR || !insert_to_usd[col_idx]) {
 			continue;
 		}
@@ -51,8 +52,10 @@ OperatorResultType PhysicalUnifiedStringDictionary::Execute(ExecutionContext &co
 			if(validity.AllValid()){
 				context.client.GetUnifiedStringDictionary().insert(*str_value);
 			}
-		} else if (input.data[col_idx].GetVectorType() == VectorType::FLAT_VECTOR && insert_flat_vectors) {
-			Printer::Print("oh uh");
+		} else if (input.data[col_idx].GetVectorType() == VectorType::FLAT_VECTOR
+//		           && insert_flat_vectors
+		           ) {
+//			Printer::Print("oh uh");
 			auto start = reinterpret_cast<string_t *>(FlatVector::GetData(input.data[col_idx]));
 			auto validity = FlatVector::Validity(input.data[col_idx]);
 			for (idx_t i = 0; i < input.size(); i++) {
@@ -67,7 +70,7 @@ OperatorResultType PhysicalUnifiedStringDictionary::Execute(ExecutionContext &co
 				continue;
 			}
 			auto dict_validity = FlatVector::Validity(dict);
-			Printer::Print(to_string(size.GetIndex()));
+//			Printer::Print(to_string(size.GetIndex()));
 			if (!global_state.is_high_cardinality[col_idx] &&
 			    DictionaryVector::DictionaryId(input.data[col_idx]) != state.current_dict_ids[col_idx]) {
 				auto start = reinterpret_cast<string_t *>(dict.GetData());

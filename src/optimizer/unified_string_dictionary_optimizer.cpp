@@ -10,13 +10,14 @@ unique_ptr<LogicalOperator>
 UnifiedStringDictionaryOptimizer::CheckIfUnifiedStringDictionaryRequired(unique_ptr<LogicalOperator> op) {
 	auto rewrite_result = Rewrite(std::move(op));
 	if (rewrite_result.target_operator_found) {
-		optimizer->context.UnifiedStringDictionary = make_uniq<UnifiedStringsDictionary>(1024ull);
+		optimizer->context.UnifiedStringDictionary = make_uniq<UnifiedStringsDictionary>(4096ull);
 	}
 	return std::move(rewrite_result.op);
 }
 
 bool UnifiedStringDictionaryOptimizer::CheckIfTargetOperatorAndInsert(optional_ptr<LogicalOperator> op) {
 	bool isTargetOperator = false;
+	bool allow_flat_vecs = false;
 	switch (op->type) {
 	case LogicalOperatorType::LOGICAL_AGGREGATE_AND_GROUP_BY: {
 		auto &aggr_op = op->Cast<LogicalAggregate>();
@@ -105,6 +106,8 @@ bool UnifiedStringDictionaryOptimizer::CheckIfTargetOperatorAndInsert(optional_p
 			op->children[i] = std::move(new_operator);
 
 			op->ResolveOperatorTypes();
+			op->Print();
+
 		}
 		return true;
 	}
