@@ -81,6 +81,8 @@ private:
 	char *AddTag(char *ptr);
 	bool CheckEqualityAndUpdatePtr(string_t &str, idx_t bucket_idx);
 	bool WaitUntilSlotResolves(idx_t bucket_idx);
+
+	void AppendStatsToCSV();
 };
 
 } // namespace duckdb

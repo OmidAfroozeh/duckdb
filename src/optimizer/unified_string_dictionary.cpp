@@ -6,6 +6,7 @@
 #include <string>
 #include "duckdb/common/helper.hpp"
 #include <cmath>
+#include <fstream>
 
 namespace duckdb {
 
@@ -201,6 +202,8 @@ char *UnifiedStringsDictionary::AddTag(char *ptr) {
 }
 
 void UnifiedStringsDictionary::getStatistics() {
+	AppendStatsToCSV();
+
 	// A small helper to pad strings on the right
 	Printer::Print("");
 	auto padRight = [](const std::string &text, std::size_t width) {
@@ -243,7 +246,64 @@ void UnifiedStringsDictionary::getStatistics() {
 	                string_t::StringComparisonOperators::faster_equality.load());
 	string_t::StringComparisonOperators::faster_equality = 0;
 	string_t::StringComparisonOperators::faster_hash = 0;
+
+
 }
+
+
+
+void UnifiedStringsDictionary::AppendStatsToCSV() {
+	if(USD_SIZE == 0){
+		return;
+	}
+	static const char *csv_file = "/Users/omid/usd_stats.csv";
+
+	// Test whether we need to write the header
+	bool write_header = false;
+	{
+		std::ifstream infile(csv_file, std::ios::binary | std::ios::ate);
+		write_header = !infile.good() || infile.tellg() == 0;
+	}
+
+	std::ofstream out(csv_file, std::ios::app);
+	if (!out) {
+		Printer::Print("UnifiedStringsDictionary: Failed to open stats CSV!");
+		return;
+	}
+
+	if (write_header) {
+		out << "timestamp"
+		    << ",USD_size"
+		    << ",failed_attempt"
+		    << ",candidates"
+		    << ",accepted"
+		    << ",already_in"
+		    << ",rejected_full"
+		    << ",rejected_probing"
+		    << ",faster_hash"
+		    << ",faster_equality"
+		    << '\n';
+	}
+
+	// ISO-8601 timestamp (no timezone maths needed here – library/localtime is OK)
+	auto t = std::time(nullptr);
+	char buf[32];
+	std::strftime(buf, sizeof(buf), "%Y-%m-%dT%H:%M:%S", std::localtime(&t));
+
+	out << buf
+	    << ',' << USD_size
+	    << ',' << failed_attempt
+	    << ',' << candidates
+	    << ',' << accepted
+	    << ',' << already_in
+	    << ',' << nRejections_SizeFull
+	    << ',' << nRejections_Probing
+	    << ',' << string_t::StringComparisonOperators::faster_hash.load()
+	    << ',' << string_t::StringComparisonOperators::faster_equality.load()
+	    << '\n';
+}
+// ────────────────────────────────────────────────────────────────────────────────
+
 
 
 } // namespace duckdb
