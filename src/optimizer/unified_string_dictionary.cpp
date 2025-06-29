@@ -121,7 +121,7 @@ InsertResult UnifiedStringsDictionary::InsertInternal(string_t &str) {
 				auto slots_needed =
 				    (total_bytes_needed % 8 == 0) ? total_bytes_needed / 8 : 1 + (total_bytes_needed / 8);
 				auto slot_to_insert = current_empty_slot.fetch_add(slots_needed);
-				if (slot_to_insert + slots_needed > usd_size
+				if (slot_to_insert + slots_needed - 1 > usd_size
 				    //				    || total_bytes_needed > (USD_SIZE - slot_to_insert) * 8
 				) {
 					// give back the reserved slots
@@ -268,7 +268,7 @@ void UnifiedStringsDictionary::getStatistics() {
 
 
 void UnifiedStringsDictionary::AppendStatsToCSV() {
-	if(USD_SIZE == 0){
+	if(usd_size == 0){
 		return;
 	}
 	static const char *csv_file = "/Users/omid/usd_stats.csv";
@@ -306,8 +306,8 @@ void UnifiedStringsDictionary::AppendStatsToCSV() {
 	std::strftime(buf, sizeof(buf), "%Y-%m-%dT%H:%M:%S", std::localtime(&t));
 
 	out << buf
-	    << ',' << USD_size
-	    << ',' << failed_attempt
+	    << ',' << usd_size
+	    << ',' << failed_attempts
 	    << ',' << candidates
 	    << ',' << accepted
 	    << ',' << already_in
