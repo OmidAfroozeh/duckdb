@@ -136,7 +136,7 @@ hash_t Hash(string_t val) {
 
 		return h;
 	} else if (string_t::IsInUnifiedStringDictionary(val.GetTaggedPointer())) {
-		string_t::StringComparisonOperators::faster_hash++;
+//		string_t::StringComparisonOperators::faster_hash++;
 		return UnifiedStringsDictionary::LoadHash(val);
 	}
 	// Required for DUCKDB_DEBUG_NO_INLINE
