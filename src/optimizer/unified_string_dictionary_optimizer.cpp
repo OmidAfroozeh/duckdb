@@ -17,7 +17,7 @@ UnifiedStringDictionaryOptimizer::CheckIfUnifiedStringDictionaryRequired(unique_
 
 bool UnifiedStringDictionaryOptimizer::CheckIfTargetOperatorAndInsert(optional_ptr<LogicalOperator> op) {
 	bool isTargetOperator = false;
-	bool allow_flat_vecs = false;
+//	bool allow_flat_vecs = false;
 	switch (op->type) {
 	case LogicalOperatorType::LOGICAL_AGGREGATE_AND_GROUP_BY: {
 		auto &aggr_op = op->Cast<LogicalAggregate>();
@@ -106,7 +106,7 @@ bool UnifiedStringDictionaryOptimizer::CheckIfTargetOperatorAndInsert(optional_p
 			op->children[i] = std::move(new_operator);
 
 			op->ResolveOperatorTypes();
-			op->Print();
+//			op->Print();
 
 		}
 		return true;
