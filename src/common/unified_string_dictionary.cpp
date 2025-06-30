@@ -198,7 +198,7 @@ void UnifiedStringsDictionary::UpdateFailedAttempts(idx_t n_failed) {
 }
 
 UnifiedStringsDictionary::~UnifiedStringsDictionary() {
-	getStatistics();
+//	getStatistics();
 	this->buffer.reset();
 }
 
