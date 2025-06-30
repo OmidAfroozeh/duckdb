@@ -22,16 +22,16 @@ class USDInsertionGState : public GlobalOperatorState {
 public:
 	explicit USDInsertionGState(ClientContext &context, idx_t cols) {
 		for (idx_t i = 0; i < cols; ++i) {
-			inserted_unique_strings.push_back(0);
-			unique_strings_in_unified_dictionary_per_column.push_back(0);
+			inserted_strings.push_back(0);
+			unique_strings_in_usd_per_column.push_back(0);
 			inserted_dictionaries.push_back(0);
 			is_high_cardinality.push_back(false);
 		}
 	}
 	mutex statistics_lock;
 	vector<bool> is_high_cardinality;
-	vector<idx_t> inserted_unique_strings;
-	vector<idx_t> unique_strings_in_unified_dictionary_per_column;
+	vector<idx_t> inserted_strings;
+	vector<idx_t> unique_strings_in_usd_per_column;
 	vector<idx_t> inserted_dictionaries;
 };
 
@@ -40,12 +40,11 @@ OperatorResultType PhysicalUnifiedStringDictionary::Execute(ExecutionContext &co
                                                             OperatorState &state_p) const {
 	auto &state = state_p.Cast<USDInsertionState>();
 	auto &global_state = gstate.Cast<USDInsertionGState>();
-	for (idx_t col_idx = 0; col_idx < input.data.size(); ++col_idx)
-	{
+
+	for (idx_t col_idx = 0; col_idx < input.data.size(); ++col_idx) {
 		if (input.data[col_idx].GetType() != LogicalType::VARCHAR || !insert_to_usd[col_idx]) {
 			continue;
 		}
-
 		if (input.data[col_idx].GetVectorType() == VectorType::CONSTANT_VECTOR) {
 			auto str_value = reinterpret_cast<string_t *>(ConstantVector::GetData(input.data[col_idx]));
 			auto validity = ConstantVector::Validity(input.data[col_idx]);
@@ -70,7 +69,7 @@ OperatorResultType PhysicalUnifiedStringDictionary::Execute(ExecutionContext &co
 				continue;
 			}
 			auto dict_validity = FlatVector::Validity(dict);
-//			Printer::Print(to_string(size.GetIndex()));
+
 			if (!global_state.is_high_cardinality[col_idx] &&
 			    DictionaryVector::DictionaryId(input.data[col_idx]) != state.current_dict_ids[col_idx]) {
 				auto start = reinterpret_cast<string_t *>(dict.GetData());
@@ -81,16 +80,16 @@ OperatorResultType PhysicalUnifiedStringDictionary::Execute(ExecutionContext &co
 					auto result = context.client.GetUnifiedStringDictionary().Insert(start[i]);
 					// process the results, we use the statistics to determine the unique cardinality of the column
 					switch (result) {
-					case InsertResult::SUCCESS:
+					case USDInsertResult::SUCCESS:
 						++state.n_success;
 						break;
-					case InsertResult::ALREADY_EXISTS:
+					case USDInsertResult::ALREADY_EXISTS:
 						++state.n_already_exists;
 						break;
-					case InsertResult::REJECTED_PROBING:
+					case USDInsertResult::REJECTED_PROBING:
 						++state.n_rejected_probing;
 						break;
-					case InsertResult::REJECTED_FULL:
+					case USDInsertResult::REJECTED_FULL:
 						++state.n_rejected_full;
 						break;
 					default:
@@ -99,32 +98,31 @@ OperatorResultType PhysicalUnifiedStringDictionary::Execute(ExecutionContext &co
 				}
 				// update local and global states
 				state.current_dict_ids[col_idx] = DictionaryVector::DictionaryId(input.data[col_idx]);
-//				unique_lock<mutex> lock(global_state.statistics_lock);
-//				global_state.inserted_unique_strings[col_idx] += size.GetIndex();
-//				global_state.unique_strings_in_unified_dictionary_per_column[col_idx] += state.n_success;
-//				global_state.inserted_dictionaries[col_idx]++;
-//
-//				constexpr double TOTAL_GROWTH_THRESHOLD = 0.1;
-//				const idx_t MIN_DICTIONARY_SEEN = 10;
-//				constexpr idx_t HARD_LIMIT = 100000;
-//
-//				if (global_state.inserted_dictionaries[col_idx] > MIN_DICTIONARY_SEEN) {
-//					auto avg_growth =
-//					    static_cast<double>(global_state.unique_strings_in_unified_dictionary_per_column[col_idx]) /
-//					    static_cast<double>(global_state.inserted_unique_strings[col_idx]);
-//
-//					if (avg_growth > TOTAL_GROWTH_THRESHOLD) {
-//						global_state.is_high_cardinality[col_idx] = true;
-//					}
-//				}
-//				if(global_state.unique_strings_in_unified_dictionary_per_column[col_idx] > HARD_LIMIT){
-//					global_state.is_high_cardinality[col_idx] = true;
-//				}
-//				lock.unlock();
+				unique_lock<mutex> lock(global_state.statistics_lock);
+				global_state.inserted_strings[col_idx] += size.GetIndex();
+				global_state.unique_strings_in_usd_per_column[col_idx] += state.n_success;
+				global_state.inserted_dictionaries[col_idx]++;
+				// FIXME: magic numbers should not be here, still trying to fine tune this section
+				constexpr double TOTAL_GROWTH_THRESHOLD = 0.1;
+				const idx_t MIN_DICTIONARY_SEEN = 10;
+				constexpr idx_t HARD_LIMIT = 100000;
+
+				if (global_state.inserted_dictionaries[col_idx] > MIN_DICTIONARY_SEEN) {
+					auto avg_growth =
+					    static_cast<double>(global_state.unique_strings_in_usd_per_column[col_idx]) /
+					    static_cast<double>(global_state.inserted_strings[col_idx]);
+
+					if (avg_growth > TOTAL_GROWTH_THRESHOLD) {
+						global_state.is_high_cardinality[col_idx] = true;
+					}
+				}
+				if (global_state.unique_strings_in_usd_per_column[col_idx] > HARD_LIMIT) {
+					global_state.is_high_cardinality[col_idx] = true;
+				}
+				lock.unlock();
 
 				context.client.GetUnifiedStringDictionary().UpdateFailedAttempts(state.n_rejected_probing +
 				                                                                 state.n_rejected_full);
-
 				state.n_success = 0;
 				state.n_rejected_full = 0;
 				state.n_rejected_probing = 0;

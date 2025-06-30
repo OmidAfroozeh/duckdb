@@ -11,11 +11,7 @@
 
 namespace duckdb {
 
-#if !defined(DUCKDB_DISABLE_POINTER_SALT) && defined(__ANDROID__)
-#define DUCKDB_DISABLE_POINTER_SALT
-#endif
-
-enum class InsertResult {
+enum class USDInsertResult {
 	// string is inserted for the first time
 	SUCCESS,
 	// string already exists and is returned
@@ -30,13 +26,13 @@ enum class InsertResult {
 
 // Unified String Dictionary is a per-query dictionary containing the most valuable strings in a particular query with
 // their pre-computed hashes. The strings and their hashes are materialized in the Data Region. A linear probing hash
-// table is used for fast look ups.
+// table is used for fast look up.
 class UnifiedStringsDictionary {
 public:
-	UnifiedStringsDictionary(idx_t usd_sf);
+	explicit UnifiedStringsDictionary(idx_t usd_sf);
 	~UnifiedStringsDictionary();
 	void UpdateFailedAttempts(idx_t n_failed);
-	InsertResult Insert(string_t &str);
+	USDInsertResult Insert(string_t &str);
 	// Loads the pre-computed hash for a USD backed string
 	static hash_t LoadHash(string_t &str);
 
@@ -86,7 +82,7 @@ private:
 	char *AddTag(char *ptr);
 	bool CheckEqualityAndUpdatePtr(string_t &str, idx_t bucket_idx);
 	bool WaitUntilSlotResolves(idx_t bucket_idx);
-	InsertResult InsertInternal(string_t &str);
+	USDInsertResult InsertInternal(string_t &str);
 
 	void AppendStatsToCSV();
 };

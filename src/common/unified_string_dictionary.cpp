@@ -1,4 +1,4 @@
-#include "duckdb/optimizer/unified_string_dictionary.h"
+#include "duckdb/common/unified_string_dictionary.h"
 #include "duckdb/common/types/hash.hpp"
 #include <cstring>
 #include <algorithm>
@@ -73,28 +73,28 @@ bool UnifiedStringsDictionary::WaitUntilSlotResolves(idx_t bucket_idx) {
 	}
 }
 
-InsertResult UnifiedStringsDictionary::Insert(string_t &str) {
+USDInsertResult UnifiedStringsDictionary::Insert(string_t &str) {
 	// no support for inlined strings
 	// FIXME: the first condition should be IsInlined, change for bug test
 	if (str.GetSize() <= 12 || str.GetSize() > MAX_STRING_LENGTH) {
-		return InsertResult::INVALID;
+		return USDInsertResult::INVALID;
 	}
 
 	// disable Unified string dictionary if passed attempt threshold to stop performance loss
 	if (failed_attempts > FAILED_ATTEMPT_THRESHOLD) {
-		return InsertResult::REJECTED_FULL;
+		return USDInsertResult::REJECTED_FULL;
 	}
 
 	// FIXME: technically, there is no need for a USD with size zero,
 	//  but there are some tests that use verification which causes CI failure
 	if (usd_scale_factor == 0) {
-		return InsertResult::INVALID;
+		return USDInsertResult::INVALID;
 	}
 
 	return InsertInternal(str);
 }
 
-InsertResult UnifiedStringsDictionary::InsertInternal(string_t &str) {
+USDInsertResult UnifiedStringsDictionary::InsertInternal(string_t &str) {
 	candidates++;
 	hash_t string_hash = Hash(str.GetData(), str.GetSize());
 	uint32_t string_hash_prefix = Load<uint32_t>(reinterpret_cast<const_data_ptr_t>(&string_hash));
@@ -121,15 +121,13 @@ InsertResult UnifiedStringsDictionary::InsertInternal(string_t &str) {
 				auto slots_needed =
 				    (total_bytes_needed % 8 == 0) ? total_bytes_needed / 8 : 1 + (total_bytes_needed / 8);
 				auto slot_to_insert = current_empty_slot.fetch_add(slots_needed);
-				if (slot_to_insert + slots_needed - 1 > usd_size
-				    //				    || total_bytes_needed > (USD_SIZE - slot_to_insert) * 8
-				) {
+				if (slot_to_insert + slots_needed - 1 > usd_size) {
 					// give back the reserved slots
 					current_empty_slot.fetch_sub(slots_needed, std::memory_order_relaxed);
 					// clear the dirtied bucket
 					HT[bucket_index + prob_index].store(0, std::memory_order_release);
 					nRejections_SizeFull++;
-					return InsertResult::REJECTED_FULL;
+					return USDInsertResult::REJECTED_FULL;
 				}
 				uint32_t new_bucket = UnsafeNumericCast<uint32_t>(string_hash_salt);
 				new_bucket = new_bucket << (slot_bits);
@@ -146,7 +144,7 @@ InsertResult UnifiedStringsDictionary::InsertInternal(string_t &str) {
 				// Input string points into the USD backed string
 				str.SetPointer(AddTag(char_ptr_cast(slot_ptr)));
 				accepted++;
-				return InsertResult::SUCCESS;
+				return USDInsertResult::SUCCESS;
 			} else { // lost the race to dirty the bucket, check if the dirt = HT_salt, if so wait, else continue
 				     // probing
 				Printer::Print("LOST");
@@ -154,11 +152,11 @@ InsertResult UnifiedStringsDictionary::InsertInternal(string_t &str) {
 					// the thread that won is most likely inserting the same string, wait
 					if (!WaitUntilSlotResolves(bucket_index + prob_index)) {
 						nRejections_SizeFull++;
-						return InsertResult::REJECTED_FULL;
+						return USDInsertResult::REJECTED_FULL;
 					}
 					if (CheckEqualityAndUpdatePtr(str, bucket_index + prob_index)) {
 						already_in++;
-						return InsertResult::ALREADY_EXISTS;
+						return USDInsertResult::ALREADY_EXISTS;
 					} else {
 						continue;
 					}
@@ -172,11 +170,11 @@ InsertResult UnifiedStringsDictionary::InsertInternal(string_t &str) {
 			Printer::Print("FOUND A DIRTIED");
 			if (!WaitUntilSlotResolves(bucket_index + prob_index)) {
 				nRejections_SizeFull++;
-				return InsertResult::REJECTED_FULL;
+				return USDInsertResult::REJECTED_FULL;
 			}
 			if (CheckEqualityAndUpdatePtr(str, bucket_index + prob_index)) {
 				already_in++;
-				return InsertResult::ALREADY_EXISTS;
+				return USDInsertResult::ALREADY_EXISTS;
 			} else {
 				continue;
 			}
@@ -185,14 +183,14 @@ InsertResult UnifiedStringsDictionary::InsertInternal(string_t &str) {
 			// point into the unified string dictionary
 			if (CheckEqualityAndUpdatePtr(str, bucket_index + prob_index)) {
 				already_in++;
-				return InsertResult::ALREADY_EXISTS;
+				return USDInsertResult::ALREADY_EXISTS;
 			} else {
 				continue;
 			}
 		}
 	}
 	nRejections_Probing++;
-	return InsertResult::REJECTED_PROBING;
+	return USDInsertResult::REJECTED_PROBING;
 }
 
 void UnifiedStringsDictionary::UpdateFailedAttempts(idx_t n_failed) {
