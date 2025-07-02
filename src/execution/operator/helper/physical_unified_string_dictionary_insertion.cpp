@@ -65,6 +65,9 @@ OperatorResultType PhysicalUnifiedStringDictionary::Execute(ExecutionContext &co
 			if (!size.IsValid()) {
 				continue;
 			}
+			if(size.GetIndex() > 3000){
+				continue;
+			}
 			auto dict_validity = FlatVector::Validity(dict);
 
 			if (!global_state.is_high_cardinality[col_idx] &&
