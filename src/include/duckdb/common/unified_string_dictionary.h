@@ -1,7 +1,5 @@
 #pragma once
 
-#include <cstddef>
-
 #include "duckdb/common/typedefs.hpp"
 #include "duckdb/common/atomic.hpp"
 #include "duckdb/common/mutex.hpp"
