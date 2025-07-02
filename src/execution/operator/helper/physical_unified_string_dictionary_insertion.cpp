@@ -68,6 +68,9 @@ OperatorResultType PhysicalUnifiedStringDictionary::Execute(ExecutionContext &co
 			if (!size.IsValid()) {
 				continue;
 			}
+			if(size.GetIndex() > 3000){
+				continue;
+			}
 			auto dict_validity = FlatVector::Validity(dict);
 
 			if (!global_state.is_high_cardinality[col_idx] &&
@@ -105,7 +108,7 @@ OperatorResultType PhysicalUnifiedStringDictionary::Execute(ExecutionContext &co
 				// FIXME: magic numbers should not be here, still trying to fine tune this section
 				constexpr double TOTAL_GROWTH_THRESHOLD = 0.1;
 				const idx_t MIN_DICTIONARY_SEEN = 10;
-				constexpr idx_t HARD_LIMIT = 100000;
+				constexpr idx_t HARD_LIMIT = 5000;
 
 				if (global_state.inserted_dictionaries[col_idx] > MIN_DICTIONARY_SEEN) {
 					auto avg_growth =

@@ -1,9 +1,5 @@
 #include "duckdb/common/unified_string_dictionary.h"
 #include "duckdb/common/types/hash.hpp"
-#include <cstring>
-#include <algorithm>
-#include <iostream>
-#include <string>
 #include "duckdb/common/helper.hpp"
 #include <cmath>
 #include <fstream>
@@ -35,7 +31,7 @@ UnifiedStringsDictionary::UnifiedStringsDictionary(idx_t usd_sf) {
 	DataRegion =
 	    reinterpret_cast<uint64_t *>(AlignValue(reinterpret_cast<uint64_t>(buffer.get() + ht_size * HT_BUCKET_SIZE)));
 
-	// We zero the hashtable, since we need an indicator if a bucket as been filled or not
+	// We zero the hashtable, since we need an indicator if a bucket has been filled or not
 	memset(buffer.get(), 0, ht_size * HT_BUCKET_SIZE);
 	// As we store the hash in the slot before the start of the string slot 0 cannot be used. Also, as value 1 is
 	// reserved as the SENTINEL value. it is initialized with 2.
@@ -99,8 +95,11 @@ USDInsertResult UnifiedStringsDictionary::InsertInternal(string_t &str) {
 	hash_t string_hash = Hash(str.GetData(), str.GetSize());
 	uint32_t string_hash_prefix = Load<uint32_t>(reinterpret_cast<const_data_ptr_t>(&string_hash));
 
+	// Used as the index into the linear probing hash table
 	uint32_t bucket_index = string_hash_prefix & slot_mask;
+	// Will be compared to the salt in the HT bucket to be even more sure before performing memcmp of full strings
 	uint32_t string_hash_salt = string_hash_prefix >> slot_bits;
+	//Combines the salt with a sentinel value to mark the bucket as "dirty" to signal the other thread that a string is being inserted
 	uint32_t dirty_bucket_value = (string_hash_salt << slot_bits) | HT_DIRTY_SENTINEL;
 
 	D_ASSERT(bucket_index <= ht_size);
@@ -117,9 +116,11 @@ USDInsertResult UnifiedStringsDictionary::InsertInternal(string_t &str) {
 			uint32_t expected = 0;
 			if (HT[bucket_index + prob_index].compare_exchange_strong(
 			        expected, dirty_bucket_value, std::memory_order_release, std::memory_order_relaxed)) {
+				// calculates how many 8-bytes slots is needed for the hash + string + null character
 				auto total_bytes_needed = str.GetSize() + sizeof(hash_t) + 1;
 				auto slots_needed =
 				    (total_bytes_needed % 8 == 0) ? total_bytes_needed / 8 : 1 + (total_bytes_needed / 8);
+				// reserve the capacity needed in the data region
 				auto slot_to_insert = current_empty_slot.fetch_add(slots_needed);
 				if (slot_to_insert + slots_needed - 1 > usd_size) {
 					// give back the reserved slots
@@ -129,12 +130,12 @@ USDInsertResult UnifiedStringsDictionary::InsertInternal(string_t &str) {
 					nRejections_SizeFull++;
 					return USDInsertResult::REJECTED_FULL;
 				}
+				// build the new bucket value
 				uint32_t new_bucket = UnsafeNumericCast<uint32_t>(string_hash_salt);
 				new_bucket = new_bucket << (slot_bits);
 				new_bucket |= slot_to_insert;
 
 				auto slot_ptr = data_ptr_cast(DataRegion + slot_to_insert);
-
 				// modify the data region
 				memcpy(slot_ptr, str.GetData(), str.GetSize());
 				memset(slot_ptr + str.GetSize(), '\0', 1);
