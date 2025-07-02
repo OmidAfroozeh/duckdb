@@ -73,6 +73,9 @@ private:
 	atomic<idx_t> nRejections_SizeFull;
 	atomic<idx_t> already_in;
 
+	atomic<idx_t> total_probes;
+	atomic<idx_t> total_insert_attempts;
+
 	void getStatistics();
 
 

@@ -43,6 +43,10 @@ UnifiedStringsDictionary::UnifiedStringsDictionary(idx_t usd_sf) {
 	nRejections_Probing = 0;
 	nRejections_SizeFull = 0;
 	already_in = 0;
+
+	total_probes = 0;
+	total_insert_attempts = 0;
+
 }
 
 bool UnifiedStringsDictionary::CheckEqualityAndUpdatePtr(string_t &str, idx_t bucket_idx) {
@@ -103,8 +107,9 @@ USDInsertResult UnifiedStringsDictionary::InsertInternal(string_t &str) {
 	uint32_t dirty_bucket_value = (string_hash_salt << slot_bits) | HT_DIRTY_SENTINEL;
 
 	D_ASSERT(bucket_index <= ht_size);
-
+	total_insert_attempts++;
 	for (idx_t i = 0; i < PROBING_LIMIT; i++) {
+		total_probes++; // NEW: Count each probing attempt
 		idx_t prob_index = i;
 		if (bucket_index + i >= usd_size) {
 			prob_index = (bucket_index + i) % usd_size;
@@ -199,7 +204,7 @@ void UnifiedStringsDictionary::UpdateFailedAttempts(idx_t n_failed) {
 }
 
 UnifiedStringsDictionary::~UnifiedStringsDictionary() {
-//	getStatistics();
+	getStatistics();
 	this->buffer.reset();
 }
 
@@ -296,6 +301,7 @@ void UnifiedStringsDictionary::AppendStatsToCSV() {
 		    << ",rejected_probing"
 		    << ",faster_hash"
 		    << ",faster_equality"
+		    << ",avg_probes"
 		    << '\n';
 	}
 
@@ -303,6 +309,8 @@ void UnifiedStringsDictionary::AppendStatsToCSV() {
 	auto t = std::time(nullptr);
 	char buf[32];
 	std::strftime(buf, sizeof(buf), "%Y-%m-%dT%H:%M:%S", std::localtime(&t));
+	Printer::Print(to_string(total_probes) + " | | " + to_string(total_insert_attempts));
+	double avg_probes = total_insert_attempts > 0 ? static_cast<double>(total_probes) / total_insert_attempts : 0.0;
 
 	out << buf
 	    << ',' << usd_size
@@ -314,6 +322,7 @@ void UnifiedStringsDictionary::AppendStatsToCSV() {
 	    << ',' << nRejections_Probing
 	    << ',' << string_t::StringComparisonOperators::faster_hash.load()
 	    << ',' << string_t::StringComparisonOperators::faster_equality.load()
+	    << ',' << avg_probes
 	    << '\n';
 }
 // ────────────────────────────────────────────────────────────────────────────────

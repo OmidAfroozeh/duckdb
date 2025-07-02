@@ -50,6 +50,7 @@ void CompressedStringScanState::Initialize(ColumnSegment &segment, bool initiali
 
 	dictionary = make_buffer<Vector>(segment.type, index_buffer_count);
 	dictionary_size = index_buffer_count;
+	Printer::Print(to_string(dictionary_size) + " | " + to_string(segment.count.load()));
 	auto dict_child_data = FlatVector::GetData<string_t>(*(dictionary));
 	FlatVector::SetNull(*dictionary, 0, true);
 	for (uint32_t i = 1; i < index_buffer_count; i++) {

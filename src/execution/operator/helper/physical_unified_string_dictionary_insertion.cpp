@@ -68,9 +68,9 @@ OperatorResultType PhysicalUnifiedStringDictionary::Execute(ExecutionContext &co
 			if (!size.IsValid()) {
 				continue;
 			}
-			if(size.GetIndex() > 3000){
-				continue;
-			}
+//			if(size.GetIndex() > 3000){
+//				continue;
+//			}
 			auto dict_validity = FlatVector::Validity(dict);
 
 			if (!global_state.is_high_cardinality[col_idx] &&
@@ -101,35 +101,35 @@ OperatorResultType PhysicalUnifiedStringDictionary::Execute(ExecutionContext &co
 				}
 				// update local and global states
 				state.current_dict_ids[col_idx] = DictionaryVector::DictionaryId(input.data[col_idx]);
-				unique_lock<mutex> lock(global_state.statistics_lock);
-				global_state.inserted_strings[col_idx] += size.GetIndex();
-				global_state.unique_strings_in_usd_per_column[col_idx] += state.n_success;
-				global_state.inserted_dictionaries[col_idx]++;
-				// FIXME: magic numbers should not be here, still trying to fine tune this section
-				constexpr double TOTAL_GROWTH_THRESHOLD = 0.1;
-				const idx_t MIN_DICTIONARY_SEEN = 10;
-				constexpr idx_t HARD_LIMIT = 5000;
-
-				if (global_state.inserted_dictionaries[col_idx] > MIN_DICTIONARY_SEEN) {
-					auto avg_growth =
-					    static_cast<double>(global_state.unique_strings_in_usd_per_column[col_idx]) /
-					    static_cast<double>(global_state.inserted_strings[col_idx]);
-
-					if (avg_growth > TOTAL_GROWTH_THRESHOLD) {
-						global_state.is_high_cardinality[col_idx] = true;
-					}
-				}
-				if (global_state.unique_strings_in_usd_per_column[col_idx] > HARD_LIMIT) {
-					global_state.is_high_cardinality[col_idx] = true;
-				}
-				lock.unlock();
-
-				context.client.GetUnifiedStringDictionary().UpdateFailedAttempts(state.n_rejected_probing +
-				                                                                 state.n_rejected_full);
-				state.n_success = 0;
-				state.n_rejected_full = 0;
-				state.n_rejected_probing = 0;
-				state.n_already_exists = 0;
+//				unique_lock<mutex> lock(global_state.statistics_lock);
+//				global_state.inserted_strings[col_idx] += size.GetIndex();
+//				global_state.unique_strings_in_usd_per_column[col_idx] += state.n_success;
+//				global_state.inserted_dictionaries[col_idx]++;
+//				// FIXME: magic numbers should not be here, still trying to fine tune this section
+//				constexpr double TOTAL_GROWTH_THRESHOLD = 0.1;
+//				const idx_t MIN_DICTIONARY_SEEN = 10;
+//				constexpr idx_t HARD_LIMIT = 5000;
+//
+//				if (global_state.inserted_dictionaries[col_idx] > MIN_DICTIONARY_SEEN) {
+//					auto avg_growth =
+//					    static_cast<double>(global_state.unique_strings_in_usd_per_column[col_idx]) /
+//					    static_cast<double>(global_state.inserted_strings[col_idx]);
+//
+//					if (avg_growth > TOTAL_GROWTH_THRESHOLD) {
+//						global_state.is_high_cardinality[col_idx] = true;
+//					}
+//				}
+//				if (global_state.unique_strings_in_usd_per_column[col_idx] > HARD_LIMIT) {
+//					global_state.is_high_cardinality[col_idx] = true;
+//				}
+//				lock.unlock();
+//
+//				context.client.GetUnifiedStringDictionary().UpdateFailedAttempts(state.n_rejected_probing +
+//				                                                                 state.n_rejected_full);
+//				state.n_success = 0;
+//				state.n_rejected_full = 0;
+//				state.n_rejected_probing = 0;
+//				state.n_already_exists = 0;
 			}
 		}
 	}
