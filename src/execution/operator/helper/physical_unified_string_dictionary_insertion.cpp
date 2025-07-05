@@ -61,11 +61,15 @@ void PhysicalUnifiedStringDictionary::InsertDictionary(ExecutionContext &context
 	auto &gstate = gstate_p.Cast<USDInsertionGState>();
 	auto &dict = DictionaryVector::Child(vec);
 	auto size = DictionaryVector::DictionarySize(vec);
-	if (!size.IsValid() || size.GetIndex() > MAX_DICT_SIZE) {
+	if (!size.IsValid()
+//	    || size.GetIndex() > MAX_DICT_SIZE
+	    ) {
 		return;
 	}
 
-	if (gstate.is_high_cardinality[col_idx] || DictionaryVector::DictionaryId(vec) == state.current_dict_ids[col_idx]) {
+	if (
+//	    gstate.is_high_cardinality[col_idx] ||
+	    DictionaryVector::DictionaryId(vec) == state.current_dict_ids[col_idx]) {
 		return;
 	}
 
