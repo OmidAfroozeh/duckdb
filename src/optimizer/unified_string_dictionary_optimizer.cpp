@@ -10,7 +10,7 @@ unique_ptr<LogicalOperator>
 UnifiedStringDictionaryOptimizer::CheckIfUnifiedStringDictionaryRequired(unique_ptr<LogicalOperator> op) {
 	auto rewrite_result = Rewrite(std::move(op));
 	if (rewrite_result.target_operator_found) {
-		optimizer->context.UnifiedStringDictionary = make_uniq<UnifiedStringsDictionary>(1ull);
+		optimizer->context.UnifiedStringDictionary = make_uniq<UnifiedStringsDictionary>(16ull);
 	}
 	return std::move(rewrite_result.op);
 }
