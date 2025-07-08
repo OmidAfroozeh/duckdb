@@ -134,6 +134,11 @@ hash_t Hash(string_t val) {
 		D_ASSERT(h == Hash(val.GetData(), val.GetSize()));
 
 		return h;
+	} else if (string_t::isInUnifiedStringDictionary(val.GetTaggedPointer())) {
+		D_ASSERT(ValueIsAligned(reinterpret_cast<uint64_t>(
+		    data_ptr_cast(val.GetPointer()) - (sizeof(hash_t) + UnifiedStringsDictionary::STR_LENGTH_BYTES))));
+		return *(reinterpret_cast<uint64_t *>(data_ptr_cast(val.GetPointer()) -
+		                                      (sizeof(hash_t) + UnifiedStringsDictionary::STR_LENGTH_BYTES)));
 	}
 	// Required for DUCKDB_DEBUG_NO_INLINE
 	return HashBytes<string_t::INLINE_LENGTH >= sizeof(hash_t)>(const_data_ptr_cast(val.GetData()), val.GetSize());
