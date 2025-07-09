@@ -71,9 +71,9 @@ USDInsertResult UnifiedStringsDictionary::Insert(string_t &str) {
 	}
 
 	// disable Unified string dictionary if passed attempt threshold to stop performance loss
-	if (failed_attempts > FAILED_ATTEMPT_THRESHOLD) {
-		return USDInsertResult::REJECTED_FULL;
-	}
+//	if (failed_attempts > FAILED_ATTEMPT_THRESHOLD) {
+//		return USDInsertResult::REJECTED_FULL;
+//	}
 
 	// FIXME: technically, there is no need for a USD with size zero,
 	//  but there are some tests that use verification which causes CI failure

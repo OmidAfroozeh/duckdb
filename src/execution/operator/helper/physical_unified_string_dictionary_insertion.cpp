@@ -61,7 +61,9 @@ void PhysicalUnifiedStringDictionary::InsertDictionary(ExecutionContext &context
 	auto &gstate = gstate_p.Cast<USDInsertionGState>();
 	auto &dict = DictionaryVector::Child(vec);
 	auto size = DictionaryVector::DictionarySize(vec);
-	if (!size.IsValid() || size.GetIndex() > MAX_DICT_SIZE) {
+	if (!size.IsValid()
+//	    || size.GetIndex() > MAX_DICT_SIZE
+	    ) {
 		return;
 	}
 
@@ -111,16 +113,16 @@ void PhysicalUnifiedStringDictionary::UpdateDictionaryState(ExecutionContext &co
 		gstate.unique_strings_in_usd_per_column[col_idx] += state.n_success;
 		gstate.inserted_dictionaries[col_idx]++;
 
-		if (gstate.inserted_dictionaries[col_idx] > MIN_DICTIONARY_SEEN) {
-			double avg_growth = static_cast<double>(gstate.unique_strings_in_usd_per_column[col_idx]) /
-			                    static_cast<double>(gstate.inserted_strings[col_idx]);
-			if (avg_growth > TOTAL_GROWTH_THRESHOLD) {
-				gstate.is_high_cardinality[col_idx] = true;
-			}
-		}
-		if (gstate.unique_strings_in_usd_per_column[col_idx] > MAX_STRINGS_PER_COLUMN) {
-			gstate.is_high_cardinality[col_idx] = true;
-		}
+//		if (gstate.inserted_dictionaries[col_idx] > MIN_DICTIONARY_SEEN) {
+//			double avg_growth = static_cast<double>(gstate.unique_strings_in_usd_per_column[col_idx]) /
+//			                    static_cast<double>(gstate.inserted_strings[col_idx]);
+//			if (avg_growth > TOTAL_GROWTH_THRESHOLD) {
+//				gstate.is_high_cardinality[col_idx] = true;
+//			}
+//		}
+//		if (gstate.unique_strings_in_usd_per_column[col_idx] > MAX_STRINGS_PER_COLUMN) {
+//			gstate.is_high_cardinality[col_idx] = true;
+//		}
 	}
 
 	context.client.GetUnifiedStringDictionary().UpdateFailedAttempts(state.n_rejected_probing + state.n_rejected_full);
