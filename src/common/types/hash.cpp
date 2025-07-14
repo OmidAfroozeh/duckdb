@@ -104,6 +104,9 @@ hash_t HashBytes(const_data_ptr_t ptr, const idx_t len) noexcept {
 
 template <>
 hash_t Hash(string_t val) {
+	if(val.Empty()){
+		return 0x46D8592D429C1DC0;
+	}
 	// If the string is inlined, we can do a branchless hash
 	if (val.IsInlined()) {
 		// This seed slightly improves bit distribution, taken from here:
@@ -112,10 +115,8 @@ hash_t Hash(string_t val) {
 		hash_t h = 0xe17a1465U ^ (val.GetSize() * 0xc6a4a7935bd1e995U);
 
 		// Hash/combine the first 8-byte block
-		if (!val.Empty()) {
-			h ^= Load<hash_t>(const_data_ptr_cast(val.GetPrefix()));
-			h *= 0xd6e8feb86659fd93U;
-		}
+		h ^= Load<hash_t>(const_data_ptr_cast(val.GetPrefix()));
+		h *= 0xd6e8feb86659fd93U;
 
 		// Load remaining 4 bytes
 		if (val.GetSize() > sizeof(hash_t)) {
