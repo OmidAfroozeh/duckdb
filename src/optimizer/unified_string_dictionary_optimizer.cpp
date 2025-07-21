@@ -74,6 +74,15 @@ bool UnifiedStringDictionaryOptimizer::CheckIfTargetOperatorAndInsert(optional_p
 		}
 		break;
 	}
+	case LogicalOperatorType::LOGICAL_ORDER_BY:{
+		auto &order_op = op->Cast<LogicalOrder>();
+		for (auto &type : order_op.types) {
+			if (type == LogicalType::VARCHAR) {
+				isTargetOperator = true;
+			}
+		}
+
+	}
 		// TODO: filter operator is also another possible TargetOperator
 	default:
 		break;
